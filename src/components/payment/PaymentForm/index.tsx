@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { cn, formatCurrency, formatCardNumber, formatExpiry } from '@/utils/format';
 import { Button } from '@/components/common/Button';
 import { PLANS, GST_RATE } from '@/constants/plans';

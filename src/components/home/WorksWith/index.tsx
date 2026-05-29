@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { WORKS_WITH_PLATFORMS } from '@/constants/logos';
-import { PlatformLogo } from '@/components/common/PlatformLogo';
 
 export const WorksWith: React.FC = () => {
   return (

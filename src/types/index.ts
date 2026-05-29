@@ -9,7 +9,14 @@ export interface Pair {
   dstAbbr: string;
   count: string;
   status: 'paid' | 'free' | 'region';
+  /** Direct-access URL for FREE pairs — opens the tool without payment */
   url: string | null;
+  /**
+   * External microservice tool URL for this migration pair.
+   * After payment succeeds, the user is redirected here.
+   * Falls back to the internal /migration wizard when null.
+   */
+  toolUrl: string | null;
   myobBusiness?: boolean;
 }
 

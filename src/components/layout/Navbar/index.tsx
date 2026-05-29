@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
-import { useAppStore } from '@/store/appStore';
+
 
 interface NavbarProps {
   variant?: 'default' | 'payment' | 'migration' | 'admin';
@@ -22,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const resetMigration = useAppStore((s) => s.resetMigration);
+  // resetMigration available via store if needed
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -198,18 +198,28 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
               </svg>
               <span>81 migrations live</span>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleGetStarted}
-              iconRight={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              }
-            >
-              Get started
-            </Button>
+
+            {/* Sign In / Sign Up (desktop) */}
+            <div className="hidden md:flex items-center gap-1.5">
+              <Link
+                to="/sign-in"
+                className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors font-medium"
+              >
+                Sign in
+              </Link>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleGetStarted}
+                iconRight={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                }
+              >
+                Get started
+              </Button>
+            </div>
 
             {/* Mobile menu button */}
             <button
@@ -256,9 +266,16 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
             >
               Admin
             </Link>
-            <div className="pt-2 border-t border-border mt-1">
+            <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
+              <Link
+                to="/sign-in"
+                onClick={() => setMobileOpen(false)}
+                className="px-3 py-2.5 text-sm text-center text-text-secondary hover:text-text-primary rounded-md border border-border hover:bg-bg-light transition-colors font-medium"
+              >
+                Sign in
+              </Link>
               <Button variant="primary" size="sm" fullWidth onClick={handleGetStarted}>
-                Get started
+                Get started free
               </Button>
             </div>
           </nav>

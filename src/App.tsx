@@ -1,16 +1,23 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@/components/common/Spinner';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/auth/AdminGuard';
 
-// ─── Lazy-loaded pages for code splitting ────────────────────────────────────
-const HomePage      = React.lazy(() => import('@/pages/HomePage'));
-const PaymentPage   = React.lazy(() => import('@/pages/PaymentPage'));
-const MigrationPage = React.lazy(() => import('@/pages/MigrationPage'));
-const AdminPage     = React.lazy(() => import('@/pages/AdminPage'));
-const SignInPage    = React.lazy(() => import('@/pages/SignInPage'));
-const SignUpPage    = React.lazy(() => import('@/pages/SignUpPage'));
+// ─── Lazy-loaded pages ────────────────────────────────────────────────────────
+const HomePage            = React.lazy(() => import('@/pages/HomePage'));
+const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
+const MigrationPage       = React.lazy(() => import('@/pages/MigrationPage'));
+const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
+const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
-// ─── Full-screen loading fallback ────────────────────────────────────────────
+// Admin sub-pages
+const AdminDashboard      = React.lazy(() => import('@/pages/AdminPage'));
+const MigrationPairsPage  = React.lazy(() => import('@/pages/admin/MigrationPairsPage'));
+const PlansPage           = React.lazy(() => import('@/pages/admin/PlansPage'));
+const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
+
+// ─── Full-screen loading fallback ─────────────────────────────────────────────
 const PageLoader: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center bg-bg">
     <div className="flex flex-col items-center gap-4">
@@ -20,18 +27,28 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
-// ─── App ─────────────────────────────────────────────────────────────────────
+// ─── App ──────────────────────────────────────────────────────────────────────
 const App: React.FC = () => (
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/payment"   element={<PaymentPage />} />
       <Route path="/migration" element={<MigrationPage />} />
-      <Route path="/admin"     element={<AdminPage />} />
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
-      {/* Catch-all redirect */}
-      <Route path="*"          element={<Navigate to="/" replace />} />
+
+      {/* Admin — guard checks auth + admin role before rendering layout */}
+      <Route path="/admin" element={<AdminGuard />}>
+        <Route element={<AdminLayout />}>
+          <Route index                  element={<AdminDashboard />} />
+          <Route path="migration-pairs" element={<MigrationPairsPage />} />
+          <Route path="plans"           element={<PlansPage />} />
+          <Route path="audit"           element={<AuditPage />} />
+        </Route>
+      </Route>
+
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </Suspense>
 );

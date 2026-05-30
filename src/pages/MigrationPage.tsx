@@ -6,29 +6,29 @@ import { ConnectStep } from '@/components/migration/ConnectStep';
 import { DataSelector } from '@/components/migration/DataSelector';
 import { ReviewStep } from '@/components/migration/ReviewStep';
 import { ProgressStep } from '@/components/migration/ProgressStep';
-import { PAIRS } from '@/constants/pairs';
 import { useAppStore } from '@/store/appStore';
 
 const MigrationPage: React.FC = () => {
   const navigate = useNavigate();
   const {
-    selectedPairIndex,
+    selectedPair,
     migrationStep,
     nextMigrationStep,
     prevMigrationStep,
   } = useAppStore((s) => ({
-    selectedPairIndex:    s.selectedPairIndex,
-    migrationStep:        s.migrationStep,
-    nextMigrationStep:    s.nextMigrationStep,
-    prevMigrationStep:    s.prevMigrationStep,
+    selectedPair:      s.selectedPair,
+    migrationStep:     s.migrationStep,
+    nextMigrationStep: s.nextMigrationStep,
+    prevMigrationStep: s.prevMigrationStep,
   }));
 
   // Guard
-  const pair = selectedPairIndex !== null ? PAIRS[selectedPairIndex] : null;
-  if (!pair) {
+  if (!selectedPair) {
     navigate('/');
     return null;
   }
+
+  const pair = selectedPair;
 
   const handleStart = () => {
     nextMigrationStep(); // moves from step 4 → 5

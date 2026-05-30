@@ -19,7 +19,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
     if (pair.url) {
       window.open(pair.url, '_blank', 'noopener,noreferrer');
     } else {
-      setSelectedPair(index);
+      setSelectedPair(pair);
       navigate('/payment');
     }
   };

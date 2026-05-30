@@ -1,48 +1,58 @@
 import React from 'react';
 import { formatCurrency } from '@/utils/format';
 import { PLANS, GST_RATE } from '@/constants/plans';
-import { PAIRS } from '@/constants/pairs';
 import { useAppStore } from '@/store/appStore';
+import type { Plan } from '@/types';
 
-export const OrderSummary: React.FC = () => {
+interface OrderSummaryProps {
+  /** Live plan list from API (or falls back to PLANS constant internally). */
+  uiPlans?: Plan[];
+}
+
+export const OrderSummary: React.FC<OrderSummaryProps> = ({ uiPlans }) => {
   const selectedPlanIndex = useAppStore((s) => s.selectedPlanIndex);
-  const selectedPairIndex = useAppStore((s) => s.selectedPairIndex);
+  const selectedPair      = useAppStore((s) => s.selectedPair);
 
-  const plan = PLANS[selectedPlanIndex];
-  const pair = selectedPairIndex !== null ? PAIRS[selectedPairIndex] : PAIRS[0];
+  const plans  = uiPlans?.length ? uiPlans : PLANS;
+  const plan   = plans[selectedPlanIndex] ?? plans[0];
+  const pair   = selectedPair;
 
   const subtotal = plan.basePrice;
-  const gst = subtotal * GST_RATE;
-  const total = subtotal + gst;
+  const gst      = subtotal * GST_RATE;
+  const total    = subtotal + gst;
 
   return (
     <div className="bg-white border border-border rounded-xl p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-4">Order summary</h3>
 
       {/* Pair */}
-      <div className="flex items-center gap-3 p-3 bg-bg-light rounded-lg mb-4">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold font-mono text-xs flex-shrink-0"
-          style={{ backgroundColor: pair.srcColor }}
-        >
-          {pair.srcAbbr}
+      {pair && (
+        <div className="flex items-center gap-3 p-3 bg-bg-light rounded-lg mb-4">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold font-mono text-xs flex-shrink-0"
+            style={{ backgroundColor: pair.srcColor }}
+          >
+            {pair.srcAbbr}
+          </div>
+          <svg className="w-4 h-4 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold font-mono text-xs flex-shrink-0"
+            style={{ backgroundColor: pair.dstColor }}
+          >
+            {pair.dstAbbr}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-text-primary truncate">
+              {pair.src} → {pair.dst}
+            </p>
+            {pair.count && (
+              <p className="text-xs text-text-tertiary">{pair.count} migrations done</p>
+            )}
+          </div>
         </div>
-        <svg className="w-4 h-4 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold font-mono text-xs flex-shrink-0"
-          style={{ backgroundColor: pair.dstColor }}
-        >
-          {pair.dstAbbr}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-text-primary truncate">
-            {pair.src} → {pair.dst}
-          </p>
-          <p className="text-xs text-text-tertiary">{pair.count} migrations done</p>
-        </div>
-      </div>
+      )}
 
       {/* Plan details */}
       <div className="space-y-2.5 mb-4">

@@ -1,28 +1,55 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { PlanCard } from '@/components/payment/PlanCard';
 import { OrderSummary } from '@/components/payment/OrderSummary';
 import { PaymentForm } from '@/components/payment/PaymentForm';
+import { plansService } from '@/api/plans';
 import { PLANS } from '@/constants/plans';
-import { PAIRS } from '@/constants/pairs';
+import { apiPlanToUiPlan, extractList } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
+import type { Plan } from '@/types';
+import type { ApiPlan } from '@/types/api';
 
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedPairIndex, selectedPlanIndex, setSelectedPlan } = useAppStore((s) => ({
-    selectedPairIndex: s.selectedPairIndex,
+  const { selectedPair, selectedPlanIndex, setSelectedPlan } = useAppStore((s) => ({
+    selectedPair:      s.selectedPair,
     selectedPlanIndex: s.selectedPlanIndex,
-    setSelectedPlan: s.setSelectedPlan,
+    setSelectedPlan:   s.setSelectedPlan,
   }));
 
-  // Guard: if no pair selected, redirect home
-  const pair = selectedPairIndex !== null ? PAIRS[selectedPairIndex] : null;
-  if (!pair) {
+  const [apiPlans, setApiPlans]       = useState<ApiPlan[]>([]);
+  const [uiPlans, setUiPlans]         = useState<Plan[]>(PLANS);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+
+  // Guard: redirect home if no pair is selected
+  if (!selectedPair) {
     navigate('/');
     return null;
   }
+
+  // Fetch plans from API, fall back to constants
+  useEffect(() => {
+    plansService
+      .list()
+      .then((res) => {
+        const items = extractList<ApiPlan>(res);
+        if (items.length > 0) {
+          setApiPlans(items);
+          // Mark the middle plan as popular
+          const midIdx = Math.floor(items.length / 2);
+          setUiPlans(items.map((p, i) => apiPlanToUiPlan(p, i === midIdx)));
+        } else {
+          setUiPlans(PLANS);
+        }
+      })
+      .catch(() => setUiPlans(PLANS))
+      .finally(() => setLoadingPlans(false));
+  }, []);
+
+  const pair = selectedPair;
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">
@@ -31,14 +58,11 @@ const PaymentPage: React.FC = () => {
       {/* Page header */}
       <div className="bg-bg-light border-b border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
-          {/* Breadcrumb */}
           <p className="text-xs text-text-tertiary font-mono mb-2">
             MMC Convert <span className="text-text-secondary">/ Migration Pairs /</span>{' '}
             {pair.src} → {pair.dst}{' '}
             <span className="text-text-secondary">/ Checkout</span>
           </p>
-
-          {/* Pair identity */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
               <div
@@ -79,18 +103,30 @@ const PaymentPage: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             <h2 className="text-base font-bold text-text-primary mb-4">Select Migration Plan</h2>
-            <div className="space-y-3 mb-6">
-              {PLANS.map((plan, i) => (
-                <PlanCard
-                  key={plan.name}
-                  plan={plan}
-                  index={i}
-                  selected={selectedPlanIndex === i}
-                  onSelect={() => setSelectedPlan(i)}
-                />
-              ))}
-            </div>
-            <OrderSummary />
+
+            {loadingPlans ? (
+              <div className="space-y-3 mb-6">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-28 bg-white border border-border rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3 mb-6">
+                {uiPlans.map((plan, i) => (
+                  <PlanCard
+                    key={plan.name}
+                    plan={plan}
+                    index={i}
+                    selected={selectedPlanIndex === i}
+                    onSelect={(idx) => {
+                      setSelectedPlan(idx);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <OrderSummary uiPlans={uiPlans} />
           </motion.div>
 
           {/* Right: Payment form */}

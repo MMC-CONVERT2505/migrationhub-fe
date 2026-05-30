@@ -75,14 +75,14 @@ export type Screen = 'home' | 'payment' | 'migration' | 'admin';
 
 export interface AppState {
   currentScreen: Screen;
-  selectedPairIndex: number | null;
-  selectedPlanIndex: number;
+  selectedPair: Pair | null;
+  selectedPlanIndex: number;           // index into current plans list for UI highlight
   migrationStep: number;
   selectedDataCategories: number[];
   paymentProcessing: boolean;
   migrationComplete: boolean;
   setScreen: (screen: Screen) => void;
-  setSelectedPair: (index: number | null) => void;
+  setSelectedPair: (pair: Pair | null) => void;
   setSelectedPlan: (index: number) => void;
   nextMigrationStep: () => void;
   prevMigrationStep: () => void;

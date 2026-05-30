@@ -6,6 +6,10 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Divider } from '@/components/auth/Divider';
 import { Button } from '@/components/common/Button';
+import { authService } from '@/api/auth';
+import { usersService } from '@/api/users';
+import { ApiError } from '@/api/client';
+import { useAuthStore } from '@/store/authStore';
 import type { SignInFormData, AuthError } from '@/types/auth';
 
 // ─── Email icon ───────────────────────────────────────────────────────────────
@@ -28,11 +32,12 @@ function validate(form: SignInFormData): AuthError[] {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setToken, setUser } = useAuthStore();
 
   const [form, setForm] = useState<SignInFormData>({ email: '', password: '', rememberMe: false });
   const [errors, setErrors] = useState<AuthError[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<'google' | 'microsoft' | null>(null);
+  const [socialLoading, setSocialLoading] = useState<'google' | null>(null);
   const [globalError, setGlobalError] = useState('');
 
   const fieldError = (field: string) => errors.find((e) => e.field === field)?.message;
@@ -43,21 +48,50 @@ const SignInPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGlobalError('');
+
     const errs = validate(form);
     if (errs.length) { setErrors(errs); return; }
     setErrors([]);
     setSubmitting(true);
-    // Simulate API call (replace with real auth)
-    await new Promise((r) => setTimeout(r, 1600));
-    setSubmitting(false);
-    navigate('/');
+
+    try {
+      const response = await authService.login({
+        identifier: form.email.trim(),
+        password: form.password,
+        rememberMe: form.rememberMe,
+      });
+
+      const { accessToken } = response;
+      setToken(accessToken);
+
+      try {
+        const me = await usersService.getMe();
+        setUser(me.data);
+      } catch {
+        // profile fetch is non-fatal — token is already stored
+      }
+
+      navigate('/');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.statusCode === 404 || err.statusCode === 401) {
+          setGlobalError('Invalid email or password. Please try again.');
+        } else if (err.errors?.length) {
+          setGlobalError(err.errors.join(' '));
+        } else {
+          setGlobalError(err.message);
+        }
+      } else {
+        setGlobalError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleSocial = async (provider: 'google' | 'microsoft') => {
-    setSocialLoading(provider);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSocialLoading(null);
-    navigate('/');
+  const handleGoogleSignIn = () => {
+    setSocialLoading('google');
+    window.location.href = authService.googleOAuthUrl;
   };
 
   return (
@@ -78,12 +112,7 @@ const SignInPage: React.FC = () => {
         <SocialButton
           provider="google"
           loading={socialLoading === 'google'}
-          onClick={() => handleSocial('google')}
-        />
-        <SocialButton
-          provider="microsoft"
-          loading={socialLoading === 'microsoft'}
-          onClick={() => handleSocial('microsoft')}
+          onClick={handleGoogleSignIn}
         />
       </div>
 
@@ -101,6 +130,7 @@ const SignInPage: React.FC = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
+
         <InputField
           label="Work email"
           type="email"
@@ -163,7 +193,6 @@ const SignInPage: React.FC = () => {
           <span className="text-sm text-text-secondary">Remember me for 30 days</span>
         </label>
 
-        {/* Submit */}
         <Button
           type="submit"
           variant="primary"
@@ -174,7 +203,6 @@ const SignInPage: React.FC = () => {
           Sign in
         </Button>
 
-        {/* Security note */}
         <p className="text-center text-xs text-text-tertiary">
           🔒 Protected by 256-bit SSL encryption
         </p>

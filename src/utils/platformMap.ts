@@ -40,6 +40,7 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
   const src = normalizePlatform(entity.source);
   const dst = normalizePlatform(entity.destination);
   return {
+    id:        entity.id,
     src,
     dst,
     srcColor:  PLATFORM_COLORS[src] ?? '#64748b',
@@ -54,25 +55,15 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
 }
 
 // ─── ApiPlan → Plan (UI type) ─────────────────────────────────────────────────
-export function apiPlanToUiPlan(plan: ApiPlan, popular = false): Plan {
-  const features: string[] = [
-    `Up to ${plan.maxRecords.toLocaleString()} records`,
-    `${plan.years} year${plan.years !== 1 ? 's' : ''} of data history`,
-    'All data categories included',
-    `${plan.retryLimit} retry attempt${plan.retryLimit !== 1 ? 's' : ''}`,
-    plan.queuePriority >= 5 ? 'Priority queue processing' : 'Standard queue processing',
-    'Reconciliation report',
-    plan.queuePriority >= 5 ? 'Priority email support' : 'Email support',
-  ];
-  if (plan.queuePriority >= 8) features.push('Dedicated senior specialist');
-
+export function apiPlanToUiPlan(plan: ApiPlan): Plan {
   return {
+    id:        plan.id,
     name:      plan.name,
-    history:   `${plan.years} year${plan.years !== 1 ? 's' : ''}`,
-    support:   plan.queuePriority >= 5 ? 'Priority email + call' : 'Email support',
-    basePrice: plan.price,
-    features,
-    popular,
+    history:   plan.history,
+    support:   plan.support,
+    basePrice: Number(plan.basePrice),
+    features:  plan.features,
+    popular:   plan.popular,
   };
 }
 

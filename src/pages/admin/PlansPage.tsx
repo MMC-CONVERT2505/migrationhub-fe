@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { plansService } from '@/api/plans';
 import { ApiError } from '@/api/client';
 import { extractList } from '@/utils/platformMap';
+import { PLANS } from '@/constants/plans';
 import type { ApiPlan, CreatePlanRequest } from '@/types/api';
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -49,27 +50,38 @@ const inputCls =
 
 const EMPTY: CreatePlanRequest = {
   name: '',
-  price: 0,
+  basePrice: 0,
   currency: 'AUD',
-  years: 1,
-  maxRecords: 10000,
-  retryLimit: 3,
-  queuePriority: 1,
+  history: '',
+  support: '',
+  features: [],
+  popular: false,
 };
+
+const planToRequest = (p: (typeof PLANS)[number]): CreatePlanRequest => ({
+  name:      p.name,
+  basePrice: p.basePrice,
+  currency:  'AUD',
+  history:   p.history,
+  support:   p.support,
+  features:  p.features,
+  popular:   p.popular ?? false,
+});
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const PlansPage: React.FC = () => {
-  const [plans, setPlans] = useState<ApiPlan[]>([]);
+  const [plans, setPlans]   = useState<ApiPlan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError]   = useState('');
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<ApiPlan | null>(null);
+  const [createOpen, setCreateOpen]     = useState(false);
+  const [editTarget, setEditTarget]     = useState<ApiPlan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiPlan | null>(null);
 
-  const [form, setForm] = useState<CreatePlanRequest>(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [form, setForm]             = useState<CreatePlanRequest>(EMPTY);
+  const [featuresText, setFeaturesText] = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [formError, setFormError]   = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -89,15 +101,27 @@ const PlansPage: React.FC = () => {
   const setF = <K extends keyof CreatePlanRequest>(key: K, value: CreatePlanRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const applyPreset = (preset: (typeof PLANS)[number]) => {
+    const req = planToRequest(preset);
+    setForm(req);
+    setFeaturesText(req.features.join('\n'));
+  };
+
+  const buildForm = (): CreatePlanRequest => ({
+    ...form,
+    features: featuresText.split('\n').map((s) => s.trim()).filter(Boolean),
+  });
+
   // ── Create ────────────────────────────────────────────────────────────────
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setFormError('');
     try {
-      await plansService.create(form);
+      await plansService.create(buildForm());
       setCreateOpen(false);
       setForm(EMPTY);
+      setFeaturesText('');
       load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Failed to create plan.');
@@ -106,18 +130,36 @@ const PlansPage: React.FC = () => {
     }
   };
 
+  // ── Seed defaults (create all PLANS that don't already exist) ─────────────
+  const [seeding, setSeeding] = useState(false);
+  const handleSeedDefaults = async () => {
+    setSeeding(true);
+    setError('');
+    const existingNames = new Set(plans.map((p) => p.name.toLowerCase()));
+    const toCreate = PLANS.filter((p) => !existingNames.has(p.name.toLowerCase()));
+    try {
+      await Promise.all(toCreate.map((p) => plansService.create(planToRequest(p))));
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to seed plans.');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // ── Edit ─────────────────────────────────────────────────────────────────
   const openEdit = (plan: ApiPlan) => {
     setEditTarget(plan);
     setForm({
-      name: plan.name,
-      price: plan.price,
-      currency: plan.currency,
-      years: plan.years,
-      maxRecords: plan.maxRecords,
-      retryLimit: plan.retryLimit,
-      queuePriority: plan.queuePriority,
+      name:      plan.name,
+      basePrice: Number(plan.basePrice),
+      currency:  plan.currency,
+      history:   plan.history,
+      support:   plan.support,
+      features:  plan.features,
+      popular:   plan.popular,
     });
+    setFeaturesText(plan.features.join('\n'));
     setFormError('');
   };
 
@@ -127,7 +169,7 @@ const PlansPage: React.FC = () => {
     setSaving(true);
     setFormError('');
     try {
-      await plansService.update(editTarget.id, form);
+      await plansService.update(editTarget.id, buildForm());
       setEditTarget(null);
       load();
     } catch (err) {
@@ -153,35 +195,109 @@ const PlansPage: React.FC = () => {
     }
   };
 
-  const formFields = (
+  const formFields = (isCreate: boolean) => (
     <div className="space-y-4">
+      {/* Preset buttons — only shown on create */}
+      {isCreate && (
+        <div>
+          <p className="text-xs font-medium text-text-secondary mb-1.5">Start from a preset</p>
+          <div className="flex gap-2">
+            {PLANS.map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className="flex-1 px-2 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-colors text-text-secondary"
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Field label="Plan Name" required>
-        <input className={inputCls} value={form.name} onChange={(e) => setF('name', e.target.value)} placeholder="Starter" required />
+        <input
+          className={inputCls}
+          value={form.name}
+          onChange={(e) => setF('name', e.target.value)}
+          placeholder="Basic"
+          required
+        />
       </Field>
+
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Price" required>
-          <input className={inputCls} type="number" min={0} step={0.01} value={form.price} onChange={(e) => setF('price', parseFloat(e.target.value) || 0)} required />
+        <Field label="Base Price" required>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">$</span>
+            <input
+              className={`${inputCls} pl-6`}
+              type="number"
+              min={0}
+              step={0.01}
+              value={form.basePrice}
+              onChange={(e) => setF('basePrice', parseFloat(e.target.value) || 0)}
+              required
+            />
+          </div>
         </Field>
         <Field label="Currency">
-          <input className={inputCls} value={form.currency ?? ''} onChange={(e) => setF('currency', e.target.value)} placeholder="AUD" maxLength={3} />
+          <input
+            className={inputCls}
+            value={form.currency ?? ''}
+            onChange={(e) => setF('currency', e.target.value)}
+            placeholder="AUD"
+            maxLength={3}
+          />
         </Field>
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Years" required>
-          <input className={inputCls} type="number" min={1} value={form.years} onChange={(e) => setF('years', parseInt(e.target.value) || 1)} required />
+        <Field label="History" required>
+          <input
+            className={inputCls}
+            value={form.history}
+            onChange={(e) => setF('history', e.target.value)}
+            placeholder="1 year"
+            required
+          />
         </Field>
-        <Field label="Max Records" required>
-          <input className={inputCls} type="number" min={1} value={form.maxRecords} onChange={(e) => setF('maxRecords', parseInt(e.target.value) || 1)} required />
+        <Field label="Support" required>
+          <input
+            className={inputCls}
+            value={form.support}
+            onChange={(e) => setF('support', e.target.value)}
+            placeholder="Email support"
+            required
+          />
         </Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Retry Limit">
-          <input className={inputCls} type="number" min={0} value={form.retryLimit ?? ''} onChange={(e) => setF('retryLimit', parseInt(e.target.value) || 0)} />
-        </Field>
-        <Field label="Queue Priority">
-          <input className={inputCls} type="number" min={1} value={form.queuePriority ?? ''} onChange={(e) => setF('queuePriority', parseInt(e.target.value) || 1)} />
-        </Field>
-      </div>
+
+      <Field label="Features (one per line)" required>
+        <textarea
+          className={`${inputCls} resize-none`}
+          rows={5}
+          value={featuresText}
+          onChange={(e) => setFeaturesText(e.target.value)}
+          placeholder={'All data categories\nEmail support\n2 revisions\nReconciliation report'}
+          required
+        />
+        <p className="text-xs text-text-tertiary mt-0.5">
+          {featuresText.split('\n').filter((s) => s.trim()).length} feature(s)
+        </p>
+      </Field>
+
+      <Field label="Popular">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="w-4 h-4 rounded border-border accent-blue-600"
+            checked={form.popular ?? false}
+            onChange={(e) => setF('popular', e.target.checked)}
+          />
+          <span className="text-sm text-text-secondary">Mark as most popular plan</span>
+        </label>
+      </Field>
     </div>
   );
 
@@ -193,15 +309,34 @@ const PlansPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Plans</h1>
           <p className="mt-1 text-sm text-text-secondary">Create and manage subscription plans for your customers</p>
         </div>
-        <button
-          onClick={() => { setCreateOpen(true); setForm(EMPTY); setFormError(''); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Plan
-        </button>
+        <div className="flex items-center gap-2">
+          {!loading && plans.length < PLANS.length && (
+            <button
+              onClick={handleSeedDefaults}
+              disabled={seeding}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-border rounded-lg text-text-secondary hover:bg-bg-light disabled:opacity-60 transition-colors"
+              title="Create any missing default plans"
+            >
+              {seeding ? (
+                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              )}
+              Seed Defaults
+            </button>
+          )}
+          <button
+            onClick={() => { setCreateOpen(true); setForm(EMPTY); setFeaturesText(''); setFormError(''); }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            New Plan
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -218,7 +353,8 @@ const PlansPage: React.FC = () => {
           <svg className="w-10 h-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
-          <p className="text-sm">No plans yet</p>
+          <p className="text-sm font-medium mb-1">No plans yet</p>
+          <p className="text-xs">Use "Seed Defaults" to create the standard plans, or add one manually.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -229,12 +365,18 @@ const PlansPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white border border-border rounded-xl p-5 shadow-card hover:shadow-elevated transition-shadow"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-text-primary text-base">{plan.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-text-primary text-base">{plan.name}</h3>
+                    {plan.popular && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 font-medium rounded-full border border-blue-100">
+                        Popular
+                      </span>
+                    )}
+                  </div>
                   <p className="text-2xl font-bold text-blue-600 mt-1">
-                    {plan.currency} {plan.price.toLocaleString()}
-                    <span className="text-sm text-text-tertiary font-normal ml-1">/ {plan.years}yr</span>
+                    {plan.currency} {Number(plan.basePrice).toLocaleString()}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -258,19 +400,26 @@ const PlansPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <div className="space-y-1.5 text-xs text-text-secondary border-t border-border pt-3">
+
+              <div className="space-y-1 text-xs text-text-secondary border-t border-border pt-3">
                 <div className="flex justify-between">
-                  <span>Max Records</span>
-                  <span className="font-semibold text-text-primary">{plan.maxRecords.toLocaleString()}</span>
+                  <span>History</span>
+                  <span className="font-semibold text-text-primary">{plan.history}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Retry Limit</span>
-                  <span className="font-semibold text-text-primary">{plan.retryLimit}</span>
+                  <span>Support</span>
+                  <span className="font-semibold text-text-primary text-right max-w-[160px]">{plan.support}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Queue Priority</span>
-                  <span className="font-semibold text-text-primary">{plan.queuePriority}</span>
-                </div>
+                <ul className="pt-1.5 space-y-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-1.5">
+                      <svg className="w-3 h-3 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </motion.div>
           ))}
@@ -284,7 +433,7 @@ const PlansPage: React.FC = () => {
             {formError && (
               <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
-            {formFields}
+            {formFields(true)}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light transition-colors">
                 Cancel
@@ -304,7 +453,7 @@ const PlansPage: React.FC = () => {
             {formError && (
               <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
-            {formFields}
+            {formFields(false)}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light transition-colors">
                 Cancel

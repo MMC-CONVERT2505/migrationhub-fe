@@ -1,6 +1,7 @@
 // ─── Platform & Migration Pair Types ────────────────────────────────────────
 
 export interface Pair {
+  id?: number;
   src: string;
   dst: string;
   srcColor: string;
@@ -23,6 +24,7 @@ export interface Pair {
 // ─── Pricing Plan Types ──────────────────────────────────────────────────────
 
 export interface Plan {
+  id?: string;
   name: string;
   history: string;
   support: string;

@@ -88,6 +88,17 @@ const UserMenu: React.FC = () => {
               )}
             </div>
 
+            <Link
+              to="/migrations"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors"
+            >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              My Migrations
+            </Link>
+
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -383,6 +394,13 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
                       )}
                     </div>
                   </div>
+                  <Link
+                    to="/migrations"
+                    onClick={() => setMobileOpen(false)}
+                    className="px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors font-medium"
+                  >
+                    My Migrations
+                  </Link>
                   <button
                     onClick={handleMobileLogout}
                     className="w-full px-3 py-2.5 text-sm text-center text-red-600 rounded-md border border-red-200 hover:bg-red-50 transition-colors font-medium"

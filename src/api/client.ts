@@ -7,6 +7,8 @@ export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
+  // 304 Not Modified is a successful cache hit — treat it like 200
+  validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
 });
 
 export class ApiError extends Error {

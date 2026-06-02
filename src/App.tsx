@@ -7,7 +7,10 @@ import { AdminGuard } from '@/components/auth/AdminGuard';
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage            = React.lazy(() => import('@/pages/HomePage'));
 const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
-const MigrationPage       = React.lazy(() => import('@/pages/MigrationPage'));
+const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
+const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
+const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
+const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
@@ -32,8 +35,11 @@ const App: React.FC = () => (
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
-      <Route path="/payment"   element={<PaymentPage />} />
-      <Route path="/migration" element={<MigrationPage />} />
+      <Route path="/payment"         element={<PaymentPage />} />
+      <Route path="/payment/success" element={<PaymentSuccessPage />} />
+      <Route path="/payment/failed"  element={<PaymentFailedPage />} />
+      <Route path="/migration"         element={<MigrationPage />} />
+      <Route path="/migrations"       element={<MigrationHistoryPage />} />
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
 

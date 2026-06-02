@@ -192,6 +192,105 @@ export interface AuthenticateAdminRequest {
   password: string;
 }
 
+// ─── Migrations ───────────────────────────────────────────────────────────────
+
+export interface CreateMigrationRequest {
+  migrationPairId: string;
+  planId: string;
+}
+
+export interface MigrationRecord {
+  id: number | string;
+  status: string;
+  source: string;
+  destination: string;
+  planName: string;
+  createdAt: string;
+}
+
+export type MigrationStatus =
+  | 'DRAFT'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface UserMigration {
+  id: string;
+  userId: number;
+  migrationPairId: string;
+  planId: string;
+  paymentId: string | null;
+  status: MigrationStatus;
+  remoteJobId: string | null;
+  selectedCategories: string[] | null;
+  sourceAuthUrl: string | null;
+  destinationAuthUrl: string | null;
+  progress: number;
+  currentCategory: string | null;
+  errorMessage: string | null;
+  failedCategory: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  migrationPair: {
+    id: string;
+    source: string;
+    destination: string;
+    displayName: string;
+  };
+  plan: {
+    id: string;
+    name: string;
+    basePrice: string | number;
+    currency: string;
+    history: string;
+    support: string;
+    features: string[];
+    popular: boolean;
+  };
+  connectors: unknown[];
+}
+
+// ─── Payments (backend-driven flow) ───────────────────────────────────────────
+
+export interface InitiatePaymentRequest {
+  /** Amount in smallest currency unit (paise for INR, cents for AUD). */
+  amount: number;
+  currency?: string;
+  description?: string;
+  name?: string;
+  email?: string;
+  company?: string;
+}
+
+export interface InitiatePaymentResponse {
+  paymentId: number | string;
+  paymentUrl: string;
+}
+
+export type PaymentStatus =
+  | 'INITIATED'
+  | 'PENDING'
+  | 'SUCCESS'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export interface PaymentStatusResponse {
+  paymentId: string;
+  status: PaymentStatus;
+  planName: string;
+  amount: number;
+  currency: string;
+  failureReason?: string;
+  completedAt?: string;
+  migrationId?: string;
+}
+
 // ─── Razorpay ─────────────────────────────────────────────────────────────────
 
 export interface CreateDepositOrderRequest {
@@ -202,6 +301,7 @@ export interface CreateDepositOrderRequest {
 
 export interface RazorpayOrder {
   id: string;
+  keyId: string;
   entity: string;
   amount: number;
   amount_paid: number;
@@ -280,26 +380,24 @@ export interface RotateSecretResponse {
 // ─── Plans ────────────────────────────────────────────────────────────────────
 
 export interface ApiPlan {
-  id: number;
+  id: string;
   name: string;
-  price: number;
+  basePrice: string | number;
   currency: string;
-  years: number;
-  maxRecords: number;
-  retryLimit: number;
-  queuePriority: number;
-  createdAt: string;
-  updatedAt: string;
+  history: string;
+  support: string;
+  features: string[];
+  popular: boolean;
 }
 
 export interface CreatePlanRequest {
   name: string;
-  price: number;
+  basePrice: number;
   currency?: string;
-  years: number;
-  maxRecords: number;
-  retryLimit?: number;
-  queuePriority?: number;
+  history: string;
+  support: string;
+  features: string[];
+  popular?: boolean;
 }
 
 export type UpdatePlanRequest = Partial<CreatePlanRequest>;

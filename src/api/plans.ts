@@ -20,13 +20,13 @@ export const plansService = {
       .then((r) => r.data),
 
   /** Update a plan by ID. Requires write permission. */
-  update: (planId: number, data: UpdatePlanRequest) =>
+  update: (planId: string, data: UpdatePlanRequest) =>
     apiClient
       .patch<ApiResponse<ApiPlan>>(`/plans/${planId}`, data)
       .then((r) => r.data),
 
   /** Delete a plan by ID. Returns 204. Requires delete permission. */
-  delete: (planId: number) =>
+  delete: (planId: string) =>
     apiClient
       .delete<void>(`/plans/${planId}`)
       .then((r) => r.data),

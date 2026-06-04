@@ -1,0 +1,58 @@
+import { apiClient } from './client';
+import type { ApiResponse, AssignPermissionsRequest, CreatePermissionRequest, Permission } from '@/types/api';
+
+/** Full permission catalogue from the backend spec. Used client-side since GET /permissions is not available. */
+export const ALL_PERMISSIONS: Permission[] = [
+  { id:  1, module: 'users',          action: 'read',    description: 'View users' },
+  { id:  2, module: 'users',          action: 'write',   description: 'Create / update users' },
+  { id:  3, module: 'users',          action: 'delete',  description: 'Delete users' },
+  { id:  4, module: 'users',          action: 'ban',     description: 'Ban / activate users' },
+  { id:  5, module: 'admin',          action: 'read',    description: 'View admin data' },
+  { id:  6, module: 'admin',          action: 'write',   description: 'Manage admin settings' },
+  { id:  7, module: 'admin',          action: 'delete',  description: 'Delete admin resources' },
+  { id:  8, module: 'roles',          action: 'read',    description: 'View roles' },
+  { id:  9, module: 'roles',          action: 'write',   description: 'Create / update roles' },
+  { id: 10, module: 'roles',          action: 'delete',  description: 'Delete roles' },
+  { id: 11, module: 'roles',          action: 'assign',  description: 'Assign roles to users' },
+  { id: 12, module: 'permissions',    action: 'read',    description: 'View permissions' },
+  { id: 13, module: 'permissions',    action: 'write',   description: 'Create permissions' },
+  { id: 14, module: 'permissions',    action: 'assign',  description: 'Assign permissions to roles' },
+  { id: 15, module: 'migration',      action: 'read',    description: 'View migrations' },
+  { id: 16, module: 'migration',      action: 'write',   description: 'Create / update migrations' },
+  { id: 17, module: 'migration',      action: 'delete',  description: 'Delete migrations' },
+  { id: 18, module: 'migration-pair', action: 'read',    description: 'View migration pairs' },
+  { id: 19, module: 'migration-pair', action: 'write',   description: 'Manage migration pairs' },
+  { id: 20, module: 'migration-pair', action: 'delete',  description: 'Delete migration pairs' },
+  { id: 21, module: 'wallets',        action: 'read',    description: 'View wallets' },
+  { id: 22, module: 'wallets',        action: 'write',   description: 'Manage wallets' },
+  { id: 23, module: 'settings',       action: 'read',    description: 'View settings' },
+  { id: 24, module: 'settings',       action: 'write',   description: 'Update settings' },
+  { id: 25, module: 'system',         action: 'read',    description: 'View system info' },
+  { id: 26, module: 'system',         action: 'write',   description: 'Manage system config' },
+  { id: 27, module: 'service-health', action: 'read',    description: 'View service health' },
+  { id: 28, module: 'service-health', action: 'write',   description: 'Manage service health' },
+  { id: 29, module: 'webhook-event',  action: 'read',    description: 'View webhook events' },
+  { id: 30, module: 'webhook-event',  action: 'retry',   description: 'Retry webhook events' },
+];
+
+export const permissionsService = {
+  /** Fetch all permissions. Falls back to ALL_PERMISSIONS if endpoint unavailable. */
+  list: async (): Promise<Permission[]> => {
+    try {
+      const res = await apiClient.get<Permission[] | { data: Permission[] }>('/permissions');
+      const data = (res.data as any)?.data ?? res.data;
+      return Array.isArray(data) && data.length > 0 ? data : ALL_PERMISSIONS;
+    } catch {
+      return ALL_PERMISSIONS;
+    }
+  },
+
+  create: (data: CreatePermissionRequest) =>
+    apiClient.post<Permission>('/permissions', data).then((r) => r.data),
+
+  deletePermission: (id: number) =>
+    apiClient.delete<void>(`/permissions/${id}`).then((r) => r.data),
+
+  assign: (data: AssignPermissionsRequest) =>
+    apiClient.post<ApiResponse>('/permissions/assign', data).then((r) => r.data),
+};

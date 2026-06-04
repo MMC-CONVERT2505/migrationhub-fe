@@ -19,6 +19,10 @@ const AdminDashboard      = React.lazy(() => import('@/pages/AdminPage'));
 const MigrationPairsPage  = React.lazy(() => import('@/pages/admin/MigrationPairsPage'));
 const PlansPage           = React.lazy(() => import('@/pages/admin/PlansPage'));
 const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
+const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
+const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
+const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
+const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
 
 // ─── Full-screen loading fallback ─────────────────────────────────────────────
 const PageLoader: React.FC = () => (
@@ -46,10 +50,14 @@ const App: React.FC = () => (
       {/* Admin — guard checks auth + admin role before rendering layout */}
       <Route path="/admin" element={<AdminGuard />}>
         <Route element={<AdminLayout />}>
-          <Route index                  element={<AdminDashboard />} />
-          <Route path="migration-pairs" element={<MigrationPairsPage />} />
-          <Route path="plans"           element={<PlansPage />} />
-          <Route path="audit"           element={<AuditPage />} />
+          <Route index                    element={<AdminDashboard />} />
+          <Route path="users"            element={<UsersPage />} />
+          <Route path="users/create"     element={<CreateSubUserPage />} />
+          <Route path="roles"            element={<RolesPage />} />
+          <Route path="permissions"      element={<PermissionsPage />} />
+          <Route path="migration-pairs"  element={<MigrationPairsPage />} />
+          <Route path="plans"            element={<PlansPage />} />
+          <Route path="audit"            element={<AuditPage />} />
         </Route>
       </Route>
 

@@ -143,6 +143,76 @@ export interface CreateSubUserRequest {
   roleIds?: number[];
 }
 
+// ─── RBAC ─────────────────────────────────────────────────────────────────────
+
+export interface Permission {
+  id: number;
+  module: string;
+  action: string;
+  description: string;
+}
+
+export interface RolePermission {
+  id: number;
+  permissionId: number;
+  permission: Permission;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description: string;
+  isSystem: boolean;
+  permissions: RolePermission[];
+}
+
+export interface CreateRoleRequest {
+  name: string;
+  description: string;
+  isSystem?: boolean;
+  permissionIds?: number[];
+}
+
+export interface UpdateRoleRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface CreatePermissionRequest {
+  module: string;
+  action: string;
+  description: string;
+}
+
+export interface AssignPermissionsRequest {
+  roleId: number;
+  permissionIds: number[];
+}
+
+export interface AssignUserRolesRequest {
+  userId: number;
+  roleIds: number[];
+  expiresAt?: string;
+}
+
+export interface ListUsersAdminQuery {
+  skip?: number;
+  take?: number;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface UserWithRoles {
+  id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  username: string;
+  status: UserStatus;
+  roles: Array<{ role: { id: number; name: string } }>;
+}
+
 export interface ResetUserPasswordRequest {
   newPassword: string;
   confirmPassword: string;
@@ -375,6 +445,65 @@ export interface UpdateMigrationPairRequest {
 
 export interface RotateSecretResponse {
   webhookSecret: string;
+}
+
+// ─── Admin Analytics ─────────────────────────────────────────────────────────
+
+export interface AnalyticsDelta {
+  value: number;
+  label: string;
+  positive: boolean;
+}
+
+export interface AnalyticsSummary {
+  totalMigrations: number;
+  totalDelta: AnalyticsDelta;
+  successRate: number;
+  successRateDelta: AnalyticsDelta;
+  activeNow: number;
+  activeNowDelta: AnalyticsDelta;
+  avgDurationMinutes: number;
+  avgDurationDelta: AnalyticsDelta;
+}
+
+export interface AnalyticsPair {
+  id: string;
+  source: string;
+  destination: string;
+  displayName: string;
+  total: number;
+  completed: number;
+  inProgress: number;
+  failed: number;
+  successRate: number;
+  isActive: boolean;
+  isMaintenance: boolean;
+  avgDurationMinutes: number;
+}
+
+export interface ActivityItem {
+  id: string;
+  kind: string;
+  displayText: string;
+  createdAt: string;
+  metadata: Record<string, string>;
+}
+
+export interface AnalyticsOutcomes {
+  completed: number;
+  inProgress: number;
+  pending: number;
+  failed: number;
+  total: number;
+  successRate: number;
+  byPair: Array<{
+    id: string;
+    displayName: string;
+    source: string;
+    destination: string;
+    completed: number;
+    successRate: number;
+  }>;
 }
 
 // ─── Plans ────────────────────────────────────────────────────────────────────

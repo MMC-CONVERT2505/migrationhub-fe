@@ -117,7 +117,7 @@ const PaymentSuccessPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="primary" size="lg" onClick={() => navigate('/migration')}>
+              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>
                 View migration progress
               </Button>
               <Button variant="secondary" size="lg" onClick={() => navigate('/')}>
@@ -158,7 +158,7 @@ const PaymentSuccessPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="primary" size="lg" onClick={() => navigate('/migration')}>
+              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>
                 Go to dashboard
               </Button>
               <Button variant="secondary" size="lg" onClick={() => navigate('/')}>

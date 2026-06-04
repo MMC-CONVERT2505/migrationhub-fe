@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const NAV_ITEMS = [
   {
@@ -11,6 +12,36 @@ const NAV_ITEMS = [
     icon: (
       <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Users',
+    to: '/admin/users',
+    end: false,
+    icon: (
+      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Roles',
+    to: '/admin/roles',
+    end: false,
+    icon: (
+      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Permissions',
+    to: '/admin/permissions',
+    end: false,
+    icon: (
+      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
       </svg>
     ),
   },
@@ -46,14 +77,22 @@ const NAV_ITEMS = [
   },
 ];
 
-export const AdminLayout: React.FC = () => (
+export const AdminLayout: React.FC = () => {
+  const { can } = usePermissions();
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.to === '/admin/permissions' && !can('permissions.read')) return false;
+    return true;
+  });
+
+  return (
   <div className="min-h-screen bg-bg">
     <Navbar variant="admin" />
     <div className="flex">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 min-h-[calc(100vh-64px)] bg-white border-r border-border flex-shrink-0 sticky top-16 self-start">
         <nav className="p-3 space-y-0.5 flex-1">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -76,7 +115,7 @@ export const AdminLayout: React.FC = () => (
 
       {/* Mobile top nav */}
       <div className="md:hidden w-full fixed bottom-0 z-40 bg-white border-t border-border flex">
-        {NAV_ITEMS.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -100,4 +139,5 @@ export const AdminLayout: React.FC = () => (
       </main>
     </div>
   </div>
-);
+  );
+};

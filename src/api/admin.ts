@@ -1,6 +1,10 @@
 import { apiClient } from './client';
 import type {
+  ActivityItem,
   AdminProfile,
+  AnalyticsOutcomes,
+  AnalyticsPair,
+  AnalyticsSummary,
   ApiResponse,
   AuthenticateAdminRequest,
   ChangeAdminPasswordRequest,
@@ -37,5 +41,31 @@ export const adminService = {
   authenticate: (data: AuthenticateAdminRequest) =>
     apiClient
       .post<ApiResponse>('/admin/authenticate', data)
+      .then((r) => r.data),
+};
+
+export const analyticsService = {
+  /** 4 KPI stat cards. Cache: 30 s. */
+  getSummary: () =>
+    apiClient
+      .get<AnalyticsSummary>('/admin/analytics/summary')
+      .then((r) => r.data),
+
+  /** Pair-by-pair breakdown table. Cache: 30 s. */
+  getPairs: () =>
+    apiClient
+      .get<{ pairs: AnalyticsPair[] }>('/admin/analytics/pairs')
+      .then((r) => r.data),
+
+  /** Live activity feed. Cache: 10 s. */
+  getActivity: (limit = 20) =>
+    apiClient
+      .get<{ items: ActivityItem[] }>('/admin/analytics/activity', { params: { limit } })
+      .then((r) => r.data),
+
+  /** Donut + bar chart data. Cache: 30 s. */
+  getOutcomes: () =>
+    apiClient
+      .get<AnalyticsOutcomes>('/admin/analytics/outcomes')
       .then((r) => r.data),
 };

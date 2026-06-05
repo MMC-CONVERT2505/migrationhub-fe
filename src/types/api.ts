@@ -82,7 +82,7 @@ export interface ResetPasswordRequest {
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 export type Gender = 'male' | 'female' | 'other';
-export type UserStatus = 'active' | 'banned' | 'suspended';
+export type UserStatus = 'Active' | 'Blocked' | 'InActive' | 'Completed' | 'Cancelled';
 
 export interface UserProfile {
   id: number;
@@ -487,6 +487,38 @@ export interface ActivityItem {
   displayText: string;
   createdAt: string;
   metadata: Record<string, string>;
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+export type AuditLogLevel = 'Success' | 'Info' | 'Warning' | 'Error';
+export type AuditLogType = 'auth' | 'oauth' | 'migration' | 'payment' | 'system' | 'admin' | 'security';
+
+export interface AuditLogItem {
+  id: string;
+  type: AuditLogType;
+  action: string;
+  status: string;
+  message: string;
+  adminId: number | null;
+  userId: number | null;
+  entityId: string | null;
+  entityType: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  actor: string;
+  level: AuditLogLevel;
+}
+
+export interface GetActivitiesQuery {
+  level?: AuditLogLevel;
+  from?: string;
+  to?: string;
+  skip?: number;
+  take?: number;
+  userId?: number;
+  adminId?: number;
+  type?: AuditLogType;
 }
 
 export interface AnalyticsOutcomes {

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { rolesService } from '@/api/roles';
-import { permissionsService, ALL_PERMISSIONS } from '@/api/permissions';
+import { permissionsService } from '@/api/permissions';
 import { ApiError } from '@/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
-import type { CreateRoleRequest, Permission, Role, UpdateRoleRequest } from '@/types/api';
+import type { CreateRoleRequest, Permission, Role } from '@/types/api';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 const inputCls =
@@ -79,7 +79,7 @@ const RolesPage: React.FC = () => {
   const { can } = usePermissions();
 
   const [roles, setRoles]     = useState<Role[]>([]);
-  const [allPerms, setAllPerms] = useState<Permission[]>(ALL_PERMISSIONS);
+  const [allPerms, setAllPerms] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]               = useState('');
   const [expandedId, setExpandedId]     = useState<number | null>(null);
@@ -204,7 +204,7 @@ const RolesPage: React.FC = () => {
       {isCreate && (
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1">Permissions <span className="text-text-tertiary font-normal">(optional)</span></label>
-          <PermissionPicker allPermissions={ALL_PERMISSIONS} selected={form.permissionIds ?? []} onChange={(ids) => setF('permissionIds', ids)} />
+          <PermissionPicker allPermissions={allPerms} selected={form.permissionIds ?? []} onChange={(ids) => setF('permissionIds', ids)} />
           <p className="text-xs text-text-tertiary mt-1">{(form.permissionIds ?? []).length} selected</p>
         </div>
       )}

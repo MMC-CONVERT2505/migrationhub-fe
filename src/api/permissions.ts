@@ -39,8 +39,8 @@ export const permissionsService = {
   /** Fetch all permissions. Falls back to ALL_PERMISSIONS if endpoint unavailable. */
   list: async (): Promise<Permission[]> => {
     try {
-      const res = await apiClient.get<Permission[] | { data: Permission[] }>('/permissions');
-      const data = (res.data as any)?.data ?? res.data;
+      const res = await apiClient.get<{ permissions: Permission[] } | Permission[]>('/permissions');
+      const data = (res.data as any)?.permissions ?? (res.data as any)?.data ?? res.data;
       return Array.isArray(data) && data.length > 0 ? data : ALL_PERMISSIONS;
     } catch {
       return ALL_PERMISSIONS;

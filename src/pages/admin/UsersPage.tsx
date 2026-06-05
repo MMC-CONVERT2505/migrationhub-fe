@@ -31,9 +31,11 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
 );
 
 const STATUS_STYLES = {
-  active:    'bg-green-50 text-green-700',
-  banned:    'bg-red-50 text-red-700',
-  suspended: 'bg-amber-50 text-amber-700',
+  Active:    'bg-green-50 text-green-700',
+  Blocked:   'bg-red-50 text-red-700',
+  InActive:  'bg-amber-50 text-amber-700',
+  Completed: 'bg-blue-50 text-blue-700',
+  Cancelled: 'bg-gray-50 text-gray-700',
 };
 
 const UsersPage: React.FC = () => {
@@ -76,7 +78,7 @@ const UsersPage: React.FC = () => {
   }, []);
 
   const handleBanToggle = async (user: UserWithRoles) => {
-    const newStatus = user.status === 'active' ? 'banned' : 'active';
+    const newStatus = user.status === 'Active' ? 'Blocked' : 'Active';
     try {
       await usersService.setUserStatus(user.id, { status: newStatus });
       load();
@@ -215,10 +217,10 @@ const UsersPage: React.FC = () => {
                         {can('users.ban') && (
                           <button
                             onClick={() => handleBanToggle(user)}
-                            className={`p-1.5 rounded-md transition-colors ${user.status === 'active' ? 'text-text-tertiary hover:text-red-600 hover:bg-red-50' : 'text-text-tertiary hover:text-green-600 hover:bg-green-50'}`}
-                            title={user.status === 'active' ? 'Ban user' : 'Activate user'}
+                            className={`p-1.5 rounded-md transition-colors ${user.status === 'Active' ? 'text-text-tertiary hover:text-red-600 hover:bg-red-50' : 'text-text-tertiary hover:text-green-600 hover:bg-green-50'}`}
+                            title={user.status === 'Active' ? 'Ban user' : 'Activate user'}
                           >
-                            {user.status === 'active' ? (
+                            {user.status === 'Active' ? (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                             ) : (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

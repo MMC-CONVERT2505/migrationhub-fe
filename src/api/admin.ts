@@ -6,8 +6,11 @@ import type {
   AnalyticsPair,
   AnalyticsSummary,
   ApiResponse,
+  AuditLogItem,
   AuthenticateAdminRequest,
   ChangeAdminPasswordRequest,
+  GetActivitiesQuery,
+  PaginatedResponse,
   UpdateAdminProfileRequest,
   UpdateProfileImageRequest,
 } from '@/types/api';
@@ -67,5 +70,13 @@ export const analyticsService = {
   getOutcomes: () =>
     apiClient
       .get<AnalyticsOutcomes>('/admin/analytics/outcomes')
+      .then((r) => r.data),
+};
+
+export const activitiesService = {
+  /** Paginated audit log. Supports level, from/to, type, userId, adminId filters. */
+  list: (params?: GetActivitiesQuery) =>
+    apiClient
+      .get<PaginatedResponse<AuditLogItem>>('/activities', { params })
       .then((r) => r.data),
 };

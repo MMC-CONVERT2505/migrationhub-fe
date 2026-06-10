@@ -1,0 +1,15 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# Environment files
+*.env
+.env.*
+
+# OS and cache
+.DS_Store
+.eslintcache

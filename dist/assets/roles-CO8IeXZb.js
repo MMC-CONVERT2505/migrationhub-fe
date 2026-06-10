@@ -1,0 +1,1 @@
+import{c as a}from"./index-4gbJQuGT.js";const s={list:()=>a.get("/roles").then(e=>e.data),create:e=>a.post("/roles",e).then(t=>t.data),update:(e,t)=>a.patch(`/roles/${e}`,t).then(r=>r.data),delete:e=>a.delete(`/roles/${e}`).then(t=>t.data)};export{s as r};

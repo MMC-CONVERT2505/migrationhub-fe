@@ -1,130 +1,196 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
-import { PlanCard } from '@/components/payment/PlanCard';
 import { OrderSummary } from '@/components/payment/OrderSummary';
 import { PaymentForm } from '@/components/payment/PaymentForm';
-import { plansService } from '@/api/plans';
-import { PLANS } from '@/constants/plans';
-import { apiPlanToUiPlan, extractList } from '@/utils/platformMap';
+import { FreeMigrationForm } from '@/components/payment/FreeMigrationForm';
+import { PlanCard } from '@/components/payment/PlanCard';
+import { Spinner } from '@/components/common/Spinner';
 import { useAppStore } from '@/store/appStore';
-import type { Plan } from '@/types';
-import type { ApiPlan } from '@/types/api';
+
+import { migrationsService } from '@/api/migrations';
+import { ApiError } from '@/api/client';
 
 const PaymentPage: React.FC = () => {
-  const { selectedPair, selectedPlanIndex, setSelectedPlan } = useAppStore((s) => ({
-    selectedPair:      s.selectedPair,
-    selectedPlanIndex: s.selectedPlanIndex,
-    setSelectedPlan:   s.setSelectedPlan,
-  }));
+  const navigate          = useNavigate();
+  const selectedPair      = useAppStore((s) => s.selectedPair);
+  const selectedPlanId    = useAppStore((s) => s.selectedPlanId);
+  const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
 
-  const [uiPlans, setUiPlans]           = useState<Plan[]>(PLANS);
-  const [loadingPlans, setLoadingPlans] = useState(true);
+  const isFree = selectedPair?.isFree ?? false;
+  const plans  = selectedPair?.plans ?? [];
 
-  // Fetch plans from API, fall back to constants
+  const [autoCreating, setAutoCreating] = useState(false);
+  const [autoError, setAutoError]       = useState('');
+
+  // Auto-select the first plan if nothing valid is selected for the current pair.
   useEffect(() => {
-    plansService
-      .list()
-      .then((res) => {
-        const items = extractList<ApiPlan>(res);
-        if (items.length > 0) {
-          setUiPlans(items.map((p) => apiPlanToUiPlan(p)));
-        } else {
-          setUiPlans(PLANS);
-        }
-      })
-      .catch(() => setUiPlans(PLANS))
-      .finally(() => setLoadingPlans(false));
-  }, []);
+    if (plans.length === 0) return;
+    const valid = plans.some((p) => p.id === selectedPlanId);
+    if (!valid) setSelectedPlanId(plans[0].id!);
+  }, [plans]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // No plans attached → create a free migration immediately, skip UI.
+  useEffect(() => {
+    if (!selectedPair || plans.length > 0) return;
+
+    if (!selectedPair.id) {
+      setAutoError('Migration pair is missing an ID. Please go back and try again.');
+      return;
+    }
+
+    setAutoCreating(true);
+    migrationsService
+      .create({ migrationPairId: String(selectedPair.id) })
+      .then(() => navigate('/migrations'))
+      .catch((err) => {
+        setAutoError(err instanceof ApiError ? err.message : 'Could not start migration. Please try again.');
+        setAutoCreating(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── No-plans: full-screen loading / error ────────────────────────────────────
+  if (plans.length === 0) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
+        <Navbar variant="payment" />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
+          {autoCreating && (
+            <>
+              <Spinner size="lg" />
+              <p style={{ fontSize: 14, color: '#4b5568' }}>Starting your migration…</p>
+            </>
+          )}
+          {autoError && (
+            <div style={{ maxWidth: 360, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>Migration could not be started</p>
+              <p style={{ fontSize: 14, color: '#4b5568' }}>{autoError}</p>
+              <button
+                style={{ fontSize: 14, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={() => navigate('/')}
+              >
+                ← Back to home
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
+    <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
       <Navbar variant="payment" />
 
-      {/* Page header — only shown when a migration pair is in context */}
+      {/* ── Pay header ──────────────────────────────────────────────────────── */}
       {selectedPair && (
-        <div className="bg-bg-light border-b border-border">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
-            <p className="text-xs text-text-tertiary font-mono mb-2">
-              MMC Convert <span className="text-text-secondary">/ Migration Pairs /</span>{' '}
-              {selectedPair.src} → {selectedPair.dst}{' '}
-              <span className="text-text-secondary">/ Checkout</span>
+        <div style={{ background: '#f0f4fa', borderBottom: '1px solid #dce2ef' }}>
+          <div className="max-w-[960px] mx-auto px-4 sm:px-14 py-7">
+            <p style={{ fontSize: 11.5, color: '#9ba3b8', marginBottom: 10, fontFamily: 'monospace' }}>
+              MMC Convert
+              <span style={{ color: '#4b5568' }}> / Migration Pairs / </span>
+              {selectedPair.src} → {selectedPair.dst}
+              <span style={{ color: '#4b5568' }}> / Checkout</span>
             </p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white"
-                  style={{ backgroundColor: selectedPair.srcColor }}
-                >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 8,
+                  background: selectedPair.srcColor,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
+                }}>
                   {selectedPair.srcAbbr}
                 </div>
-                <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white"
-                  style={{ backgroundColor: selectedPair.dstColor }}
-                >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 8,
+                  background: selectedPair.dstColor,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
+                }}>
                   {selectedPair.dstAbbr}
                 </div>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-text-primary tracking-tight">
+                <div style={{ fontSize: 19, fontWeight: 700, color: '#111827', letterSpacing: -0.3 }}>
                   {selectedPair.src} → {selectedPair.dst} Migration
-                </h1>
-                <p className="text-sm text-text-secondary mt-0.5">
-                  Select a plan and complete payment to begin your migration
-                </p>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#4b5568', marginTop: 3 }}>
+                  {isFree
+                    ? 'This migration is free — select a plan to choose your data scope'
+                    : 'Select a plan and complete payment to begin your migration'}
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2-col layout */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">
-          {/* Left: Plan selector + Order summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h2 className="text-base font-bold text-text-primary mb-4">Select Migration Plan</h2>
+      {/* ── Pay body ────────────────────────────────────────────────────────── */}
+      <div className="max-w-[960px] mx-auto px-4 sm:px-14" style={{ paddingTop: 36, paddingBottom: 64 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px]" style={{ gap: 24, alignItems: 'start' }}>
 
-            {loadingPlans ? (
-              <div className="space-y-3 mb-6">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-28 bg-white border border-border rounded-xl animate-pulse" />
-                ))}
+          {/* Left: plan list + order summary stacked */}
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>
+              {isFree ? 'Select Plan (Free)' : 'Select Migration Plan'}
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {plans.map((plan, i) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  index={i}
+                  selected={selectedPlanId === plan.id}
+                  onSelect={setSelectedPlanId}
+                  isFree={isFree}
+                />
+              ))}
+            </div>
+
+            {/* Order summary below plans */}
+            <OrderSummary />
+          </div>
+
+          {/* Right: form or placeholder */}
+          <div className="lg:sticky lg:top-6">
+            {!selectedPlanId ? (
+              <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 22px', borderBottom: '1px solid #dce2ef', background: '#f0f4fa' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+                    {isFree ? 'Ready to Start' : 'Payment Details'}
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#4b5568', marginTop: 2 }}>
+                    Select a plan on the left to continue
+                  </p>
+                </div>
+                <div style={{ padding: '28px 22px', textAlign: 'center' }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%', background: '#f0f4fa',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
+                  }}>
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#4b5568' }}>Select a plan to continue</p>
+                  <p style={{ fontSize: 12, color: '#9ba3b8', marginTop: 5, lineHeight: 1.5 }}>
+                    Choose one of the plans on the left to{' '}
+                    {isFree ? 'start your free migration.' : 'proceed to payment.'}
+                  </p>
+                </div>
               </div>
+            ) : isFree ? (
+              <FreeMigrationForm />
             ) : (
-              <div className="space-y-3 mb-6">
-                {uiPlans.map((plan, i) => (
-                  <PlanCard
-                    key={plan.name}
-                    plan={plan}
-                    index={i}
-                    selected={selectedPlanIndex === i}
-                    onSelect={(idx) => {
-                      setSelectedPlan(idx);
-                    }}
-                  />
-                ))}
-              </div>
+              <PaymentForm />
             )}
+          </div>
 
-            <OrderSummary uiPlans={uiPlans} />
-          </motion.div>
-
-          {/* Right: Payment form */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.08 }}
-          >
-            <PaymentForm plan={uiPlans[selectedPlanIndex] ?? uiPlans[0]} />
-          </motion.div>
         </div>
       </div>
     </div>

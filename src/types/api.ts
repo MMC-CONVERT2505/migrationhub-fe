@@ -265,17 +265,30 @@ export interface AuthenticateAdminRequest {
 // ─── Migrations ───────────────────────────────────────────────────────────────
 
 export interface CreateMigrationRequest {
-  migrationPairId: string;
-  planId: string;
+  paymentId?: string;
+  migrationPairId?: string;
+  planId?: string;
 }
 
 export interface MigrationRecord {
-  id: number | string;
+  id: string;
+  userId: number;
+  migrationPairId: string;
+  planId: string;
+  paymentId?: number | string | null;
   status: string;
-  source: string;
-  destination: string;
-  planName: string;
+  progress: number;
   createdAt: string;
+  updatedAt: string;
+  migrationPair?: {
+    id: string;
+    source: string;
+    destination: string;
+    displayName: string;
+    isFree: boolean;
+    serviceUrl?: string;
+    fallbackServiceUrl?: string | null;
+  };
 }
 
 export type MigrationStatus =
@@ -310,6 +323,7 @@ export interface UserMigration {
     source: string;
     destination: string;
     displayName: string;
+    isFree: boolean;
   };
   plan: {
     id: string;
@@ -327,8 +341,10 @@ export interface UserMigration {
 // ─── Payments (backend-driven flow) ───────────────────────────────────────────
 
 export interface InitiatePaymentRequest {
-  /** Amount in smallest currency unit (paise for INR, cents for AUD). */
+  /** Amount in USD cents (e.g. $50.00 → 5000). */
   amount: number;
+  migrationPairId: string;
+  planId: string;
   currency?: string;
   description?: string;
   name?: string;
@@ -395,10 +411,10 @@ export interface RefundPaymentRequest {
 
 // ─── Migration Pairs ─────────────────────────────────────────────────────────
 
-export type MigrationEnvironment = 'PRODUCTION' | 'STAGING' | 'DEV';
+export type MigrationEnvironment = 'PRODUCTION' | 'STAGING' | 'DEVELOPMENT';
 
 export interface MigrationPairEntity {
-  id: number;
+  id: number | string;
   source: string;
   destination: string;
   displayName: string;
@@ -409,6 +425,8 @@ export interface MigrationPairEntity {
   environment: MigrationEnvironment;
   isActive: boolean;
   isMaintenance: boolean;
+  isFree: boolean;
+  plans: ApiPlan[];
   createdAt: string;
   updatedAt: string;
 }
@@ -425,6 +443,8 @@ export interface CreateMigrationPairRequest {
   serviceApiKey?: string;
   environment?: MigrationEnvironment;
   isActive?: boolean;
+  isFree?: boolean;
+  planIds?: string[];
 }
 
 export interface ListMigrationPairsQuery {
@@ -437,10 +457,18 @@ export interface ListMigrationPairsQuery {
 }
 
 export interface UpdateMigrationPairRequest {
+  source?: string;
+  destination?: string;
+  displayName?: string;
   serviceUrl?: string;
+  fallbackServiceUrl?: string;
+  apiVersion?: string;
+  healthCheckPath?: string;
   webhookSecret?: string;
+  environment?: MigrationEnvironment;
   isActive?: boolean;
   isMaintenance?: boolean;
+  isFree?: boolean;
 }
 
 export interface RotateSecretResponse {
@@ -543,8 +571,8 @@ export interface AnalyticsOutcomes {
 export interface ApiPlan {
   id: string;
   name: string;
-  basePrice: string | number;
-  currency: string;
+  basePrice: string;   // Decimal string — parse with parseFloat()
+  currency: string;    // "USD"
   history: string;
   support: string;
   features: string[];

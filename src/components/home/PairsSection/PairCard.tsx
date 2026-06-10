@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '@/utils/format';
+import { cn, formatCurrency } from '@/utils/format';
 import { Badge } from '@/components/common/Badge';
 import { useAppStore } from '@/store/appStore';
 import type { Pair } from '@/types';
@@ -25,12 +25,8 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
   };
 
   const renderStatusBadge = () => {
-    if (pair.status === 'free') {
-      return (
-        <Badge variant="success">
-          🎁 Free
-        </Badge>
-      );
+    if (pair.isFree) {
+      return <Badge variant="success">Free</Badge>;
     }
     if (pair.status === 'region') {
       return (
@@ -40,11 +36,15 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         </div>
       );
     }
-    return (
-      <Badge variant="gray">
-        🔗 Paid
-      </Badge>
-    );
+    if (pair.plans.length > 0) {
+      const minPrice = Math.min(...pair.plans.map((p) => p.basePrice));
+      return (
+        <span className="text-xs font-semibold font-mono text-text-primary">
+          from {formatCurrency(minPrice)} USD
+        </span>
+      );
+    }
+    return <Badge variant="gray">Coming Soon</Badge>;
   };
 
   return (
@@ -114,7 +114,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
 
       {/* CTA hover state */}
       <div className="text-xs font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity -mt-2 flex items-center gap-1">
-        {pair.url ? 'Open migration tool' : 'Start migration'}
+        {pair.url ? 'Open migration tool' : pair.isFree ? 'Start free migration' : 'Start migration'}
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>

@@ -25,7 +25,10 @@ export class ApiError extends Error {
 
 function clearAuthAndRedirect(): void {
   useAuthStore.getState().logout();
-  if (window.location.pathname !== '/sign-in') {
+  const path = window.location.pathname;
+  if (path.startsWith('/admin') && path !== '/admin/login') {
+    window.location.replace('/admin/login');
+  } else if (!path.startsWith('/admin') && path !== '/sign-in') {
     window.location.replace('/sign-in');
   }
 }
@@ -50,7 +53,11 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response;
 
-      if (status === 401) clearAuthAndRedirect();
+      // Only redirect on 401 when the request was sent with a token (session expired).
+      // Unauthenticated requests that simply lack a token should fail silently.
+      if (status === 401 && useAuthStore.getState().accessToken) {
+        clearAuthAndRedirect();
+      }
 
       // NestJS sometimes returns message as an array of validation strings
       const message = Array.isArray(data?.message)

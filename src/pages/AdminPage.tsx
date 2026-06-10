@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { KPICards } from '@/components/admin/KPICards';
 import { MigrationTable } from '@/components/admin/MigrationTable';

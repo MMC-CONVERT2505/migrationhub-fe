@@ -281,12 +281,6 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
                 {link.label}
               </button>
             ))}
-            <Link
-              to="/admin"
-              className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors"
-            >
-              Admin
-            </Link>
           </nav>
 
           {/* CTA */}
@@ -364,13 +358,6 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
                 {link.label}
               </button>
             ))}
-            <Link
-              to="/admin"
-              onClick={() => setMobileOpen(false)}
-              className="px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors"
-            >
-              Admin
-            </Link>
 
             <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
               {isLoggedIn ? (

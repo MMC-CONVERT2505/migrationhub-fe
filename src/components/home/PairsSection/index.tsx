@@ -6,6 +6,7 @@ import { PAIRS, PAIR_FILTER_TABS } from '@/constants/pairs';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { PairCard } from './PairCard';
 import type { Pair } from '@/types';
+import type { MigrationPairEntity } from '@/types/api';
 
 // ─── Skeleton card ────────────────────────────────────────────────────────────
 const PairCardSkeleton: React.FC = () => (
@@ -33,15 +34,11 @@ export const PairsSection: React.FC = () => {
 
   useEffect(() => {
     migrationPairsService
-      .list({ isActive: true, limit: 50 } as any)
+      .available()
       .then((res) => {
-        const items = extractList<any>(res);
+        const items = extractList<MigrationPairEntity>(res);
         if (items.length > 0) {
-          setPairs(
-            items
-              .filter((e: any) => !e.isMaintenance)
-              .map(apiPairToUiPair)
-          );
+          setPairs(items.map(apiPairToUiPair));
         } else {
           setPairs(PAIRS);
         }

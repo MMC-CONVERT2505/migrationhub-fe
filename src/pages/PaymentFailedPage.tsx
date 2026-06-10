@@ -15,7 +15,7 @@ const PaymentFailedPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate       = useNavigate();
   const reason         = searchParams.get('reason') ?? 'failed';
-  const paymentId      = searchParams.get('payment_id');
+  const paymentId      = searchParams.get('paymentId');
 
   const label = REASON_LABELS[reason] ?? 'Something went wrong with your payment.';
 

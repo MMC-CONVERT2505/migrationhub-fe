@@ -1,47 +1,74 @@
 import { create } from 'zustand';
-import type { AppState, Screen, Pair } from '@/types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { AppState, PendingMigration, Screen, Pair } from '@/types';
 
-export const useAppStore = create<AppState>((set) => ({
-  currentScreen: 'home',
-  selectedPair: null,
-  selectedPlanIndex: 1, // middle plan selected by default
-  migrationStep: 1,
-  selectedDataCategories: [0, 1, 2, 3, 4, 5, 6, 7],
-  paymentProcessing: false,
-  migrationComplete: false,
+const PENDING_MIGRATION_LS_KEY = 'mmc-pending-migration';
 
-  setScreen: (screen: Screen) => set({ currentScreen: screen }),
-
-  setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
-
-  setSelectedPlan: (index: number) => set({ selectedPlanIndex: index }),
-
-  nextMigrationStep: () =>
-    set((s) => ({ migrationStep: Math.min(s.migrationStep + 1, 5) })),
-
-  prevMigrationStep: () =>
-    set((s) => ({ migrationStep: Math.max(s.migrationStep - 1, 1) })),
-
-  toggleDataCategory: (index: number) =>
-    set((state) => {
-      const selected = state.selectedDataCategories.includes(index)
-        ? state.selectedDataCategories.filter((i) => i !== index)
-        : [...state.selectedDataCategories, index];
-      return { selectedDataCategories: selected };
-    }),
-
-  startPaymentProcessing: () => set({ paymentProcessing: true }),
-
-  completeMigration: () => set({ migrationComplete: true }),
-
-  resetMigration: () =>
-    set({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
       currentScreen: 'home',
       selectedPair: null,
-      selectedPlanIndex: 1,
       migrationStep: 1,
       selectedDataCategories: [0, 1, 2, 3, 4, 5, 6, 7],
       paymentProcessing: false,
       migrationComplete: false,
+      pendingMigration: null,
+      selectedPlanId: null,
+
+      setScreen: (screen: Screen) => set({ currentScreen: screen }),
+      setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
+
+      nextMigrationStep: () =>
+        set((s) => ({ migrationStep: Math.min(s.migrationStep + 1, 5) })),
+
+      prevMigrationStep: () =>
+        set((s) => ({ migrationStep: Math.max(s.migrationStep - 1, 1) })),
+
+      toggleDataCategory: (index: number) =>
+        set((state) => {
+          const selected = state.selectedDataCategories.includes(index)
+            ? state.selectedDataCategories.filter((i) => i !== index)
+            : [...state.selectedDataCategories, index];
+          return { selectedDataCategories: selected };
+        }),
+
+      startPaymentProcessing: () => set({ paymentProcessing: true }),
+      completeMigration: () => set({ migrationComplete: true }),
+
+      resetMigration: () =>
+        set({
+          currentScreen: 'home',
+          selectedPair: null,
+          migrationStep: 1,
+          selectedDataCategories: [0, 1, 2, 3, 4, 5, 6, 7],
+          paymentProcessing: false,
+          migrationComplete: false,
+          pendingMigration: null,
+          selectedPlanId: null,
+        }),
+
+      setSelectedPlanId: (planId: string | null) => set({ selectedPlanId: planId }),
+
+      setPendingMigration: (data: PendingMigration | null) => {
+        if (data) {
+          localStorage.setItem(PENDING_MIGRATION_LS_KEY, JSON.stringify(data));
+        } else {
+          localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
+        }
+        set({ pendingMigration: data });
+      },
     }),
-}));
+    {
+      name: 'mmc-app',
+      storage: createJSONStorage(() => sessionStorage),
+      // Persist pair selection so it survives sign-in redirect
+      partialize: (s) => ({
+        selectedPair: s.selectedPair,
+        selectedPlanId: s.selectedPlanId,
+      }),
+    },
+  ),
+);
+
+export { PENDING_MIGRATION_LS_KEY };

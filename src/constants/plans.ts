@@ -3,9 +3,10 @@ import type { Plan } from '@/types';
 export const PLANS: Plan[] = [
   {
     name: 'Basic',
-    history: '1 year',
+    history: 'Current Financial Year + 1 Historical Year',
     support: 'Email support',
-    basePrice: 389,
+    basePrice: 199,
+
     features: [
       '1 year history',
       'All data categories',
@@ -16,9 +17,10 @@ export const PLANS: Plan[] = [
   },
   {
     name: 'Standard',
-    history: '3 years',
+    history: 'Current Financial Year + 3 Historical Years',
     support: 'Priority email + call',
-    basePrice: 649,
+    basePrice: 349,
+
     features: [
       '3 years history',
       'All data categories',
@@ -32,9 +34,10 @@ export const PLANS: Plan[] = [
   },
   {
     name: 'Enterprise',
-    history: 'Unlimited',
+    history: 'Inception to Date',
     support: 'Phone, chat + 30-day cover',
-    basePrice: 999,
+    basePrice: 599,
+
     features: [
       'Unlimited history',
       'All data categories',
@@ -47,5 +50,3 @@ export const PLANS: Plan[] = [
     ],
   },
 ];
-
-export const GST_RATE = 0.1;

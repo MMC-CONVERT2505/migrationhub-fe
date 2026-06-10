@@ -1,7 +1,7 @@
 // ─── Platform & Migration Pair Types ────────────────────────────────────────
 
 export interface Pair {
-  id?: number;
+  id?: number | string;
   src: string;
   dst: string;
   srcColor: string;
@@ -10,13 +10,9 @@ export interface Pair {
   dstAbbr: string;
   count: string;
   status: 'paid' | 'free' | 'region';
-  /** Direct-access URL for FREE pairs — opens the tool without payment */
+  isFree?: boolean;
+  plans: Plan[];
   url: string | null;
-  /**
-   * External microservice tool URL for this migration pair.
-   * After payment succeeds, the user is redirected here.
-   * Falls back to the internal /migration wizard when null.
-   */
   toolUrl: string | null;
   myobBusiness?: boolean;
 }
@@ -75,23 +71,31 @@ export interface KPICard {
 
 export type Screen = 'home' | 'payment' | 'migration' | 'admin';
 
+export interface PendingMigration {
+  migrationPairId: string;
+  planId?: string;
+}
+
 export interface AppState {
   currentScreen: Screen;
   selectedPair: Pair | null;
-  selectedPlanIndex: number;           // index into current plans list for UI highlight
   migrationStep: number;
   selectedDataCategories: number[];
   paymentProcessing: boolean;
   migrationComplete: boolean;
+  /** Set before Razorpay redirect; also written to localStorage for post-redirect survival. */
+  pendingMigration: PendingMigration | null;
+  selectedPlanId: string | null;
   setScreen: (screen: Screen) => void;
   setSelectedPair: (pair: Pair | null) => void;
-  setSelectedPlan: (index: number) => void;
   nextMigrationStep: () => void;
   prevMigrationStep: () => void;
   toggleDataCategory: (index: number) => void;
   startPaymentProcessing: () => void;
   completeMigration: () => void;
   resetMigration: () => void;
+  setPendingMigration: (data: PendingMigration | null) => void;
+  setSelectedPlanId: (planId: string | null) => void;
 }
 
 // ─── Component Prop Types ────────────────────────────────────────────────────

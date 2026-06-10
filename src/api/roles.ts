@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, CreateRoleRequest, Role, UpdateRoleRequest } from '@/types/api';
+import type { CreateRoleRequest, Role, UpdateRoleRequest } from '@/types/api';
 
 export const rolesService = {
   list: () =>

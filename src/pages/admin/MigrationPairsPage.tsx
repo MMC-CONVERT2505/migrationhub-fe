@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { migrationPairsService } from '@/api/migrationPairs';
+import { plansService } from '@/api/plans';
 import { ApiError } from '@/api/client';
-import { extractList } from '@/utils/platformMap';
+import { extractList, normalizePlatform } from '@/utils/platformMap';
 import type {
+  ApiPlan,
   MigrationPairEntity,
   CreateMigrationPairRequest,
   UpdateMigrationPairRequest,
@@ -11,134 +13,416 @@ import type {
 } from '@/types/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const ENV_OPTIONS: MigrationEnvironment[] = ['PRODUCTION', 'STAGING', 'DEV'];
 
-const EMPTY_CREATE: CreateMigrationPairRequest = {
-  source: '',
-  destination: '',
-  displayName: '',
-  serviceUrl: '',
-  fallbackServiceUrl: '',
-  apiVersion: 'v1',
-  healthCheckPath: '/health',
-  environment: 'PRODUCTION',
-  isActive: true,
-};
+const ENV_OPTIONS: MigrationEnvironment[] = ['PRODUCTION', 'STAGING', 'DEVELOPMENT'];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-const Badge: React.FC<{ active: boolean; label: string }> = ({ active, label }) => (
-  <span
-    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-      active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-    }`}
-  >
+function autoDisplayName(source: string, destination: string): string {
+  const src = source.trim();
+  const dst = destination.trim();
+  if (!src && !dst) return '';
+  return `${normalizePlatform(src || '…')} → ${normalizePlatform(dst || '…')}`;
+}
+
+// ─── Shared UI primitives ─────────────────────────────────────────────────────
+
+const inputCls =
+  'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors bg-white disabled:bg-bg-light disabled:text-text-tertiary';
+
+const Field: React.FC<{
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ label, required, hint, children }) => (
+  <div className="flex flex-col gap-1">
+    <label className="text-xs font-medium text-text-secondary">
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+    {children}
+    {hint && <p className="text-[11px] text-text-tertiary">{hint}</p>}
+  </div>
+);
+
+const Toggle: React.FC<{
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  description?: string;
+}> = ({ checked, onChange, label, description }) => (
+  <label className="flex items-start gap-3 cursor-pointer group">
+    <div className="relative flex-shrink-0 mt-0.5">
+      <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <div
+        className={`w-9 h-5 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-600' : 'bg-border'}`}
+      />
+      <div
+        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-4' : 'translate-x-0'}`}
+      />
+    </div>
+    <div>
+      <p className="text-sm font-medium text-text-primary">{label}</p>
+      {description && <p className="text-xs text-text-tertiary mt-0.5">{description}</p>}
+    </div>
+  </label>
+);
+
+const StatusBadge: React.FC<{ active: boolean; label: string }> = ({ active, label }) => (
+  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
     <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-green-500' : 'bg-red-400'}`} />
     {label}
   </span>
 );
 
 const EnvBadge: React.FC<{ env: MigrationEnvironment }> = ({ env }) => {
-  const color =
-    env === 'PRODUCTION'
-      ? 'bg-blue-50 text-blue-700'
-      : env === 'STAGING'
-      ? 'bg-yellow-50 text-yellow-700'
-      : 'bg-purple-50 text-purple-700';
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>{env}</span>
-  );
+  const color = env === 'PRODUCTION' ? 'bg-blue-50 text-blue-700' : env === 'STAGING' ? 'bg-yellow-50 text-yellow-700' : 'bg-purple-50 text-purple-700';
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>{env}</span>;
 };
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
-interface ModalProps {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
+  <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto">
     <div className="absolute inset-0 bg-black/40" onClick={onClose} />
     <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.96, y: -8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl mb-10"
     >
-      <div className="flex items-center justify-between p-5 border-b border-border">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-colors">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="px-6 py-5">{children}</div>
     </motion.div>
   </div>
 );
 
-// ─── Field ────────────────────────────────────────────────────────────────────
-const Field: React.FC<{
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}> = ({ label, required, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-xs font-medium text-text-secondary">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    {children}
-  </div>
-);
+// ─── Shared form sections ─────────────────────────────────────────────────────
 
-const inputCls =
-  'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors bg-white';
+interface PairFormFields {
+  source: string;
+  destination: string;
+  displayName: string;
+  serviceUrl: string;
+  fallbackServiceUrl: string;
+  apiVersion: string;
+  healthCheckPath: string;
+  environment: MigrationEnvironment;
+  isActive: boolean;
+  isMaintenance: boolean;
+  isFree: boolean;
+}
+
+const PairFormBody: React.FC<{
+  values: PairFormFields;
+  onChange: (patch: Partial<PairFormFields>) => void;
+  sourceReadOnly?: boolean;
+  destinationReadOnly?: boolean;
+}> = ({ values, onChange, sourceReadOnly = false, destinationReadOnly = false }) => {
+  const handleSourceChange = (src: string) => {
+    const auto = autoDisplayName(src, values.destination);
+    onChange({ source: src, displayName: auto });
+  };
+  const handleDestinationChange = (dst: string) => {
+    const auto = autoDisplayName(values.source, dst);
+    onChange({ destination: dst, displayName: auto });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Source / Destination */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Source" required>
+          <input
+            className={inputCls}
+            value={values.source}
+            onChange={(e) => handleSourceChange(e.target.value)}
+            placeholder="xero"
+            required
+            disabled={sourceReadOnly}
+          />
+        </Field>
+        <Field label="Destination" required>
+          <input
+            className={inputCls}
+            value={values.destination}
+            onChange={(e) => handleDestinationChange(e.target.value)}
+            placeholder="qbo"
+            required
+            disabled={destinationReadOnly}
+          />
+        </Field>
+      </div>
+
+      {/* Display name — auto-populated, still editable */}
+      <Field label="Display name" required hint="Auto-generated from source → destination. Edit to override.">
+        <input
+          className={inputCls}
+          value={values.displayName}
+          onChange={(e) => onChange({ displayName: e.target.value })}
+          placeholder="Xero → QBO"
+          required
+        />
+      </Field>
+
+      {/* Service URLs */}
+      <Field label="Service URL" required>
+        <input
+          className={inputCls}
+          value={values.serviceUrl}
+          onChange={(e) => onChange({ serviceUrl: e.target.value })}
+          placeholder="https://service.example.com"
+          required
+        />
+      </Field>
+      <Field label="Fallback service URL">
+        <input
+          className={inputCls}
+          value={values.fallbackServiceUrl}
+          onChange={(e) => onChange({ fallbackServiceUrl: e.target.value })}
+          placeholder="https://fallback.example.com"
+        />
+      </Field>
+
+      {/* API version + health check */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="API version">
+          <input
+            className={inputCls}
+            value={values.apiVersion}
+            onChange={(e) => onChange({ apiVersion: e.target.value })}
+            placeholder="v1"
+          />
+        </Field>
+        <Field label="Health check path">
+          <input
+            className={inputCls}
+            value={values.healthCheckPath}
+            onChange={(e) => onChange({ healthCheckPath: e.target.value })}
+            placeholder="/health"
+          />
+        </Field>
+      </div>
+
+      {/* Environment */}
+      <Field label="Environment">
+        <select
+          className={inputCls}
+          value={values.environment}
+          onChange={(e) => onChange({ environment: e.target.value as MigrationEnvironment })}
+        >
+          {ENV_OPTIONS.map((env) => <option key={env} value={env}>{env}</option>)}
+        </select>
+      </Field>
+
+      {/* Toggles */}
+      <div className="pt-2 space-y-3 border-t border-border">
+        <Toggle
+          checked={values.isActive}
+          onChange={(v) => onChange({ isActive: v })}
+          label="Active"
+          description="Visible and selectable by users on the public site."
+        />
+        <Toggle
+          checked={values.isMaintenance}
+          onChange={(v) => onChange({ isMaintenance: v })}
+          label="Maintenance mode"
+          description="Temporarily hides the pair from users without deleting it."
+        />
+        <Toggle
+          checked={values.isFree}
+          onChange={(v) => onChange({ isFree: v })}
+          label="Free migration"
+          description="Skip the payment step — users can start migrating at no charge."
+        />
+      </div>
+    </div>
+  );
+};
+
+// ─── Plan manager (attach / detach plans on an existing pair) ─────────────────
+
+const PlanManager: React.FC<{
+  pairId: number | string;
+  attachedPlans: ApiPlan[];
+  availablePlans: ApiPlan[];
+  onRefresh: () => void;
+}> = ({ pairId, attachedPlans, availablePlans, onRefresh }) => {
+  const [attachId, setAttachId] = useState('');
+  const [working, setWorking]   = useState(false);
+  const [err, setErr]           = useState('');
+
+  const unattached = availablePlans.filter((p) => !attachedPlans.some((a) => a.id === p.id));
+
+  const doAttach = async () => {
+    if (!attachId) return;
+    setWorking(true);
+    setErr('');
+    try {
+      await migrationPairsService.attachPlan(pairId, attachId);
+      setAttachId('');
+      onRefresh();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Failed to attach plan.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const doDetach = async (planId: string) => {
+    setWorking(true);
+    setErr('');
+    try {
+      await migrationPairsService.detachPlan(pairId, planId);
+      onRefresh();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Failed to detach plan.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <div className="pt-4 mt-4 border-t border-border space-y-3">
+      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Attached plans</p>
+
+      {attachedPlans.length === 0 ? (
+        <p className="text-xs text-text-tertiary italic">No plans attached yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {attachedPlans.map((p) => (
+            <div key={p.id} className="flex items-center justify-between bg-bg-light rounded-lg px-3 py-2">
+              <div>
+                <p className="text-xs font-medium text-text-primary">{p.name}</p>
+                <p className="text-[11px] text-text-tertiary font-mono">
+                  ${parseFloat(p.basePrice).toFixed(2)} {p.currency}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => doDetach(p.id)}
+                disabled={working}
+                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 font-medium transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {unattached.length > 0 && (
+        <div className="flex gap-2 items-center">
+          <select
+            className={`${inputCls} flex-1`}
+            value={attachId}
+            onChange={(e) => setAttachId(e.target.value)}
+            disabled={working}
+          >
+            <option value="">— Attach a plan —</option>
+            {unattached.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} — ${parseFloat(p.basePrice).toFixed(2)} {p.currency}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={doAttach}
+            disabled={!attachId || working}
+            className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex-shrink-0"
+          >
+            Attach
+          </button>
+        </div>
+      )}
+
+      {err && <p className="text-xs text-red-600">{err}</p>}
+    </div>
+  );
+};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-const MigrationPairsPage: React.FC = () => {
-  const [pairs, setPairs] = useState<MigrationPairEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  // Modal state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<MigrationPairEntity | null>(null);
+const MigrationPairsPage: React.FC = () => {
+  const [pairs, setPairs]         = useState<MigrationPairEntity[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+
+  const [createOpen, setCreateOpen]     = useState(false);
+  const [editTarget, setEditTarget]     = useState<MigrationPairEntity | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MigrationPairEntity | null>(null);
 
-  // Form state
-  const [createForm, setCreateForm] = useState<CreateMigrationPairRequest>(EMPTY_CREATE);
-  const [editForm, setEditForm] = useState<UpdateMigrationPairRequest>({});
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [createForm, setCreateForm] = useState<PairFormFields>({
+    source: '', destination: '', displayName: '',
+    serviceUrl: '', fallbackServiceUrl: '',
+    apiVersion: 'v1', healthCheckPath: '/health',
+    environment: 'PRODUCTION', isActive: true,
+    isMaintenance: false, isFree: false,
+  });
 
-  const load = async () => {
+  const [editForm, setEditForm]   = useState<PairFormFields | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [formError, setFormError] = useState('');
+  const [availablePlans, setAvailablePlans] = useState<ApiPlan[]>([]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await migrationPairsService.list({ limit: 100 } as any);
-      setPairs(extractList<MigrationPairEntity>(res));
+      const [pairsRes, plansRes] = await Promise.all([
+        migrationPairsService.list({ limit: 100 } as any),
+        plansService.list(),
+      ]);
+      setPairs(extractList<MigrationPairEntity>(pairsRes));
+      setAvailablePlans(extractList<ApiPlan>(plansRes));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load migration pairs.');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // ── Create ──────────────────────────────────────────────────────────────────
+
+  const openCreate = () => {
+    setCreateForm({
+      source: '', destination: '', displayName: '',
+      serviceUrl: '', fallbackServiceUrl: '',
+      apiVersion: 'v1', healthCheckPath: '/health',
+      environment: 'PRODUCTION', isActive: true,
+      isMaintenance: false, isFree: false,
+    });
+    setFormError('');
+    setCreateOpen(true);
   };
 
-  useEffect(() => { load(); }, []);
-
-  // ── Create ────────────────────────────────────────────────────────────────
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setFormError('');
     try {
       const payload: CreateMigrationPairRequest = {
-        ...createForm,
+        source:             createForm.source,
+        destination:        createForm.destination,
+        displayName:        createForm.displayName,
+        serviceUrl:         createForm.serviceUrl,
         fallbackServiceUrl: createForm.fallbackServiceUrl || undefined,
+        apiVersion:         createForm.apiVersion || undefined,
+        healthCheckPath:    createForm.healthCheckPath || undefined,
+        environment:        createForm.environment,
+        isActive:           createForm.isActive,
+        isFree:             createForm.isFree,
       };
       await migrationPairsService.create(payload);
       setCreateOpen(false);
-      setCreateForm(EMPTY_CREATE);
       load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Failed to create pair.');
@@ -147,20 +431,53 @@ const MigrationPairsPage: React.FC = () => {
     }
   };
 
-  // ── Edit ─────────────────────────────────────────────────────────────────
+  // ── Edit ────────────────────────────────────────────────────────────────────
+
   const openEdit = (pair: MigrationPairEntity) => {
+    setEditForm({
+      source:             pair.source,
+      destination:        pair.destination,
+      displayName:        pair.displayName,
+      serviceUrl:         pair.serviceUrl ?? '',
+      fallbackServiceUrl: pair.fallbackServiceUrl ?? '',
+      apiVersion:         pair.apiVersion ?? 'v1',
+      healthCheckPath:    pair.healthCheckPath ?? '/health',
+      environment:        pair.environment,
+      isActive:           pair.isActive,
+      isMaintenance:      pair.isMaintenance,
+      isFree:             pair.isFree ?? false,
+    });
     setEditTarget(pair);
-    setEditForm({ serviceUrl: pair.serviceUrl, isActive: pair.isActive, isMaintenance: pair.isMaintenance });
     setFormError('');
   };
 
+  // Sync editTarget when pairs list refreshes (e.g. after attach/detach)
+  useEffect(() => {
+    if (!editTarget) return;
+    const updated = pairs.find((p) => p.id === editTarget.id);
+    if (updated) setEditTarget(updated);
+  }, [pairs]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editTarget) return;
+    if (!editTarget || !editForm) return;
     setSaving(true);
     setFormError('');
     try {
-      await migrationPairsService.update(editTarget.id, editForm);
+      const payload: UpdateMigrationPairRequest = {
+        source:             editForm.source,
+        destination:        editForm.destination,
+        displayName:        editForm.displayName,
+        serviceUrl:         editForm.serviceUrl,
+        fallbackServiceUrl: editForm.fallbackServiceUrl || undefined,
+        apiVersion:         editForm.apiVersion || undefined,
+        healthCheckPath:    editForm.healthCheckPath || undefined,
+        environment:        editForm.environment,
+        isActive:           editForm.isActive,
+        isMaintenance:      editForm.isMaintenance,
+        isFree:             editForm.isFree,
+      };
+      await migrationPairsService.update(editTarget.id, payload);
       setEditTarget(null);
       load();
     } catch (err) {
@@ -170,7 +487,8 @@ const MigrationPairsPage: React.FC = () => {
     }
   };
 
-  // ── Delete ───────────────────────────────────────────────────────────────
+  // ── Delete ──────────────────────────────────────────────────────────────────
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setSaving(true);
@@ -186,6 +504,8 @@ const MigrationPairsPage: React.FC = () => {
     }
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
       {/* Header */}
@@ -195,7 +515,7 @@ const MigrationPairsPage: React.FC = () => {
           <p className="mt-1 text-sm text-text-secondary">Manage source-to-destination migration service endpoints</p>
         </div>
         <button
-          onClick={() => { setCreateOpen(true); setFormError(''); }}
+          onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -205,7 +525,6 @@ const MigrationPairsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Error banner */}
       {error && (
         <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
@@ -230,7 +549,8 @@ const MigrationPairsPage: React.FC = () => {
                 <tr className="border-b border-border bg-bg-light">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Name</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Route</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Environment</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Plan</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Env</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Maintenance</th>
                   <th className="px-4 py-3" />
@@ -245,9 +565,25 @@ const MigrationPairsPage: React.FC = () => {
                       <span className="mx-1.5 text-text-tertiary">→</span>
                       <span className="font-mono text-xs">{pair.destination}</span>
                     </td>
+                    <td className="px-4 py-3">
+                      {pair.isFree ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700">Free</span>
+                      ) : pair.plans.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {pair.plans.map((pl) => (
+                            <div key={pl.id} className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium text-text-primary">{pl.name}</span>
+                              <span className="text-[11px] text-text-tertiary font-mono">${parseFloat(pl.basePrice).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">No plans</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3"><EnvBadge env={pair.environment} /></td>
-                    <td className="px-4 py-3"><Badge active={pair.isActive} label={pair.isActive ? 'Active' : 'Inactive'} /></td>
-                    <td className="px-4 py-3"><Badge active={!pair.isMaintenance} label={pair.isMaintenance ? 'Yes' : 'No'} /></td>
+                    <td className="px-4 py-3"><StatusBadge active={pair.isActive} label={pair.isActive ? 'Active' : 'Inactive'} /></td>
+                    <td className="px-4 py-3"><StatusBadge active={!pair.isMaintenance} label={pair.isMaintenance ? 'Yes' : 'No'} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button
@@ -278,48 +614,18 @@ const MigrationPairsPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── Create Modal ─────────────────────────────────────────────────────── */}
+      {/* ── Create Modal ───────────────────────────────────────────────────────── */}
       {createOpen && (
         <Modal title="Add Migration Pair" onClose={() => setCreateOpen(false)}>
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-0">
             {formError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
+              <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Source" required>
-                <input className={inputCls} value={createForm.source} onChange={(e) => setCreateForm((f) => ({ ...f, source: e.target.value }))} placeholder="xero" required />
-              </Field>
-              <Field label="Destination" required>
-                <input className={inputCls} value={createForm.destination} onChange={(e) => setCreateForm((f) => ({ ...f, destination: e.target.value }))} placeholder="myob" required />
-              </Field>
-            </div>
-            <Field label="Display Name" required>
-              <input className={inputCls} value={createForm.displayName} onChange={(e) => setCreateForm((f) => ({ ...f, displayName: e.target.value }))} placeholder="Xero → MYOB" required />
-            </Field>
-            <Field label="Service URL" required>
-              <input className={inputCls} value={createForm.serviceUrl} onChange={(e) => setCreateForm((f) => ({ ...f, serviceUrl: e.target.value }))} placeholder="https://service.example.com" required />
-            </Field>
-            <Field label="Fallback Service URL">
-              <input className={inputCls} value={createForm.fallbackServiceUrl ?? ''} onChange={(e) => setCreateForm((f) => ({ ...f, fallbackServiceUrl: e.target.value }))} placeholder="https://fallback.example.com" />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="API Version">
-                <input className={inputCls} value={createForm.apiVersion ?? ''} onChange={(e) => setCreateForm((f) => ({ ...f, apiVersion: e.target.value }))} placeholder="v1" />
-              </Field>
-              <Field label="Health Check Path">
-                <input className={inputCls} value={createForm.healthCheckPath ?? ''} onChange={(e) => setCreateForm((f) => ({ ...f, healthCheckPath: e.target.value }))} placeholder="/health" />
-              </Field>
-            </div>
-            <Field label="Environment">
-              <select className={inputCls} value={createForm.environment} onChange={(e) => setCreateForm((f) => ({ ...f, environment: e.target.value as MigrationEnvironment }))}>
-                {ENV_OPTIONS.map((e) => <option key={e} value={e}>{e}</option>)}
-              </select>
-            </Field>
-            <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
-              <input type="checkbox" checked={createForm.isActive} onChange={(e) => setCreateForm((f) => ({ ...f, isActive: e.target.checked }))} />
-              Active on creation
-            </label>
-            <div className="flex justify-end gap-2 pt-2">
+            <PairFormBody
+              values={createForm}
+              onChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
+            />
+            <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
                 Cancel
               </button>
@@ -331,27 +637,24 @@ const MigrationPairsPage: React.FC = () => {
         </Modal>
       )}
 
-      {/* ── Edit Modal ───────────────────────────────────────────────────────── */}
-      {editTarget && (
+      {/* ── Edit Modal ─────────────────────────────────────────────────────────── */}
+      {editTarget && editForm && (
         <Modal title={`Edit — ${editTarget.displayName}`} onClose={() => setEditTarget(null)}>
-          <form onSubmit={handleEdit} className="space-y-4">
+          <form onSubmit={handleEdit} className="space-y-0">
             {formError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
+              <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
-            <Field label="Service URL">
-              <input className={inputCls} value={editForm.serviceUrl ?? ''} onChange={(e) => setEditForm((f) => ({ ...f, serviceUrl: e.target.value }))} placeholder="https://service.example.com" />
-            </Field>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
-                <input type="checkbox" checked={editForm.isActive ?? false} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))} />
-                Active
-              </label>
-              <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
-                <input type="checkbox" checked={editForm.isMaintenance ?? false} onChange={(e) => setEditForm((f) => ({ ...f, isMaintenance: e.target.checked }))} />
-                Maintenance mode
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <PairFormBody
+              values={editForm}
+              onChange={(patch) => setEditForm((f) => f ? { ...f, ...patch } : f)}
+            />
+            <PlanManager
+              pairId={editTarget.id}
+              attachedPlans={editTarget.plans}
+              availablePlans={availablePlans}
+              onRefresh={load}
+            />
+            <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
                 Cancel
               </button>
@@ -363,12 +666,14 @@ const MigrationPairsPage: React.FC = () => {
         </Modal>
       )}
 
-      {/* ── Delete Confirm ───────────────────────────────────────────────────── */}
+      {/* ── Delete Confirm ─────────────────────────────────────────────────────── */}
       {deleteTarget && (
         <Modal title="Delete Migration Pair" onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
             <p className="text-sm text-text-secondary">
-              Are you sure you want to delete <span className="font-semibold text-text-primary">{deleteTarget.displayName}</span>? This action cannot be undone.
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-text-primary">{deleteTarget.displayName}</span>?
+              {' '}This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light transition-colors">

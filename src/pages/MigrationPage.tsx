@@ -75,7 +75,7 @@ const MigrationPage: React.FC = () => {
                 Enterprise accounting data migration · Powered by MMC Convert
               </p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {['Read-only source', 'SSL encrypted', 'Payment verified', 'Full history included'].map((badge) => (
+                {['Read-only source', 'SSL encrypted', ...(pair.isFree ? [] : ['Payment verified']), 'Full history included'].map((badge) => (
                   <span
                     key={badge}
                     className="text-[10px] font-medium px-2 py-0.5 rounded border border-border text-text-tertiary bg-white"

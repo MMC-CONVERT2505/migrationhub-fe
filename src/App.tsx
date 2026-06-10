@@ -14,6 +14,8 @@ const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPa
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
+const AdminLoginPage      = React.lazy(() => import('@/pages/AdminLoginPage'));
+
 // Admin sub-pages
 const AdminDashboard      = React.lazy(() => import('@/pages/AdminPage'));
 const MigrationPairsPage  = React.lazy(() => import('@/pages/admin/MigrationPairsPage'));
@@ -46,6 +48,9 @@ const App: React.FC = () => (
       <Route path="/migrations"       element={<MigrationHistoryPage />} />
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
+
+      {/* Admin login — public, no guard */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
 
       {/* Admin — guard checks auth + admin role before rendering layout */}
       <Route path="/admin" element={<AdminGuard />}>

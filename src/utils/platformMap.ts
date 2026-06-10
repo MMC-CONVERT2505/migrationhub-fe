@@ -17,7 +17,6 @@ export function extractList<T>(res: unknown): T[] {
 }
 import type { MigrationPairEntity, ApiPlan } from '@/types/api';
 import type { Pair, Plan } from '@/types';
-import { GST_RATE } from '@/constants/plans';
 
 // ─── API key → display name ───────────────────────────────────────────────────
 const NORMALIZE: Record<string, string> = {
@@ -48,7 +47,9 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
     srcAbbr:   PLATFORM_ABBR[src]   ?? src.slice(0, 2).toUpperCase(),
     dstAbbr:   PLATFORM_ABBR[dst]   ?? dst.slice(0, 2).toUpperCase(),
     count:     '',
-    status:    'paid',
+    status:    entity.isFree ? 'free' : 'paid',
+    isFree:    entity.isFree ?? false,
+    plans:     (entity.plans ?? []).map(apiPlanToUiPlan),
     url:       null,
     toolUrl:   entity.serviceUrl ?? null,
   };
@@ -67,4 +68,4 @@ export function apiPlanToUiPlan(plan: ApiPlan): Plan {
   };
 }
 
-export { GST_RATE };
+

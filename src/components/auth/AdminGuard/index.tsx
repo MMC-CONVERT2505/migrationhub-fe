@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 
 interface JwtPayload {
@@ -29,10 +29,9 @@ function isAdminToken(token: string, userRoles?: string[]): boolean {
 
 export const AdminGuard: React.FC = () => {
   const { accessToken, user } = useAuthStore();
-  const location = useLocation();
 
   if (!accessToken) {
-    return <Navigate to="/sign-in" state={{ from: location }} replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   if (!isAdminToken(accessToken, user?.roles)) {

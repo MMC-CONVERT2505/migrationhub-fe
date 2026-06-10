@@ -51,7 +51,7 @@ const inputCls =
 const EMPTY: CreatePlanRequest = {
   name: '',
   basePrice: 0,
-  currency: 'AUD',
+  currency: 'USD',
   history: '',
   support: '',
   features: [],
@@ -61,7 +61,7 @@ const EMPTY: CreatePlanRequest = {
 const planToRequest = (p: (typeof PLANS)[number]): CreatePlanRequest => ({
   name:      p.name,
   basePrice: p.basePrice,
-  currency:  'AUD',
+  currency:  'USD',
   history:   p.history,
   support:   p.support,
   features:  p.features,

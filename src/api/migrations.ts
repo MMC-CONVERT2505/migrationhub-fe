@@ -1,6 +1,5 @@
 import { apiClient } from './client';
 import type {
-  ApiResponse,
   CreateMigrationRequest,
   MigrationRecord,
   UserMigration,
@@ -10,7 +9,7 @@ export const migrationsService = {
   /** Kick off a migration after payment is verified. */
   create: (data: CreateMigrationRequest) =>
     apiClient
-      .post<ApiResponse<MigrationRecord>>('/migrations', data)
+      .post<MigrationRecord>('/migrations', data)
       .then((r) => r.data),
 
   /** Fetch all migrations for the authenticated user. */

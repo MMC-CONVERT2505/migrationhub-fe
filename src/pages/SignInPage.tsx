@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { InputField } from '@/components/auth/InputField';
 import { PasswordField } from '@/components/auth/PasswordField';
@@ -32,6 +32,8 @@ function validate(form: SignInFormData): AuthError[] {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get('next') || '/';
   const { setToken, setUser } = useAuthStore();
 
   const [form, setForm] = useState<SignInFormData>({ email: '', password: '', rememberMe: false });
@@ -71,7 +73,7 @@ const SignInPage: React.FC = () => {
         // profile fetch is non-fatal — token is already stored
       }
 
-      navigate('/');
+      navigate(next, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.statusCode === 404 || err.statusCode === 401) {
@@ -208,13 +210,24 @@ const SignInPage: React.FC = () => {
         </p>
       </form>
 
-      {/* Footer link */}
+      {/* Footer links */}
       <p className="mt-6 text-center text-sm text-text-secondary">
         Don't have an account?{' '}
-        <Link to="/sign-up" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+        <Link
+          to={`/sign-up${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`}
+          className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+        >
           Create account →
         </Link>
       </p>
+
+      {next !== '/' && (
+        <p className="mt-3 text-center">
+          <Link to={next} className="text-xs text-text-tertiary hover:text-text-secondary transition-colors">
+            Continue without signing in
+          </Link>
+        </p>
+      )}
     </AuthLayout>
   );
 };

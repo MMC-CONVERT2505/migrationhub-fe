@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/common/Button';
-import { PLANS } from '@/constants/plans';
 import { DATA_CATEGORIES } from '@/constants/pairs';
 import { useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
@@ -33,13 +32,12 @@ const SummaryCard: React.FC<{
 );
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack }) => {
-  const { selectedPlanIndex, selectedDataCategories } = useAppStore((s) => ({
-    selectedPlanIndex: s.selectedPlanIndex,
+  const { selectedDataCategories, selectedPlanId } = useAppStore((s) => ({
     selectedDataCategories: s.selectedDataCategories,
+    selectedPlanId: s.selectedPlanId,
   }));
 
-  const plan = PLANS[selectedPlanIndex];
-  const totalPrice = plan.basePrice * 1.1;
+  const plan = pair.plans.find((p) => p.id === selectedPlanId) ?? null;
 
   const totalRecords = DATA_CATEGORIES
     .filter((_, i) => selectedDataCategories.includes(i))
@@ -102,13 +100,19 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack })
           { label: 'Data categories',    value: `${selectedDataCategories.length} of ${DATA_CATEGORIES.length}` },
           { label: 'Estimated records',  value: `~${totalRecords.toLocaleString()}` },
           { label: 'Est. duration',      value: '15–25 minutes' },
-          { label: 'Plan',               value: plan.name },
+          { label: 'Plan',               value: plan?.name ?? '—' },
           {
             label: 'Payment',
-            value: (
+            value: pair.isFree ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
-                ✓ Paid — {formatCurrency(totalPrice)}
+                ✓ Free
               </span>
+            ) : plan ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+                ✓ Paid — {formatCurrency(plan.basePrice)} USD
+              </span>
+            ) : (
+              <span className="text-text-tertiary">—</span>
             ),
           },
         ]}

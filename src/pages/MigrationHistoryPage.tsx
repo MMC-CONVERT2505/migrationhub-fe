@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Badge } from '@/components/common/Badge';
 import { Spinner } from '@/components/common/Spinner';
+
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PLATFORM_COLORS, PLATFORM_ABBR } from '@/constants/logos';

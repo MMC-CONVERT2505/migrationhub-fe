@@ -19,8 +19,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'XE',
     count: '3,200+',
     status: 'paid',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL e.g. 'https://tools.mmcconvert.com/qbo-xero'
+    toolUrl: null,
   },
   {
     src: 'QBO',
@@ -31,8 +32,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'FB',
     count: '890+',
     status: 'paid',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL
+    toolUrl: null,
   },
   {
     src: 'Xero',
@@ -43,8 +45,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'MY',
     count: '1,100+',
     status: 'free',
+    plans: [],
     url: 'https://v0-xero-to-wafeq.vercel.app/',
-    toolUrl: 'https://v0-xero-to-wafeq.vercel.app/', // same tool — free access
+    toolUrl: 'https://v0-xero-to-wafeq.vercel.app/',
   },
   {
     src: 'Xero',
@@ -55,8 +58,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'PR',
     count: '420+',
     status: 'free',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL
+    toolUrl: null,
   },
   {
     src: 'Xero',
@@ -67,8 +71,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'QB',
     count: '4,500+',
     status: 'region',
+    plans: [],
     url: 'https://v0-xero-naqood.vercel.app/',
-    toolUrl: 'https://v0-xero-naqood.vercel.app/', // same tool — region-based access
+    toolUrl: 'https://v0-xero-naqood.vercel.app/',
   },
   {
     src: 'Tally',
@@ -79,8 +84,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'ZO',
     count: '760+',
     status: 'paid',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL
+    toolUrl: null,
   },
   {
     src: 'QBO',
@@ -91,8 +97,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'MY',
     count: '640+',
     status: 'free',
+    plans: [],
     url: 'https://v0-qbo-to-zoho-books.vercel.app/',
-    toolUrl: 'https://v0-qbo-to-zoho-books.vercel.app/', // same tool — free access
+    toolUrl: 'https://v0-qbo-to-zoho-books.vercel.app/',
   },
   {
     src: 'Xero',
@@ -103,8 +110,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'RK',
     count: '310+',
     status: 'free',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL
+    toolUrl: null,
   },
   {
     src: 'MYOB',
@@ -115,8 +123,9 @@ export const PAIRS: Pair[] = [
     dstAbbr: 'QB',
     count: '980+',
     status: 'free',
+    plans: [],
     url: null,
-    toolUrl: null, // TODO: add deployed microservice URL
+    toolUrl: null,
     myobBusiness: true,
   },
 ];

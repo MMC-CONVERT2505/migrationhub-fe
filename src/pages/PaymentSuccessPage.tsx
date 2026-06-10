@@ -1,172 +1,331 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
-import { Button } from '@/components/common/Button';
-import { Spinner } from '@/components/common/Spinner';
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
-import { PENDING_MIGRATION_KEY } from '@/components/payment/PaymentForm';
+import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
+import { formatCurrency } from '@/utils/format';
+import type { PendingMigration } from '@/types';
 
-type PageState = 'loading' | 'migration-started' | 'migration-failed' | 'no-migration-data';
+const COUNTDOWN = 5;
+type Stage = 'summary' | 'creating' | 'done' | 'error';
+
+const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div style={{
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '11px 20px', borderBottom: '1px solid #dce2ef', fontSize: 13,
+  }}>
+    <span style={{ color: '#4b5568' }}>{label}</span>
+    <span style={{ fontWeight: 600, color: '#111827' }}>{value}</span>
+  </div>
+);
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate       = useNavigate();
-  const paymentId      = searchParams.get('payment_id') ?? '';
+  const paymentId      = searchParams.get('paymentId') ?? '';
 
-  const [pageState, setPageState]     = useState<PageState>('loading');
-  const [migrationError, setMigrationError] = useState('');
+  const resetMigration = useAppStore((s) => s.resetMigration);
 
-  useEffect(() => {
-    startMigration();
-  }, []);
+  // Snapshot store at mount — resetMigration() wipes the store mid-flight so
+  // we capture pair/plan once and keep them for the full page lifecycle.
+  const [pair] = useState(() => useAppStore.getState().selectedPair);
+  const [plan] = useState(() => {
+    const s = useAppStore.getState();
+    return s.selectedPair?.plans.find((p) => p.id === s.selectedPlanId) ?? null;
+  });
 
-  const startMigration = async () => {
-    // Read the pending migration context written by PaymentForm before redirect.
-    const raw = sessionStorage.getItem(PENDING_MIGRATION_KEY);
+  const isFree = pair?.isFree ?? false;
 
-    if (!raw) {
-      // Could happen if user refreshes the success page after it already ran,
-      // or if they navigated here directly. Treat as success without re-triggering.
-      setPageState('no-migration-data');
-      return;
-    }
+  const [stage, setStage]       = useState<Stage>('summary');
+  const [tick, setTick]         = useState(COUNTDOWN);
+  const [apiError, setApiError] = useState('');
+  const calledRef               = useRef(false);
 
-    let migrationPairId: string;
-    let planId: string;
+  // ── Create migration (called by countdown or "Start now" button) ──────────
+  const triggerCreate = useCallback(async () => {
+    if (calledRef.current) return;
+    calledRef.current = true;
+    setStage('creating');
+
+    let pending: PendingMigration | null = null;
+    try {
+      const raw = localStorage.getItem(PENDING_MIGRATION_LS_KEY);
+      if (raw) pending = JSON.parse(raw) as PendingMigration;
+    } catch { /* malformed */ }
+
+    // Paid: prefer localStorage (survives Razorpay redirect).
+    // Free: fall back to snapshotted pair/plan.
+    const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
+    const planId    = pending?.planId          ?? plan?.id  ?? undefined;
 
     try {
-      const parsed = JSON.parse(raw) as { migrationPairId: string; planId: string };
-      migrationPairId = parsed.migrationPairId;
-      planId          = parsed.planId;
-    } catch {
-      sessionStorage.removeItem(PENDING_MIGRATION_KEY);
-      setPageState('no-migration-data');
-      return;
-    }
+      const result = await migrationsService.create({
+        ...(paymentId  ? { paymentId }                    : {}),
+        ...(migPairId  ? { migrationPairId: migPairId }   : {}),
+        ...(planId     ? { planId }                       : {}),
+      });
 
-    // Always clear — only one attempt per payment session.
-    sessionStorage.removeItem(PENDING_MIGRATION_KEY);
+      localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
+      resetMigration();
 
-    try {
-      await migrationsService.create({ migrationPairId, planId });
-      setPageState('migration-started');
+      // Redirect to the migration tool — serviceUrl comes from the nested
+      // migrationPair in the response; fall back to the snapshotted pair URL.
+      const migrationId = result.id;
+      const serviceUrl  = result.migrationPair?.serviceUrl
+                       ?? result.migrationPair?.fallbackServiceUrl
+                       ?? pair?.toolUrl
+                       ?? null;
+
+      // Build redirect: strip trailing slash, then pass ID as a named query
+      // param so the remote React app retrieves it via useSearchParams().get('migrationId').
+      const base = serviceUrl?.replace(/\/$/, '') ?? null;
+
+      if (base && migrationId) {
+        window.location.href = `${base}?migrationId=${migrationId}`;
+      } else {
+        setStage('done');
+      }
     } catch (err) {
-      // Payment is already confirmed — the migration call failing must not block the user.
-      // Show a soft error with the payment reference so support can reconcile.
-      setMigrationError(
-        err instanceof ApiError
-          ? err.message
-          : 'Migration could not be queued automatically.',
-      );
-      setPageState('migration-failed');
+      localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
+      setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
+      setStage('error');
     }
+  }, [paymentId, pair, plan, resetMigration]);
+
+  // ── Countdown ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (stage !== 'summary') return;
+    if (tick <= 0) { triggerCreate(); return; }
+    const t = setTimeout(() => setTick((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [tick, stage, triggerCreate]);
+
+  // ── Auto-navigate after done ──────────────────────────────────────────────
+  useEffect(() => {
+    if (stage !== 'done') return;
+    const t = setTimeout(() => navigate('/migrations'), 3000);
+    return () => clearTimeout(t);
+  }, [stage, navigate]);
+
+  const retry = () => {
+    calledRef.current = false;
+    setApiError('');
+    setTick(COUNTDOWN);
+    setStage('summary');
   };
 
+  const accentColor = isFree ? '#16a34a' : '#2563eb';
+
   return (
-    <div className="min-h-screen bg-bg">
+    <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
       <Navbar variant="default" />
 
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
-        {pageState === 'loading' && (
-          <div className="flex flex-col items-center gap-4">
-            <Spinner size="lg" />
-            <p className="text-sm text-text-secondary">Starting your migration…</p>
-          </div>
-        )}
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '56px 24px 80px' }}>
 
-        {(pageState === 'migration-started' || pageState === 'no-migration-data') && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h1 className="text-2xl font-bold text-text-primary mb-2">
-              {pageState === 'migration-started' ? 'Migration started!' : 'Payment confirmed!'}
-            </h1>
-            <p className="text-text-secondary mb-1">
-              {pageState === 'migration-started'
-                ? 'Your migration has been queued and will begin processing shortly.'
-                : 'Your payment was received. Your migration will begin shortly.'}
-            </p>
-            {paymentId && (
-              <p className="text-xs text-text-tertiary font-mono mb-8">Ref: {paymentId}</p>
-            )}
-
-            <div className="bg-white border border-border rounded-xl p-5 text-left mb-8 space-y-3">
-              <h2 className="text-sm font-semibold text-text-primary">What happens next?</h2>
-              {[
-                'Your migration is now queued and will begin shortly.',
-                'You will receive a confirmation email with your migration details.',
-                'Track progress in real-time on the migration dashboard.',
-              ].map((step, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                    {i + 1}
-                  </div>
-                  <p className="text-sm text-text-secondary">{step}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>
-                View migration progress
-              </Button>
-              <Button variant="secondary" size="lg" onClick={() => navigate('/')}>
-                Back to home
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {pageState === 'migration-failed' && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {/* Payment succeeded but migration queuing failed */}
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h1 className="text-2xl font-bold text-text-primary mb-2">Payment confirmed!</h1>
-            <p className="text-text-secondary mb-6">Your payment was received successfully.</p>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-left mb-8">
-              <p className="text-sm font-semibold text-amber-800 mb-1">Migration setup needs attention</p>
-              <p className="text-sm text-amber-700 mb-2">{migrationError}</p>
-              <p className="text-sm text-amber-700">
-                Your payment is safe. Please contact{' '}
-                <a href="mailto:support@mmcconvert.com" className="font-medium underline">
-                  support@mmcconvert.com
-                </a>{' '}
-                with reference{' '}
-                <span className="font-mono font-medium">{paymentId}</span>{' '}
-                and we'll start your migration immediately.
+        {/* ── Summary + countdown / creating ─────────────────────────────── */}
+        {(stage === 'summary' || stage === 'creating') && (
+          <>
+            {/* Heading */}
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: isFree ? '#dcfce7' : '#dbeafe',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <svg width="26" height="26" fill="none" viewBox="0 0 24 24"
+                  stroke={accentColor} strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+                {isFree ? 'Migration Ready' : 'Payment Confirmed'}
+              </h1>
+              <p style={{ fontSize: 14, color: '#4b5568' }}>
+                {isFree
+                  ? 'Review your migration details below'
+                  : 'Your payment has been processed successfully'}
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>
-                Go to dashboard
-              </Button>
-              <Button variant="secondary" size="lg" onClick={() => navigate('/')}>
-                Back to home
-              </Button>
+            {/* Details card */}
+            <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+
+              {/* Migration pair */}
+              {pair && (
+                <div style={{
+                  padding: '16px 20px', borderBottom: '1px solid #dce2ef',
+                  display: 'flex', alignItems: 'center', gap: 14, background: '#f0f4fa',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, background: pair.srcColor,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
+                    }}>
+                      {pair.srcAbbr}
+                    </div>
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, background: pair.dstColor,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
+                    }}>
+                      {pair.dstAbbr}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+                      {pair.src} → {pair.dst}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#4b5568', marginTop: 2 }}>Migration pair</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Plan details */}
+              {plan ? (
+                <>
+                  <SummaryRow label="Plan"            value={plan.name}    />
+                  <SummaryRow label="Historical data" value={plan.history} />
+                  <SummaryRow label="Support"         value={plan.support} />
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '13px 20px', background: '#f0f4fa',
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                      {isFree ? 'Total' : 'Amount paid'}
+                    </span>
+                    <span style={{ fontSize: 16, fontWeight: 700, fontFamily: 'monospace', color: accentColor }}>
+                      {isFree ? 'Free' : `${formatCurrency(plan.basePrice)} USD`}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '16px 20px', fontSize: 13, color: '#9ba3b8' }}>
+                  Plan details not available.
+                </div>
+              )}
             </div>
-          </motion.div>
+
+            {/* Countdown / spinner */}
+            <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, padding: '18px 20px', textAlign: 'center' }}>
+              {stage === 'summary' ? (
+                <>
+                  <p style={{ fontSize: 13, color: '#4b5568', marginBottom: 12 }}>
+                    Your migration will start in{' '}
+                    <strong style={{ color: accentColor, fontFamily: 'monospace', fontSize: 15 }}>
+                      {tick}
+                    </strong>{' '}
+                    seconds…
+                  </p>
+                  <div style={{ height: 5, background: '#e8edf7', borderRadius: 99, overflow: 'hidden', marginBottom: 14 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99, background: accentColor,
+                      width: `${((COUNTDOWN - tick) / COUNTDOWN) * 100}%`,
+                      transition: 'width 1s linear',
+                    }} />
+                  </div>
+                  <button
+                    onClick={triggerCreate}
+                    style={{
+                      width: '100%', background: accentColor, color: '#fff',
+                      border: 'none', borderRadius: 7, padding: '11px 0',
+                      fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    }}
+                  >
+                    Start migration now
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                  <div className="animate-spin" style={{
+                    width: 20, height: 20,
+                    border: '2.5px solid #dce2ef', borderTopColor: accentColor,
+                    borderRadius: '50%',
+                  }} />
+                  <p style={{ fontSize: 13, color: '#4b5568' }}>Queuing your migration…</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
+
+        {/* ── Done ─────────────────────────────────────────────────────────── */}
+        {stage === 'done' && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', background: '#dcfce7',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+            }}>
+              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Migration Queued!</h2>
+            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
+              Your migration has been queued successfully. Redirecting to your dashboard…
+            </p>
+            <button
+              onClick={() => navigate('/migrations')}
+              style={{
+                background: '#2563eb', color: '#fff', border: 'none',
+                borderRadius: 8, padding: '11px 28px', fontSize: 14,
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              View migrations →
+            </button>
+          </div>
+        )}
+
+        {/* ── Error ────────────────────────────────────────────────────────── */}
+        {stage === 'error' && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', background: '#fee2e2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+            }}>
+              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#dc2626" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+              Migration could not be started
+            </h2>
+            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>{apiError}</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={retry}
+                style={{
+                  background: '#2563eb', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
+                  fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Try again
+              </button>
+              <button
+                onClick={() => navigate('/migrations')}
+                style={{
+                  background: '#fff', color: '#4b5568', border: '1px solid #dce2ef',
+                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
+                  fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                View migrations
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

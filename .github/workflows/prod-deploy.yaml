@@ -33,7 +33,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || '/api' }}
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://api.migrationhub.mmcconvert.com' }}
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.sha }}

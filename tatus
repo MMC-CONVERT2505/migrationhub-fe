@@ -1,0 +1,79 @@
+[1mdiff --git a/src/pages/PaymentSuccessPage.tsx b/src/pages/PaymentSuccessPage.tsx[m
+[1mindex 8b7bc61..05ceae8 100644[m
+[1m--- a/src/pages/PaymentSuccessPage.tsx[m
+[1m+++ b/src/pages/PaymentSuccessPage.tsx[m
+[36m@@ -22,8 +22,8 @@[m [mconst SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }[m
+ [m
+ const PaymentSuccessPage: React.FC = () => {[m
+   const [searchParams] = useSearchParams();[m
+[31m-  const navigate       = useNavigate();[m
+[31m-  const paymentId      = searchParams.get('paymentId') ?? '';[m
+[32m+[m[32m  const navigate = useNavigate();[m
+[32m+[m[32m  const paymentId = searchParams.get('paymentId') ?? '';[m
+ [m
+   const resetMigration = useAppStore((s) => s.resetMigration);[m
+ [m
+[36m@@ -37,10 +37,10 @@[m [mconst PaymentSuccessPage: React.FC = () => {[m
+ [m
+   const isFree = pair?.isFree ?? false;[m
+ [m
+[31m-  const [stage, setStage]       = useState<Stage>('summary');[m
+[31m-  const [tick, setTick]         = useState(COUNTDOWN);[m
+[32m+[m[32m  const [stage, setStage] = useState<Stage>('summary');[m
+[32m+[m[32m  const [tick, setTick] = useState(COUNTDOWN);[m
+   const [apiError, setApiError] = useState('');[m
+[31m-  const calledRef               = useRef(false);[m
+[32m+[m[32m  const calledRef = useRef(false);[m
+ [m
+   // ── Create migration (called by countdown or "Start now" button) ──────────[m
+   const triggerCreate = useCallback(async () => {[m
+[36m@@ -57,13 +57,13 @@[m [mconst PaymentSuccessPage: React.FC = () => {[m
+     // Paid: prefer localStorage (survives Razorpay redirect).[m
+     // Free: fall back to snapshotted pair/plan.[m
+     const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);[m
+[31m-    const planId    = pending?.planId          ?? plan?.id  ?? undefined;[m
+[32m+[m[32m    const planId = pending?.planId ?? plan?.id ?? undefined;[m
+ [m
+     try {[m
+       const result = await migrationsService.create({[m
+[31m-        ...(paymentId  ? { paymentId }                    : {}),[m
+[31m-        ...(migPairId  ? { migrationPairId: migPairId }   : {}),[m
+[31m-        ...(planId     ? { planId }                       : {}),[m
+[32m+[m[32m        ...(paymentId ? { paymentId } : {}),[m
+[32m+[m[32m        ...(migPairId ? { migrationPairId: migPairId } : {}),[m
+[32m+[m[32m        ...(planId ? { planId } : {}),[m
+       });[m
+ [m
+       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);[m
+[36m@@ -72,14 +72,14 @@[m [mconst PaymentSuccessPage: React.FC = () => {[m
+       // Redirect to the migration tool — serviceUrl comes from the nested[m
+       // migrationPair in the response; fall back to the snapshotted pair URL.[m
+       const migrationId = result.id;[m
+[31m-      const serviceUrl  = result.migrationPair?.serviceUrl[m
+[31m-                       ?? result.migrationPair?.fallbackServiceUrl[m
+[31m-                       ?? pair?.toolUrl[m
+[31m-                       ?? null;[m
+[32m+[m[32m      const serviceUrl = result.migrationPair?.serviceUrl[m
+[32m+[m[32m        ?? result.migrationPair?.fallbackServiceUrl[m
+[32m+[m[32m        ?? pair?.toolUrl[m
+[32m+[m[32m        ?? null;[m
+ [m
+       // Build redirect: strip trailing slash, then pass ID as a named query[m
+       // param so the remote React app retrieves it via useSearchParams().get('migrationId').[m
+[31m-      const base = serviceUrl?.replace(/\/$/, '') ?? null;[m
+[32m+[m[32m      const base = serviceUrl?.replace(/\/+$/, '') ?? null;[m
+ [m
+       if (base && migrationId) {[m
+         window.location.href = `${base}?migrationId=${migrationId}`;[m
+[36m@@ -189,9 +189,9 @@[m [mconst PaymentSuccessPage: React.FC = () => {[m
+               {/* Plan details */}[m
+               {plan ? ([m
+                 <>[m
+[31m-                  <SummaryRow label="Plan"            value={plan.name}    />[m
+[32m+[m[32m                  <SummaryRow label="Plan" value={plan.name} />[m
+                   <SummaryRow label="Historical data" value={plan.history} />[m
+[31m-                  <SummaryRow label="Support"         value={plan.support} />[m
+[32m+[m[32m                  <SummaryRow label="Support" value={plan.support} />[m
+                   <div style={{[m
+                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',[m
+                     padding: '13px 20px', background: '#f0f4fa',[m

@@ -52,7 +52,7 @@ export const WorksWith: React.FC = () => {
     <section className="py-10 bg-bg-light border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <span className="text-sm font-medium text-text-tertiary whitespace-nowrap flex-shrink-0">
+          <span className="text-sm font-medium text-text-tertiary uppercase tracking-widest whitespace-nowrap flex-shrink-0">
             Works with
           </span>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">

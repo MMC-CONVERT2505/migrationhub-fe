@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
-import { PAIRS, PAIR_FILTER_TABS } from '@/constants/pairs';
+import { PAIRS } from '@/constants/pairs';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { PairCard } from './PairCard';
 import type { Pair } from '@/types';
@@ -48,10 +48,27 @@ export const PairsSection: React.FC = () => {
   }, []);
 
   const filteredPairs = useMemo(() => {
-    if (activeTab === 'All') return pairs;
-    if (activeTab === 'Free') return pairs.filter((p) => p.status === 'free' || p.status === 'region');
-    return pairs.filter((p) => p.src === activeTab || p.dst === activeTab);
+    switch (activeTab) {
+      case 'Free':
+        return pairs.filter((p) => p.status === 'free');
+      case 'Region':
+        return pairs.filter((p) => p.status === 'region');
+      case 'Paid':
+        return pairs.filter((p) => p.status === 'paid');
+      default:
+        return pairs;
+    }
   }, [activeTab, pairs]);
+
+  const tabs = useMemo(
+    () => [
+      { key: 'All', label: 'All tools', count: pairs.length, dot: '' },
+      { key: 'Free', label: 'Free', count: pairs.filter((p) => p.status === 'free').length, dot: 'bg-green-500' },
+      { key: 'Region', label: 'Region-based', count: pairs.filter((p) => p.status === 'region').length, dot: 'bg-gray-400' },
+      { key: 'Paid', label: 'Paid', count: pairs.filter((p) => p.status === 'paid').length, dot: 'bg-gray-400' },
+    ],
+    [pairs],
+  );
 
   return (
     <section id="pairs" className="py-20">
@@ -60,30 +77,42 @@ export const PairsSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-10"
+          className="mb-8"
         >
-          <h2 className="text-3xl font-bold text-text-primary">Migration pairs</h2>
-          <p className="mt-2 text-text-secondary">
-            Select your source and destination platform to get started
-          </p>
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Migration pairs</p>
+          <h2 className="mt-2 text-3xl font-bold text-text-primary tracking-tight">
+            Select your migration path
+          </h2>
         </motion.div>
 
         {/* Filter tabs */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {PAIR_FILTER_TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-150',
-                activeTab === tab
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-text-secondary border border-border hover:border-border-medium hover:text-text-primary'
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-150 border',
+                  active
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-white text-text-secondary border-border hover:border-border-medium hover:text-text-primary',
+                )}
+              >
+                {tab.dot && !active && <span className={cn('w-1.5 h-1.5 rounded-full', tab.dot)} />}
+                {tab.label}
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-full text-xs font-semibold',
+                    active ? 'bg-white/20 text-white' : 'bg-bg-light text-text-tertiary',
+                  )}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Grid */}

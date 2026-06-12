@@ -413,6 +413,14 @@ export interface RefundPaymentRequest {
 
 export type MigrationEnvironment = 'PRODUCTION' | 'STAGING' | 'DEVELOPMENT';
 
+/** Lightweight banner shape returned as a pair's source/destination logo. */
+export interface PairLogo {
+  id: number;
+  name: string;
+  image: string;
+  status: BannerStatus;
+}
+
 export interface MigrationPairEntity {
   id: number | string;
   source: string;
@@ -427,6 +435,10 @@ export interface MigrationPairEntity {
   isMaintenance: boolean;
   isFree: boolean;
   plans: ApiPlan[];
+  sourceLogoId: number | null;
+  destinationLogoId: number | null;
+  sourceLogo: PairLogo | null;
+  destinationLogo: PairLogo | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -445,6 +457,8 @@ export interface CreateMigrationPairRequest {
   isActive?: boolean;
   isFree?: boolean;
   planIds?: string[];
+  sourceLogoId?: number | null;
+  destinationLogoId?: number | null;
 }
 
 export interface ListMigrationPairsQuery {
@@ -469,6 +483,59 @@ export interface UpdateMigrationPairRequest {
   isActive?: boolean;
   isMaintenance?: boolean;
   isFree?: boolean;
+  sourceLogoId?: number | null;
+  destinationLogoId?: number | null;
+}
+
+// ─── Banners (incl. tool / home logos) ─────────────────────────────────────────
+
+export type BannerType = 'Home' | 'SplashScreen' | 'HomeLogo' | 'ToolLogo';
+export type BannerPlatform = 'Web' | 'Mobile';
+export type BannerStatus = 'Active' | 'InActive';
+
+export interface BannerEntity {
+  id: number;
+  name: string;
+  image: string;
+  navigate: string | null;
+  type: BannerType;
+  platform: BannerPlatform;
+  heading: string | null;
+  paragraph: string | null;
+  status: BannerStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBannerRequest {
+  name: string;
+  /** Uploaded file name returned by the /upload endpoint. */
+  image: string;
+  type: BannerType;
+  platform: BannerPlatform;
+  navigate?: string;
+  heading?: string;
+  paragraph?: string;
+}
+
+export type UpdateBannerRequest = Partial<CreateBannerRequest>;
+
+export interface ListBannersQuery {
+  type?: BannerType;
+  platform?: BannerPlatform;
+  status?: BannerStatus;
+  skip?: number;
+  take?: number;
+}
+
+export interface UploadResponse {
+  url: string;
+  meta: {
+    originalname: string;
+    filename: string;
+    mimetype: string;
+    size: number;
+  };
 }
 
 export interface RotateSecretResponse {

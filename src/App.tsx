@@ -19,6 +19,7 @@ const AdminLoginPage      = React.lazy(() => import('@/pages/AdminLoginPage'));
 // Admin sub-pages
 const AdminDashboard      = React.lazy(() => import('@/pages/AdminPage'));
 const MigrationPairsPage  = React.lazy(() => import('@/pages/admin/MigrationPairsPage'));
+const ToolLogosPage       = React.lazy(() => import('@/pages/admin/ToolLogosPage'));
 const PlansPage           = React.lazy(() => import('@/pages/admin/PlansPage'));
 const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
@@ -61,6 +62,7 @@ const App: React.FC = () => (
           <Route path="roles"            element={<RolesPage />} />
           <Route path="permissions"      element={<PermissionsPage />} />
           <Route path="migration-pairs"  element={<MigrationPairsPage />} />
+          <Route path="tool-logos"       element={<ToolLogosPage />} />
           <Route path="plans"            element={<PlansPage />} />
           <Route path="audit"            element={<AuditPage />} />
         </Route>

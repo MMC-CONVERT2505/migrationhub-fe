@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn, formatCurrency } from '@/utils/format';
 import { Badge } from '@/components/common/Badge';
+import { PlatformMark } from '@/components/common/PlatformMark';
 import { useAppStore } from '@/store/appStore';
 import type { Pair } from '@/types';
 
@@ -65,12 +66,12 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
       {/* Platforms */}
       <div className="flex items-center gap-3">
         {/* Source platform */}
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold font-mono text-base flex-shrink-0"
-          style={{ backgroundColor: pair.srcColor }}
-        >
-          {pair.srcAbbr}
-        </div>
+        <PlatformMark
+          logo={pair.srcLogo}
+          abbr={pair.srcAbbr}
+          color={pair.srcColor}
+          name={pair.src}
+        />
 
         {/* Arrow */}
         <div className="flex-1 flex items-center justify-center gap-1">
@@ -82,12 +83,12 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         </div>
 
         {/* Destination platform */}
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold font-mono text-base flex-shrink-0"
-          style={{ backgroundColor: pair.dstColor }}
-        >
-          {pair.dstAbbr}
-        </div>
+        <PlatformMark
+          logo={pair.dstLogo}
+          abbr={pair.dstAbbr}
+          color={pair.dstColor}
+          name={pair.dst}
+        />
       </div>
 
       {/* Title */}

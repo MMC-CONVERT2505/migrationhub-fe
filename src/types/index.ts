@@ -8,6 +8,9 @@ export interface Pair {
   dstColor: string;
   srcAbbr: string;
   dstAbbr: string;
+  /** Brand logo URLs (ToolLogo banners); absent/null falls back to the abbr mark. */
+  srcLogo?: string | null;
+  dstLogo?: string | null;
   count: string;
   status: 'paid' | 'free' | 'region';
   isFree?: boolean;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
+import { PlatformMark } from '@/components/common/PlatformMark';
 import type { Pair } from '@/types';
 
 interface ConnectStepProps {
@@ -26,6 +27,7 @@ export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, on
   const platform = isSource ? pair.src : pair.dst;
   const color    = isSource ? pair.srcColor : pair.dstColor;
   const abbr     = isSource ? pair.srcAbbr  : pair.dstAbbr;
+  const logo     = isSource ? pair.srcLogo  : pair.dstLogo;
   const stepNum  = isSource ? 1 : 2;
 
   const [connecting, setConnecting] = useState(false);
@@ -62,12 +64,13 @@ export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, on
       <div className="bg-white border border-border rounded-xl overflow-hidden shadow-card">
         {/* Card header */}
         <div className="flex items-start gap-4 p-6 border-b border-border">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0"
-            style={{ backgroundColor: color }}
-          >
-            {abbr}
-          </div>
+          <PlatformMark
+            logo={logo}
+            abbr={abbr}
+            color={color}
+            name={platform}
+            textClassName="text-sm font-extrabold"
+          />
           <div>
             <h3 className="text-sm font-semibold text-text-primary">Connect {platform}</h3>
             <p className="mt-1 text-xs text-text-secondary">

@@ -22,8 +22,8 @@ const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate       = useNavigate();
-  const paymentId      = searchParams.get('paymentId') ?? '';
+  const navigate = useNavigate();
+  const paymentId = searchParams.get('paymentId') ?? '';
 
   const resetMigration = useAppStore((s) => s.resetMigration);
 
@@ -37,10 +37,10 @@ const PaymentSuccessPage: React.FC = () => {
 
   const isFree = pair?.isFree ?? false;
 
-  const [stage, setStage]       = useState<Stage>('summary');
-  const [tick, setTick]         = useState(COUNTDOWN);
+  const [stage, setStage] = useState<Stage>('summary');
+  const [tick, setTick] = useState(COUNTDOWN);
   const [apiError, setApiError] = useState('');
-  const calledRef               = useRef(false);
+  const calledRef = useRef(false);
 
   // ── Create migration (called by countdown or "Start now" button) ──────────
   const triggerCreate = useCallback(async () => {
@@ -57,13 +57,13 @@ const PaymentSuccessPage: React.FC = () => {
     // Paid: prefer localStorage (survives Razorpay redirect).
     // Free: fall back to snapshotted pair/plan.
     const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
-    const planId    = pending?.planId          ?? plan?.id  ?? undefined;
+    const planId = pending?.planId ?? plan?.id ?? undefined;
 
     try {
       const result = await migrationsService.create({
-        ...(paymentId  ? { paymentId }                    : {}),
-        ...(migPairId  ? { migrationPairId: migPairId }   : {}),
-        ...(planId     ? { planId }                       : {}),
+        ...(paymentId ? { paymentId } : {}),
+        ...(migPairId ? { migrationPairId: migPairId } : {}),
+        ...(planId ? { planId } : {}),
       });
 
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
@@ -72,14 +72,14 @@ const PaymentSuccessPage: React.FC = () => {
       // Redirect to the migration tool — serviceUrl comes from the nested
       // migrationPair in the response; fall back to the snapshotted pair URL.
       const migrationId = result.id;
-      const serviceUrl  = result.migrationPair?.serviceUrl
-                       ?? result.migrationPair?.fallbackServiceUrl
-                       ?? pair?.toolUrl
-                       ?? null;
+      const serviceUrl = result.migrationPair?.serviceUrl
+        ?? result.migrationPair?.fallbackServiceUrl
+        ?? pair?.toolUrl
+        ?? null;
 
       // Build redirect: strip trailing slash, then pass ID as a named query
       // param so the remote React app retrieves it via useSearchParams().get('migrationId').
-      const base = serviceUrl?.replace(/\/$/, '') ?? null;
+      const base = serviceUrl?.replace(/\/+$/, '') ?? null;
 
       if (base && migrationId) {
         window.location.href = `${base}?migrationId=${migrationId}`;
@@ -189,9 +189,9 @@ const PaymentSuccessPage: React.FC = () => {
               {/* Plan details */}
               {plan ? (
                 <>
-                  <SummaryRow label="Plan"            value={plan.name}    />
+                  <SummaryRow label="Plan" value={plan.name} />
                   <SummaryRow label="Historical data" value={plan.history} />
-                  <SummaryRow label="Support"         value={plan.support} />
+                  <SummaryRow label="Support" value={plan.support} />
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '13px 20px', background: '#f0f4fa',

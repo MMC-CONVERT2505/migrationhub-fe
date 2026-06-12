@@ -46,6 +46,8 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
     dstColor:  PLATFORM_COLORS[dst] ?? '#64748b',
     srcAbbr:   PLATFORM_ABBR[src]   ?? src.slice(0, 2).toUpperCase(),
     dstAbbr:   PLATFORM_ABBR[dst]   ?? dst.slice(0, 2).toUpperCase(),
+    srcLogo:   entity.sourceLogo?.image ?? null,
+    dstLogo:   entity.destinationLogo?.image ?? null,
     count:     '',
     status:    entity.isFree ? 'free' : 'paid',
     isFree:    entity.isFree ?? false,

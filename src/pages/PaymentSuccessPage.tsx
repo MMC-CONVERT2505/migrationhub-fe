@@ -5,6 +5,7 @@ import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
+import { PlatformMark } from '@/components/common/PlatformMark';
 import type { PendingMigration } from '@/types';
 
 const COUNTDOWN = 5;
@@ -159,23 +160,25 @@ const PaymentSuccessPage: React.FC = () => {
                   display: 'flex', alignItems: 'center', gap: 14, background: '#f0f4fa',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8, background: pair.srcColor,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
-                    }}>
-                      {pair.srcAbbr}
-                    </div>
+                    <PlatformMark
+                      logo={pair.srcLogo}
+                      abbr={pair.srcAbbr}
+                      color={pair.srcColor}
+                      name={pair.src}
+                      className="w-9 h-9 rounded-lg"
+                      textClassName="text-[10px] font-extrabold"
+                    />
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8, background: pair.dstColor,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: 'monospace',
-                    }}>
-                      {pair.dstAbbr}
-                    </div>
+                    <PlatformMark
+                      logo={pair.dstLogo}
+                      abbr={pair.dstAbbr}
+                      color={pair.dstColor}
+                      name={pair.dst}
+                      className="w-9 h-9 rounded-lg"
+                      textClassName="text-[10px] font-extrabold"
+                    />
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>

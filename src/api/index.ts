@@ -5,3 +5,5 @@ export { adminService } from './admin';
 export { razorpayService } from './razorpay';
 export { migrationPairsService } from './migrationPairs';
 export { plansService } from './plans';
+export { bannersService } from './banners';
+export { uploadService } from './upload';

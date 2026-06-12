@@ -2,10 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { plansService } from '@/api/plans';
+import { bannersService } from '@/api/banners';
 import { ApiError } from '@/api/client';
 import { extractList, normalizePlatform } from '@/utils/platformMap';
 import type {
   ApiPlan,
+  BannerEntity,
   MigrationPairEntity,
   CreateMigrationPairRequest,
   UpdateMigrationPairRequest,
@@ -116,14 +118,49 @@ interface PairFormFields {
   isActive: boolean;
   isMaintenance: boolean;
   isFree: boolean;
+  sourceLogoId: number | null;
+  destinationLogoId: number | null;
 }
+
+const LogoSelect: React.FC<{
+  label: string;
+  logos: BannerEntity[];
+  value: number | null;
+  onChange: (id: number | null) => void;
+}> = ({ label, logos, value, onChange }) => {
+  const selected = logos.find((l) => l.id === value) ?? null;
+  return (
+    <Field label={label} hint="Pick from uploaded Tool Logos.">
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 rounded-md border border-border bg-bg-light flex items-center justify-center overflow-hidden flex-shrink-0">
+          {selected ? (
+            <img src={selected.image} alt={selected.name} className="max-w-full max-h-full object-contain" />
+          ) : (
+            <span className="text-text-tertiary text-[10px]">—</span>
+          )}
+        </div>
+        <select
+          className={`${inputCls} flex-1`}
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+        >
+          <option value="">— None —</option>
+          {logos.map((l) => (
+            <option key={l.id} value={l.id}>{l.name}</option>
+          ))}
+        </select>
+      </div>
+    </Field>
+  );
+};
 
 const PairFormBody: React.FC<{
   values: PairFormFields;
   onChange: (patch: Partial<PairFormFields>) => void;
+  logos: BannerEntity[];
   sourceReadOnly?: boolean;
   destinationReadOnly?: boolean;
-}> = ({ values, onChange, sourceReadOnly = false, destinationReadOnly = false }) => {
+}> = ({ values, onChange, logos, sourceReadOnly = false, destinationReadOnly = false }) => {
   const handleSourceChange = (src: string) => {
     const auto = autoDisplayName(src, values.destination);
     onChange({ source: src, displayName: auto });
@@ -219,6 +256,22 @@ const PairFormBody: React.FC<{
           {ENV_OPTIONS.map((env) => <option key={env} value={env}>{env}</option>)}
         </select>
       </Field>
+
+      {/* Source / destination brand logos */}
+      <div className="grid grid-cols-2 gap-3">
+        <LogoSelect
+          label="Source logo"
+          logos={logos}
+          value={values.sourceLogoId}
+          onChange={(id) => onChange({ sourceLogoId: id })}
+        />
+        <LogoSelect
+          label="Destination logo"
+          logos={logos}
+          value={values.destinationLogoId}
+          onChange={(id) => onChange({ destinationLogoId: id })}
+        />
+      </div>
 
       {/* Toggles */}
       <div className="pt-2 space-y-3 border-t border-border">
@@ -364,23 +417,27 @@ const MigrationPairsPage: React.FC = () => {
     apiVersion: 'v1', healthCheckPath: '/health',
     environment: 'PRODUCTION', isActive: true,
     isMaintenance: false, isFree: false,
+    sourceLogoId: null, destinationLogoId: null,
   });
 
   const [editForm, setEditForm]   = useState<PairFormFields | null>(null);
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<ApiPlan[]>([]);
+  const [toolLogos, setToolLogos] = useState<BannerEntity[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [pairsRes, plansRes] = await Promise.all([
+      const [pairsRes, plansRes, logosRes] = await Promise.all([
         migrationPairsService.list({ limit: 100 } as any),
         plansService.list(),
+        bannersService.list({ type: 'ToolLogo', take: 200 }),
       ]);
       setPairs(extractList<MigrationPairEntity>(pairsRes));
       setAvailablePlans(extractList<ApiPlan>(plansRes));
+      setToolLogos(extractList<BannerEntity>(logosRes));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load migration pairs.');
     } finally {
@@ -399,6 +456,7 @@ const MigrationPairsPage: React.FC = () => {
       apiVersion: 'v1', healthCheckPath: '/health',
       environment: 'PRODUCTION', isActive: true,
       isMaintenance: false, isFree: false,
+      sourceLogoId: null, destinationLogoId: null,
     });
     setFormError('');
     setCreateOpen(true);
@@ -420,6 +478,8 @@ const MigrationPairsPage: React.FC = () => {
         environment:        createForm.environment,
         isActive:           createForm.isActive,
         isFree:             createForm.isFree,
+        sourceLogoId:       createForm.sourceLogoId,
+        destinationLogoId:  createForm.destinationLogoId,
       };
       await migrationPairsService.create(payload);
       setCreateOpen(false);
@@ -446,6 +506,8 @@ const MigrationPairsPage: React.FC = () => {
       isActive:           pair.isActive,
       isMaintenance:      pair.isMaintenance,
       isFree:             pair.isFree ?? false,
+      sourceLogoId:       pair.sourceLogoId ?? null,
+      destinationLogoId:  pair.destinationLogoId ?? null,
     });
     setEditTarget(pair);
     setFormError('');
@@ -476,6 +538,8 @@ const MigrationPairsPage: React.FC = () => {
         isActive:           editForm.isActive,
         isMaintenance:      editForm.isMaintenance,
         isFree:             editForm.isFree,
+        sourceLogoId:       editForm.sourceLogoId,
+        destinationLogoId:  editForm.destinationLogoId,
       };
       await migrationPairsService.update(editTarget.id, payload);
       setEditTarget(null);
@@ -561,9 +625,17 @@ const MigrationPairsPage: React.FC = () => {
                   <tr key={pair.id} className="hover:bg-bg-light/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-text-primary">{pair.displayName}</td>
                     <td className="px-4 py-3 text-text-secondary">
-                      <span className="font-mono text-xs">{pair.source}</span>
-                      <span className="mx-1.5 text-text-tertiary">→</span>
-                      <span className="font-mono text-xs">{pair.destination}</span>
+                      <div className="flex items-center gap-1.5">
+                        {pair.sourceLogo ? (
+                          <img src={pair.sourceLogo.image} alt={pair.sourceLogo.name} title={pair.sourceLogo.name} className="w-5 h-5 object-contain rounded-sm" />
+                        ) : null}
+                        <span className="font-mono text-xs">{pair.source}</span>
+                        <span className="mx-0.5 text-text-tertiary">→</span>
+                        <span className="font-mono text-xs">{pair.destination}</span>
+                        {pair.destinationLogo ? (
+                          <img src={pair.destinationLogo.image} alt={pair.destinationLogo.name} title={pair.destinationLogo.name} className="w-5 h-5 object-contain rounded-sm" />
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {pair.isFree ? (
@@ -624,6 +696,7 @@ const MigrationPairsPage: React.FC = () => {
             <PairFormBody
               values={createForm}
               onChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
+              logos={toolLogos}
             />
             <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
@@ -647,6 +720,7 @@ const MigrationPairsPage: React.FC = () => {
             <PairFormBody
               values={editForm}
               onChange={(patch) => setEditForm((f) => f ? { ...f, ...patch } : f)}
+              logos={toolLogos}
             />
             <PlanManager
               pairId={editTarget.id}

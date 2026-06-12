@@ -6,6 +6,7 @@ import { ConnectStep } from '@/components/migration/ConnectStep';
 import { DataSelector } from '@/components/migration/DataSelector';
 import { ReviewStep } from '@/components/migration/ReviewStep';
 import { ProgressStep } from '@/components/migration/ProgressStep';
+import { PlatformMark } from '@/components/common/PlatformMark';
 import { useAppStore } from '@/store/appStore';
 
 const MigrationPage: React.FC = () => {
@@ -49,21 +50,25 @@ const MigrationPage: React.FC = () => {
           <div className="flex items-start gap-4">
             {/* Platform logos */}
             <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white"
-                style={{ backgroundColor: pair.srcColor }}
-              >
-                {pair.srcAbbr}
-              </div>
+              <PlatformMark
+                logo={pair.srcLogo}
+                abbr={pair.srcAbbr}
+                color={pair.srcColor}
+                name={pair.src}
+                className="w-10 h-10 rounded-xl"
+                textClassName="text-sm font-extrabold"
+              />
               <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white"
-                style={{ backgroundColor: pair.dstColor }}
-              >
-                {pair.dstAbbr}
-              </div>
+              <PlatformMark
+                logo={pair.dstLogo}
+                abbr={pair.dstAbbr}
+                color={pair.dstColor}
+                name={pair.dst}
+                className="w-10 h-10 rounded-xl"
+                textClassName="text-sm font-extrabold"
+              />
             </div>
 
             {/* Info */}

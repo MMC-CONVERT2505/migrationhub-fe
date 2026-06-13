@@ -641,6 +641,8 @@ export interface ApiPlan {
   basePrice: string;   // Decimal string — parse with parseFloat()
   currency: string;    // "USD"
   history: string;
+  years: number | null;     // null when isInception
+  isInception: boolean;     // unlimited "inception to date" plan
   support: string;
   features: string[];
   popular: boolean;
@@ -651,6 +653,8 @@ export interface CreatePlanRequest {
   basePrice: number;
   currency?: string;
   history: string;
+  years?: number;        // ignored when isInception is true
+  isInception?: boolean;
   support: string;
   features: string[];
   popular?: boolean;

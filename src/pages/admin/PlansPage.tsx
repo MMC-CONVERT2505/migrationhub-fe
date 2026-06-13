@@ -53,6 +53,8 @@ const EMPTY: CreatePlanRequest = {
   basePrice: 0,
   currency: 'USD',
   history: '',
+  years: 1,
+  isInception: false,
   support: '',
   features: [],
   popular: false,
@@ -63,6 +65,8 @@ const planToRequest = (p: (typeof PLANS)[number]): CreatePlanRequest => ({
   basePrice: p.basePrice,
   currency:  'USD',
   history:   p.history,
+  years:     1,
+  isInception: false,
   support:   p.support,
   features:  p.features,
   popular:   p.popular ?? false,
@@ -109,6 +113,8 @@ const PlansPage: React.FC = () => {
 
   const buildForm = (): CreatePlanRequest => ({
     ...form,
+    // Unlimited plans don't carry a year count — let the backend null it out.
+    years: form.isInception ? undefined : form.years,
     features: featuresText.split('\n').map((s) => s.trim()).filter(Boolean),
   });
 
@@ -155,6 +161,8 @@ const PlansPage: React.FC = () => {
       basePrice: Number(plan.basePrice),
       currency:  plan.currency,
       history:   plan.history,
+      years:     plan.years ?? 1,
+      isInception: plan.isInception,
       support:   plan.support,
       features:  plan.features,
       popular:   plan.popular,
@@ -270,6 +278,32 @@ const PlansPage: React.FC = () => {
             placeholder="Email support"
             required
           />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 items-end">
+        <Field label="Years" required={!form.isInception}>
+          <input
+            type="number"
+            min={1}
+            className={`${inputCls} disabled:bg-bg-light disabled:text-text-tertiary`}
+            value={form.isInception ? '' : (form.years ?? '')}
+            onChange={(e) => setF('years', parseInt(e.target.value, 10) || 1)}
+            placeholder={form.isInception ? 'Unlimited' : '1'}
+            disabled={form.isInception}
+            required={!form.isInception}
+          />
+        </Field>
+        <Field label="Unlimited plan">
+          <label className="flex items-center gap-2 h-9">
+            <input
+              type="checkbox"
+              className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
+              checked={form.isInception ?? false}
+              onChange={(e) => setF('isInception', e.target.checked)}
+            />
+            <span className="text-sm text-text-secondary">Inception to date (no year limit)</span>
+          </label>
         </Field>
       </div>
 

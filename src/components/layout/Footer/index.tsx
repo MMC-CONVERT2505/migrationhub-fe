@@ -8,6 +8,13 @@ const FOOTER_LINKS = {
   Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'],
 };
 
+// Links that resolve to a real in-app route; everything else stays a placeholder anchor.
+const LINK_ROUTES: Record<string, string> = {
+  About: '/about',
+  Contact: '/contact',
+  Migrations: '/',
+};
+
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-white border-t border-border mt-24">
@@ -56,16 +63,27 @@ export const Footer: React.FC = () => {
                 {category}
               </h3>
               <ul className="space-y-2.5">
-                {links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
+                {links.map((link) =>
+                  LINK_ROUTES[link] ? (
+                    <li key={link}>
+                      <Link
+                        to={LINK_ROUTES[link]}
+                        className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                      >
+                        {link}
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={link}>
+                      <a
+                        href="#"
+                        className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  ),
+                )}
               </ul>
             </div>
           ))}

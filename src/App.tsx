@@ -6,6 +6,8 @@ import { AdminGuard } from '@/components/auth/AdminGuard';
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage            = React.lazy(() => import('@/pages/HomePage'));
+const AboutPage           = React.lazy(() => import('@/pages/AboutPage'));
+const ContactPage         = React.lazy(() => import('@/pages/ContactPage'));
 const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
@@ -22,6 +24,7 @@ const MigrationPairsPage  = React.lazy(() => import('@/pages/admin/MigrationPair
 const ToolLogosPage       = React.lazy(() => import('@/pages/admin/ToolLogosPage'));
 const PlansPage           = React.lazy(() => import('@/pages/admin/PlansPage'));
 const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
+const ContactsPage        = React.lazy(() => import('@/pages/admin/ContactsPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
 const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
 const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
@@ -42,6 +45,8 @@ const App: React.FC = () => (
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
+      <Route path="/about"     element={<AboutPage />} />
+      <Route path="/contact"   element={<ContactPage />} />
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
@@ -65,6 +70,7 @@ const App: React.FC = () => (
           <Route path="tool-logos"       element={<ToolLogosPage />} />
           <Route path="plans"            element={<PlansPage />} />
           <Route path="audit"            element={<AuditPage />} />
+          <Route path="contacts"         element={<ContactsPage />} />
         </Route>
       </Route>
 

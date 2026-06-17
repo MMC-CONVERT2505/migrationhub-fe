@@ -44,15 +44,6 @@ export const Hero: React.FC = () => {
             >
               Start your migration
             </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => {
-                document.getElementById('pairs')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              View all migrations
-            </Button>
           </div>
 
           <div className="mt-8 flex items-center gap-6">

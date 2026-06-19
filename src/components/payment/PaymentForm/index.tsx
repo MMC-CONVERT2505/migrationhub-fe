@@ -27,18 +27,45 @@ const LABEL: React.CSSProperties = {
   letterSpacing: 0.3,
 };
 
+// Read-only display of the inquiry details captured earlier in the journey.
+// Mirrors FIELD so the values read as filled, locked inputs.
+const VALUE: React.CSSProperties = {
+  ...FIELD,
+  background: '#f7f9fd',
+  color: '#111827',
+  fontWeight: 500,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+
+const PLACEHOLDER: React.CSSProperties = {
+  ...VALUE,
+  color: '#9ba3b8',
+  fontWeight: 400,
+};
+
+const ReadonlyValue: React.FC<{ value?: string | null; placeholder?: string }> = ({
+  value,
+  placeholder = 'Not provided',
+}) =>
+  value ? (
+    <div style={VALUE} title={value}>{value}</div>
+  ) : (
+    <div style={PLACEHOLDER}>{placeholder}</div>
+  );
+
 export const PaymentForm: React.FC = () => {
-  const selectedPair        = useAppStore((s) => s.selectedPair);
-  const selectedPlanId      = useAppStore((s) => s.selectedPlanId);
+  const selectedPair = useAppStore((s) => s.selectedPair);
+  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
   const setPendingMigration = useAppStore((s) => s.setPendingMigration);
 
   const plan = selectedPair?.plans.find((p) => p.id === selectedPlanId) ?? null;
 
-  const [name, setName]           = useState('');
-  const [email, setEmail]         = useState('');
-  const [company, setCompany]     = useState('');
+  const inquiryDetails = useAppStore((s) => s.inquiryDetails);
+
   const [processing, setProcessing] = useState(false);
-  const [error, setError]         = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,21 +79,27 @@ export const PaymentForm: React.FC = () => {
     setProcessing(true);
     try {
       const migrationPairId = String(selectedPair.id);
-      const planId          = plan.id;
-      const amount          = Math.round(parseFloat(String(plan.basePrice)) * 100);
+      const planId = plan.id;
+      const amount = Math.round(parseFloat(String(plan.basePrice)) * 100);
 
       const res = await paymentsService.initiate({
-        amount, migrationPairId, planId,
-        currency:    'USD',
+        amount,
+        migrationPairId,
+        planId,
+        currency: 'USD',
         description: `${plan.name} Migration Plan`,
-        name:        name || undefined,
-        email:       email || undefined,
-        company:     company || undefined,
+        name: inquiryDetails?.name,
+        email: inquiryDetails?.email,
+        company: inquiryDetails?.entityName,
       });
 
       if (!res.paymentUrl) throw new Error('No payment URL returned by server.');
 
-      setPendingMigration({ migrationPairId, planId });
+      setPendingMigration({
+        migrationPairId,
+        planId,
+        ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
+      });
       window.location.href = res.paymentUrl;
     } catch (err) {
       setProcessing(false);
@@ -120,12 +153,12 @@ export const PaymentForm: React.FC = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           <div>
             <label style={LABEL}>Your name</label>
-            <input style={FIELD} type="text" placeholder="John Smith" value={name} onChange={(e) => setName(e.target.value)} disabled={processing} required />
+            <ReadonlyValue value={inquiryDetails?.name} />
           </div>
 
           <div>
             <label style={LABEL}>Billing email</label>
-            <input style={FIELD} type="email" placeholder="billing@company.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={processing} required />
+            <ReadonlyValue value={inquiryDetails?.email} />
           </div>
 
           <div>
@@ -133,7 +166,7 @@ export const PaymentForm: React.FC = () => {
               Company name{' '}
               <span style={{ color: '#9ba3b8', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
             </label>
-            <input style={FIELD} type="text" placeholder="Acme Accounting Pty Ltd" value={company} onChange={(e) => setCompany(e.target.value)} disabled={processing} />
+            <ReadonlyValue value={inquiryDetails?.entityName} placeholder="—" />
           </div>
 
           <div style={{ height: 1, background: '#dce2ef', margin: '5px 0' }} />

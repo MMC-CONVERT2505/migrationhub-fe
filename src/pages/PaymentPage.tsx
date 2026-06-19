@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
+import { MigrationJourney } from '@/components/migration/MigrationJourney';
 import { OrderSummary } from '@/components/payment/OrderSummary';
 import { PaymentForm } from '@/components/payment/PaymentForm';
 import { FreeMigrationForm } from '@/components/payment/FreeMigrationForm';
@@ -41,8 +42,12 @@ const PaymentPage: React.FC = () => {
     }
 
     setAutoCreating(true);
+    const inquiryId = useAppStore.getState().inquiryDetails?.id;
     migrationsService
-      .create({ migrationPairId: String(selectedPair.id) })
+      .create({
+        migrationPairId: String(selectedPair.id),
+        ...(inquiryId ? { inquiryId } : {}),
+      })
       .then(() => navigate('/migrations'))
       .catch((err) => {
         setAutoError(err instanceof ApiError ? err.message : 'Could not start migration. Please try again.');
@@ -132,6 +137,7 @@ const PaymentPage: React.FC = () => {
 
       {/* ── Pay body ────────────────────────────────────────────────────────── */}
       <div className="max-w-[960px] mx-auto px-4 sm:px-14" style={{ paddingTop: 36, paddingBottom: 64 }}>
+        <MigrationJourney current={4} className="mb-8" />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px]" style={{ gap: 24, alignItems: 'start' }}>
 
           {/* Left: plan list + order summary stacked */}

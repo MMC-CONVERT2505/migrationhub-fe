@@ -53,7 +53,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
       window.open(pair.url, '_blank', 'noopener,noreferrer');
     } else {
       setSelectedPair(pair);
-      navigate('/payment');
+      navigate('/migration/details');
     }
   };
 

@@ -57,7 +57,7 @@ const ContactsPage: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   // Optimistic flag toggle with rollback on failure.
-  const toggle = async (row: ContactItem, field: 'isReachedOut' | 'isWelcomeMailSent') => {
+  const toggle = async (row: ContactItem, field: 'isReachedOut') => {
     if (savingId !== null) return;
     const next = !row[field];
     setSavingId(row.id);
@@ -65,7 +65,7 @@ const ContactsPage: React.FC = () => {
     try {
       await contactService.update(row.id, { [field]: next });
       // If this toggle moves the row out of the active filter, drop it from view.
-      if (field === 'isReachedOut' && filter !== 'all') {
+      if (filter !== 'all') {
         setRows((prev) => prev.filter((r) => r.id !== row.id));
         setTotal((t) => Math.max(0, t - 1));
       }
@@ -141,7 +141,7 @@ const ContactsPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Company', 'Email', 'Phone', 'Country', 'Welcome mail', 'Reached out', 'Submitted'].map((h) => (
+                {['Company', 'Email', 'Phone', 'Country', 'Reached out', 'Submitted'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -152,7 +152,7 @@ const ContactsPage: React.FC = () => {
               {loading ? (
                 Array(6).fill(null).map((_, i) => (
                   <tr key={i}>
-                    {Array(7).fill(null).map((__, j) => (
+                    {Array(6).fill(null).map((__, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-3 bg-bg-lighter rounded animate-pulse w-20" />
                       </td>
@@ -161,7 +161,7 @@ const ContactsPage: React.FC = () => {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={6} className="text-center py-10 text-sm text-text-tertiary">
                     {debouncedSearch ? 'No contacts match your search' : 'No contacts to show'}
                   </td>
                 </tr>
@@ -182,15 +182,6 @@ const ContactsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{row.country}</td>
-                    <td className="px-4 py-3">
-                      <FlagToggle
-                        active={row.isWelcomeMailSent}
-                        disabled={savingId === row.id}
-                        onClick={() => toggle(row, 'isWelcomeMailSent')}
-                        activeLabel="Sent"
-                        inactiveLabel="Not sent"
-                      />
-                    </td>
                     <td className="px-4 py-3">
                       <FlagToggle
                         active={row.isReachedOut}

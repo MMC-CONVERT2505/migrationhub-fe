@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { AppState, PendingMigration, Screen, Pair } from '@/types';
+import type { AppState, PendingMigration, Screen, Pair, InquiryDetails } from '@/types';
 
 const PENDING_MIGRATION_LS_KEY = 'mmc-pending-migration';
 
@@ -15,6 +15,7 @@ export const useAppStore = create<AppState>()(
       migrationComplete: false,
       pendingMigration: null,
       selectedPlanId: null,
+      inquiryDetails: null,
 
       setScreen: (screen: Screen) => set({ currentScreen: screen }),
       setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
@@ -58,6 +59,8 @@ export const useAppStore = create<AppState>()(
         }
         set({ pendingMigration: data });
       },
+
+      setInquiryDetails: (data: InquiryDetails | null) => set({ inquiryDetails: data, }),
     }),
     {
       name: 'mmc-app',
@@ -66,6 +69,7 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         selectedPair: s.selectedPair,
         selectedPlanId: s.selectedPlanId,
+        inquiryDetails: s.inquiryDetails,
       }),
     },
   ),

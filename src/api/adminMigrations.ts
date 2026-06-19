@@ -1,0 +1,134 @@
+import { apiClient } from './client';
+import type {
+  JourneyStage,
+  JourneyStageKey,
+  JourneyStageState,
+} from '@/types/api';
+
+export type { JourneyStage, JourneyStageKey, JourneyStageState };
+
+export type MigrationStatus =
+  | 'DRAFT' | 'PAYMENT_PENDING' | 'PAYMENT_FAILED'
+  | 'SOURCE_AUTH_PENDING' | 'SOURCE_AUTH_AWAITING' | 'SOURCE_AUTH_COMPLETED'
+  | 'DESTINATION_AUTH_PENDING' | 'DESTINATION_AUTH_AWAITING' | 'DESTINATION_AUTH_COMPLETED'
+  | 'DATA_COUNT_PENDING' | 'DATA_COUNT_READY' | 'SUBMITTING' | 'QUEUED' | 'RUNNING'
+  | 'PARTIAL_SUCCESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export type MigrationStatusGroup = 'active' | 'completed' | 'failed';
+
+interface PairLogo { image: string; name: string }
+
+export interface AdminMigrationPair {
+  source: string;
+  destination: string;
+  displayName: string;
+  sourceLogo?: PairLogo | null;
+  destinationLogo?: PairLogo | null;
+}
+
+// Normalized "who is this migration for", computed server-side (inquiry-first,
+// falling back to the account). Use this everywhere customer identity is shown.
+export interface MigrationCustomer {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  entityName: string | null;
+  country: string | null;
+}
+
+export interface AdminMigrationListItem {
+  id: string;
+  status: MigrationStatus;
+  progress: number;
+  currentCategory: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  isQaPassed: boolean | null;
+  migrationPair: AdminMigrationPair;
+  user: { email: string | null; firstname: string; lastname: string } | null;
+  customer: MigrationCustomer;
+  plan: { name: string } | null;
+}
+
+export interface AdminMigrationLog {
+  id: string;
+  level: string; // ActivityStatus: SUCCESS | INFO | WARNING | FAILED
+  message: string;
+  category: string | null;
+  service: string | null;
+  createdAt: string;
+}
+
+export interface AdminMigrationWebhookEvent {
+  eventType: string;
+  status: string;
+  receivedAt: string;
+  failureReason: string | null;
+}
+
+export interface AdminMigrationConnector {
+  id: string;
+  side: 'SOURCE' | 'DESTINATION';
+  platform: string;
+  tenantName: string | null;
+  status: string;
+  connectedAt: string | null;
+}
+
+export interface AdminMigrationInquiry {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  country: string;
+  entityName: string;
+  financialYearEnd: string;
+  yearsToMigrate: number;
+  migrationStartDate: string;
+  migrationEndDate: string;
+}
+
+export interface AdminMigrationDetail extends AdminMigrationListItem {
+  remoteJobId: string | null;
+  failedCategory: string | null;
+  qaReviewedAt: string | null;
+  qaReviewedBy: number | null;
+  connectors: AdminMigrationConnector[];
+  logs: AdminMigrationLog[];
+  webhookEvents: AdminMigrationWebhookEvent[];
+  journey: JourneyStage[];
+  inquiry: AdminMigrationInquiry | null;
+}
+
+export interface AdminMigrationListResponse {
+  data: AdminMigrationListItem[];
+  total: number;
+  skip: number;
+  take: number;
+}
+
+export interface ListAdminMigrationsParams {
+  group?: MigrationStatusGroup;
+  search?: string;
+  skip?: number;
+  take?: number;
+}
+
+export const adminMigrationsService = {
+  list: (params?: ListAdminMigrationsParams) =>
+    apiClient
+      .get<AdminMigrationListResponse>('/admin/migrations', { params })
+      .then((r) => r.data),
+
+  getById: (id: string) =>
+    apiClient
+      .get<AdminMigrationDetail>(`/admin/migrations/${id}`)
+      .then((r) => r.data),
+
+  setQa: (id: string, isQaPassed: boolean) =>
+    apiClient
+      .patch<AdminMigrationDetail>(`/admin/migrations/${id}/qa`, { isQaPassed })
+      .then((r) => r.data),
+};

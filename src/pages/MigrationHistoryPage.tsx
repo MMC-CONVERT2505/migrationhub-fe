@@ -60,7 +60,11 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="bg-white border border-border rounded-xl p-5 hover:shadow-card transition-shadow"
+      onClick={() => navigate(`/migrations/${migration.id}`)}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/migrations/${migration.id}`); }}
+      className="bg-white border border-border rounded-xl p-5 hover:shadow-card hover:border-border-medium transition-all cursor-pointer"
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -140,7 +144,7 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
         {/* Action button */}
         {(migration.status === 'DRAFT' || migration.status === 'QUEUED') && (
           <button
-            onClick={() => navigate('/migration')}
+            onClick={(e) => { e.stopPropagation(); navigate('/migration'); }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Continue
@@ -151,7 +155,7 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
         )}
         {migration.status === 'RUNNING' && (
           <button
-            onClick={() => navigate('/migration')}
+            onClick={(e) => { e.stopPropagation(); navigate(`/migrations/${migration.id}`); }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -159,16 +163,16 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
           </button>
         )}
         {migration.status === 'COMPLETED' && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600">
+            View summary
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-            Done
           </span>
         )}
         {migration.status === 'FAILED' && (
           <button
-            onClick={() => navigate('/payment')}
+            onClick={(e) => { e.stopPropagation(); navigate('/payment'); }}
             className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 transition-colors"
           >
             Retry

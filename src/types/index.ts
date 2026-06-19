@@ -77,6 +77,16 @@ export type Screen = 'home' | 'payment' | 'migration' | 'admin';
 export interface PendingMigration {
   migrationPairId: string;
   planId?: string;
+  /** Carried across the Razorpay redirect so the created migration links to its inquiry. */
+  inquiryId?: number;
+}
+
+export interface InquiryDetails {
+  id?: number;
+  name: string;
+  email: string;
+  phone: string;
+  entityName: string;
 }
 
 export interface AppState {
@@ -89,6 +99,8 @@ export interface AppState {
   /** Set before Razorpay redirect; also written to localStorage for post-redirect survival. */
   pendingMigration: PendingMigration | null;
   selectedPlanId: string | null;
+  inquiryDetails: InquiryDetails | null;
+
   setScreen: (screen: Screen) => void;
   setSelectedPair: (pair: Pair | null) => void;
   nextMigrationStep: () => void;
@@ -99,6 +111,7 @@ export interface AppState {
   resetMigration: () => void;
   setPendingMigration: (data: PendingMigration | null) => void;
   setSelectedPlanId: (planId: string | null) => void;
+  setInquiryDetails: (data: InquiryDetails | null) => void;
 }
 
 // ─── Component Prop Types ────────────────────────────────────────────────────

@@ -31,21 +31,6 @@ export const Hero: React.FC = () => {
             Accurate, auditable, and done in under 30 minutes.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => navigate('/payment')}
-              iconRight={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              }
-            >
-              Start your migration
-            </Button>
-          </div>
-
           <div className="mt-8 flex items-center gap-6">
             <div className="flex -space-x-2">
               {['#2563eb', '#16a34a', '#ea580c', '#9b1c1c'].map((color, i) => (

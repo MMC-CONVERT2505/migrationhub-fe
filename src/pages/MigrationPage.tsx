@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
+import { MigrationJourney } from '@/components/migration/MigrationJourney';
 import { StepBar } from '@/components/migration/StepBar';
 import { ConnectStep } from '@/components/migration/ConnectStep';
 import { DataSelector } from '@/components/migration/DataSelector';
@@ -96,6 +97,10 @@ const MigrationPage: React.FC = () => {
 
       {/* Wizard */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <MigrationJourney
+          current={migrationStep === 1 ? 5 : migrationStep === 2 ? 6 : migrationStep === 5 ? 8 : 7}
+          className="mb-8"
+        />
         <StepBar currentStep={migrationStep} />
 
         {/* Step panels */}

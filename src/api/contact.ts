@@ -14,7 +14,6 @@ export interface ContactItem {
   companyName: string;
   country: string;
   phone: string | null;
-  isWelcomeMailSent: boolean;
   isReachedOut: boolean;
   createdAt: string;
   updatedAt: string;
@@ -35,7 +34,6 @@ export interface ContactListResponse {
 }
 
 export interface UpdateContactRequest {
-  isWelcomeMailSent?: boolean;
   isReachedOut?: boolean;
 }
 

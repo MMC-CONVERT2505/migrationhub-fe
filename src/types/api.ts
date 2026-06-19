@@ -268,6 +268,7 @@ export interface CreateMigrationRequest {
   paymentId?: string;
   migrationPairId?: string;
   planId?: string;
+  inquiryId?: number;
 }
 
 export interface MigrationRecord {
@@ -298,6 +299,33 @@ export type MigrationStatus =
   | 'COMPLETED'
   | 'FAILED'
   | 'CANCELLED';
+
+// Canonical end-to-end step flow, computed server-side and shared by the admin
+// tracing view and the customer tracking view. Keep in sync with the backend
+// `migration-journey.ts`.
+export type JourneyStageKey =
+  | 'created'
+  | 'payment'
+  | 'source_auth'
+  | 'destination_auth'
+  | 'data_analysis'
+  | 'migration'
+  | 'outcome';
+
+export type JourneyStageState =
+  | 'completed'
+  | 'active'
+  | 'pending'
+  | 'failed'
+  | 'skipped';
+
+export interface JourneyStage {
+  key: JourneyStageKey;
+  label: string;
+  state: JourneyStageState;
+  at: string | null;
+  detail: string | null;
+}
 
 export interface UserMigration {
   id: string;
@@ -336,6 +364,8 @@ export interface UserMigration {
     popular: boolean;
   };
   connectors: unknown[];
+  /** Present on single-migration fetches (`getById`); absent on list. */
+  journey?: JourneyStage[];
 }
 
 // ─── Payments (backend-driven flow) ───────────────────────────────────────────

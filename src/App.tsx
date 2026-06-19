@@ -12,7 +12,10 @@ const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
+const MigrationInfoPage     = React.lazy(() => import('@/pages/MigrationInfoPage'));
+const FaqPage               = React.lazy(() => import('@/pages/FaqPage'));
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
+const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
@@ -25,6 +28,9 @@ const ToolLogosPage       = React.lazy(() => import('@/pages/admin/ToolLogosPage
 const PlansPage           = React.lazy(() => import('@/pages/admin/PlansPage'));
 const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
 const ContactsPage        = React.lazy(() => import('@/pages/admin/ContactsPage'));
+const MigrationsPage      = React.lazy(() => import('@/pages/admin/MigrationsPage'));
+const MigrationDetailPage = React.lazy(() => import('@/pages/admin/MigrationDetailPage'));
+const InquiriesPage       = React.lazy(() => import('@/pages/admin/InquiriesPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
 const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
 const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
@@ -50,8 +56,11 @@ const App: React.FC = () => (
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
+      <Route path="/migration/details" element={<MigrationInfoPage />} />
+      <Route path="/migration/faq"     element={<FaqPage />} />
       <Route path="/migration"         element={<MigrationPage />} />
       <Route path="/migrations"       element={<MigrationHistoryPage />} />
+      <Route path="/migrations/:id"   element={<MigrationTrackPage />} />
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
 
@@ -71,6 +80,9 @@ const App: React.FC = () => (
           <Route path="plans"            element={<PlansPage />} />
           <Route path="audit"            element={<AuditPage />} />
           <Route path="contacts"         element={<ContactsPage />} />
+          <Route path="inquiries"        element={<InquiriesPage />} />
+          <Route path="migrations"       element={<MigrationsPage />} />
+          <Route path="migrations/:id"   element={<MigrationDetailPage />} />
         </Route>
       </Route>
 

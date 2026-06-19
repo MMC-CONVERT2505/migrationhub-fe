@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
+import { MigrationJourney, SUMMARY_STEP, HANDOFF_STEP } from '@/components/migration/MigrationJourney';
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
@@ -35,6 +36,9 @@ const PaymentSuccessPage: React.FC = () => {
     const s = useAppStore.getState();
     return s.selectedPair?.plans.find((p) => p.id === s.selectedPlanId) ?? null;
   });
+  // Snapshot the inquiry id for the free flow (no Razorpay redirect to wipe it);
+  // the paid flow carries it through the localStorage PendingMigration instead.
+  const [inquiryId] = useState(() => useAppStore.getState().inquiryDetails?.id ?? null);
 
   const isFree = pair?.isFree ?? false;
 
@@ -59,12 +63,14 @@ const PaymentSuccessPage: React.FC = () => {
     // Free: fall back to snapshotted pair/plan.
     const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
     const planId = pending?.planId ?? plan?.id ?? undefined;
+    const resolvedInquiryId = pending?.inquiryId ?? inquiryId ?? undefined;
 
     try {
       const result = await migrationsService.create({
         ...(paymentId ? { paymentId } : {}),
         ...(migPairId ? { migrationPairId: migPairId } : {}),
         ...(planId ? { planId } : {}),
+        ...(resolvedInquiryId ? { inquiryId: resolvedInquiryId } : {}),
       });
 
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
@@ -78,12 +84,18 @@ const PaymentSuccessPage: React.FC = () => {
         ?? pair?.toolUrl
         ?? null;
 
-      // Build redirect: strip trailing slash, then pass ID as a named query
-      // param so the remote React app retrieves it via useSearchParams().get('migrationId').
+      // Build redirect: strip trailing slash, then pass the migration ID and the
+      // journey step the remote tool should resume from ("Connect Source") as
+      // named query params. The remote React app reads them via
+      // useSearchParams().get('migrationId') / get('journeyStep').
       const base = serviceUrl?.replace(/\/+$/, '') ?? null;
 
       if (base && migrationId) {
-        window.location.href = `${base}?migrationId=${migrationId}`;
+        const params = new URLSearchParams({
+          migrationId: String(migrationId),
+          journeyStep: String(HANDOFF_STEP),
+        });
+        window.location.href = `${base}?${params.toString()}`;
       } else {
         setStage('done');
       }
@@ -92,7 +104,7 @@ const PaymentSuccessPage: React.FC = () => {
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [paymentId, pair, plan, resetMigration]);
+  }, [paymentId, pair, plan, inquiryId, resetMigration]);
 
   // ── Countdown ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -122,7 +134,11 @@ const PaymentSuccessPage: React.FC = () => {
     <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
       <Navbar variant="default" />
 
-      <div style={{ maxWidth: 520, margin: '0 auto', padding: '56px 24px 80px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 24px 0' }}>
+        <MigrationJourney current={SUMMARY_STEP} />
+      </div>
+
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* ── Summary + countdown / creating ─────────────────────────────── */}
         {(stage === 'summary' || stage === 'creating') && (

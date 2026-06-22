@@ -1,11 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/common/Button';
 
 export const Hero: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <section className="relative pt-16 pb-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

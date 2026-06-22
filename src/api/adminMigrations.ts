@@ -85,9 +85,6 @@ export interface AdminMigrationInquiry {
   country: string;
   entityName: string;
   financialYearEnd: string;
-  yearsToMigrate: number;
-  migrationStartDate: string;
-  migrationEndDate: string;
 }
 
 export interface AdminMigrationDetail extends AdminMigrationListItem {

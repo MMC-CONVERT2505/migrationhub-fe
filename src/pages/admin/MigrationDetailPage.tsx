@@ -35,9 +35,6 @@ const LOG_LEVEL_STYLES: Record<string, string> = {
 const fmt = (d?: string | null) =>
   d ? new Date(d).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
-const fmtDate = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : '—';
-
 const MigrationDetailPage: React.FC = () => {
   const { id = '' } = useParams();
   const [m, setM] = useState<AdminMigrationDetail | null>(null);
@@ -288,11 +285,6 @@ const MigrationDetailPage: React.FC = () => {
                 <Row label="Country" value={m.inquiry.country} />
                 <Row label="Entity" value={m.inquiry.entityName} />
                 <Row label="FY end" value={m.inquiry.financialYearEnd} />
-                <Row label="Years" value={String(m.inquiry.yearsToMigrate)} />
-                <Row
-                  label="Range"
-                  value={`${fmtDate(m.inquiry.migrationStartDate)} → ${fmtDate(m.inquiry.migrationEndDate)}`}
-                />
               </dl>
             </section>
           )}

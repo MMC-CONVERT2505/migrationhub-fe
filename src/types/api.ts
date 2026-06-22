@@ -606,11 +606,23 @@ export interface AnalyticsPair {
   avgDurationMinutes: number;
 }
 
+// Identity behind an activity, resolved server-side (no raw IDs leaked to UI).
+export type PrincipalType = 'admin' | 'user' | 'system';
+
+export interface Principal {
+  type: PrincipalType;
+  id: number;
+  email: string | null;
+  name: string;
+}
+
 export interface ActivityItem {
   id: string;
   kind: string;
   displayText: string;
   createdAt: string;
+  owner: Principal | null; // account the event belongs to (the user it concerns)
+  actor: Principal | null; // who performed it (null = system/automated)
   metadata: Record<string, string>;
 }
 
@@ -631,7 +643,9 @@ export interface AuditLogItem {
   entityType: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
-  actor: string;
+  actor: string; // performer display label: email ?? name ?? 'system'
+  actorType: PrincipalType;
+  owner: Principal | null; // account the activity belongs to
   level: AuditLogLevel;
 }
 

@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { ActivityFeed } from '@/components/admin/ActivityFeed';
 import { BarChart, DonutChart } from '@/components/admin/Charts';
 import { analyticsService, activitiesService } from '@/api/admin';
+import { principalLabel, principalSubLabel } from '@/utils/format';
 import type {
   ActivityItem,
   AnalyticsOutcomes,
   AnalyticsSummary,
   AuditLogItem,
   AuditLogLevel,
+  PrincipalType,
 } from '@/types/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -32,6 +34,12 @@ const LEVEL_STYLES: Record<AuditLogLevel, string> = {
   Info:    'bg-blue-50 text-blue-700',
   Warning: 'bg-yellow-50 text-yellow-700',
   Error:   'bg-red-50 text-red-700',
+};
+
+const ACTOR_TYPE_STYLES: Record<PrincipalType, string> = {
+  admin:  'bg-purple-50 text-purple-700',
+  user:   'bg-blue-50 text-blue-700',
+  system: 'bg-gray-100 text-gray-600',
 };
 
 type LevelFilter = 'all' | AuditLogLevel;
@@ -248,9 +256,31 @@ const AuditPage: React.FC = () => {
                     <td className="px-4 py-3 font-medium text-text-primary">
                       {ACTION_LABELS[row.action] ?? row.action}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary font-mono text-xs">{row.actor}</td>
-                    <td className="px-4 py-3 text-text-secondary text-xs max-w-xs truncate" title={row.message}>
-                      {row.message}
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-text-primary font-mono text-xs truncate max-w-[180px]" title={row.actor}>
+                          {row.actor}
+                        </span>
+                        <span className={`self-start px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize ${ACTOR_TYPE_STYLES[row.actorType]}`}>
+                          {row.actorType}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-xs">
+                      {row.owner ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-text-primary text-xs truncate" title={row.owner.email ?? row.owner.name}>
+                            {principalLabel(row.owner)}
+                          </span>
+                          <span className="text-text-tertiary text-[11px] truncate" title={row.message}>
+                            {principalSubLabel(row.owner) ?? row.message}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-text-secondary text-xs truncate block" title={row.message}>
+                          {row.message}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${LEVEL_STYLES[row.level]}`}>

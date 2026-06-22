@@ -4,7 +4,6 @@ import { inquiryMigrationsService, type InquiryMigrationUser } from '@/api/inqui
 import { ApiError } from '@/api/client';
 
 const PAGE_SIZE = 20;
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const InquiriesPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -76,7 +75,7 @@ const InquiriesPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Entity', 'Phone', 'Country', 'FY end', 'Years', 'Migration period', 'Customer', 'Submitted'].map((h) => (
+                {['Entity', 'Phone', 'Country', 'FY end', 'Customer', 'Submitted'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -84,12 +83,12 @@ const InquiriesPage: React.FC = () => {
             <tbody className="divide-y divide-border">
               {loading ? (
                 Array(6).fill(null).map((_, i) => (
-                  <tr key={i}>{Array(8).fill(null).map((__, j) => (
+                  <tr key={i}>{Array(6).fill(null).map((__, j) => (
                     <td key={j} className="px-4 py-3"><div className="h-3 bg-bg-lighter rounded animate-pulse w-16" /></td>
                   ))}</tr>
                 ))
               ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-10 text-sm text-text-tertiary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
+                <tr><td colSpan={6} className="text-center py-10 text-sm text-text-tertiary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
               ) : (
                 rows.map((r) => (
                   <tr key={r.id} className="hover:bg-bg-light/50 transition-colors">
@@ -99,8 +98,6 @@ const InquiriesPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.country}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.financialYearEnd}</td>
-                    <td className="px-4 py-3 text-text-secondary tabular-nums">{r.yearsToMigrate}</td>
-                    <td className="px-4 py-3 text-text-tertiary text-xs whitespace-nowrap">{fmtDate(r.migrationStartDate)} → {fmtDate(r.migrationEndDate)}</td>
                     <td className="px-4 py-3 text-text-secondary text-xs max-w-[160px] truncate" title={r.userEmail ?? ''}>{r.userEmail ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">{new Date(r.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</td>
                   </tr>

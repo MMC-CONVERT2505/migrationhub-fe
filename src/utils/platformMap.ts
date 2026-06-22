@@ -63,6 +63,8 @@ export function apiPlanToUiPlan(plan: ApiPlan): Plan {
     id:        plan.id,
     name:      plan.name,
     history:   plan.history,
+    years:     plan.years,
+    isInception: plan.isInception,
     support:   plan.support,
     basePrice: Number(plan.basePrice),
     features:  plan.features,

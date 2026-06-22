@@ -6,6 +6,7 @@ import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
+import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import type { PendingMigration } from '@/types';
 
@@ -39,8 +40,21 @@ const PaymentSuccessPage: React.FC = () => {
   // Snapshot the inquiry id for the free flow (no Razorpay redirect to wipe it);
   // the paid flow carries it through the localStorage PendingMigration instead.
   const [inquiryId] = useState(() => useAppStore.getState().inquiryDetails?.id ?? null);
+  // Financial-year-end is persisted in the store (sessionStorage) so it survives
+  // the Razorpay redirect; snapshot it once for the page lifecycle.
+  const [financialYearEnd] = useState(
+    () => useAppStore.getState().inquiryDetails?.financialYearEnd ?? null,
+  );
 
   const isFree = pair?.isFree ?? false;
+
+  // Migration period derived from the FY end + plan coverage — mirrors the
+  // checkout order summary and the range the backend stored at creation.
+  const dateRange = plan
+    ? formatFinancialRange(
+        calculateMigrationPeriod(financialYearEnd, plan.years, plan.isInception),
+      )
+    : null;
 
   const [stage, setStage] = useState<Stage>('summary');
   const [tick, setTick] = useState(COUNTDOWN);
@@ -210,6 +224,8 @@ const PaymentSuccessPage: React.FC = () => {
                 <>
                   <SummaryRow label="Plan" value={plan.name} />
                   <SummaryRow label="Historical data" value={plan.history} />
+                  {financialYearEnd && <SummaryRow label="Financial year end" value={financialYearEnd} />}
+                  {dateRange && <SummaryRow label="Date range" value={dateRange} />}
                   <SummaryRow label="Support" value={plan.support} />
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

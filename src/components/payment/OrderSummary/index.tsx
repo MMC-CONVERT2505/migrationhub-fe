@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/utils/format';
+import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { useAppStore } from '@/store/appStore';
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -17,12 +18,25 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 );
 
 export const OrderSummary: React.FC = () => {
-  const selectedPair   = useAppStore((s) => s.selectedPair);
+  const selectedPair = useAppStore((s) => s.selectedPair);
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
+  const inquiryDetails = useAppStore((s) => s.inquiryDetails);
 
-  const pair   = selectedPair;
+  const pair = selectedPair;
   const isFree = pair?.isFree ?? false;
-  const plan   = pair?.plans.find((p) => p.id === selectedPlanId) ?? null;
+  const plan = pair?.plans.find((p) => p.id === selectedPlanId) ?? null;
+
+  // Migration date range derived from the customer's financial-year-end + the
+  // plan's coverage — mirrors what the backend stores at migration creation.
+  const dateRange = plan
+    ? formatFinancialRange(
+      calculateMigrationPeriod(
+        inquiryDetails?.financialYearEnd,
+        plan.years,
+        plan.isInception,
+      ),
+    )
+    : null;
 
   return (
     <div style={{
@@ -52,6 +66,8 @@ export const OrderSummary: React.FC = () => {
         <>
           <Row label="Plan" value={plan.name} />
           <Row label="Historical data" value={plan.history} />
+          {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}
+          {dateRange && <Row label="Date range" value={dateRange} />}
           <Row label="Support tier" value={plan.support} />
           <Row label="Subtotal" value={isFree ? 'Free' : `${formatCurrency(plan.basePrice)} USD`} />
           {/* Total row */}

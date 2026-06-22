@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/utils/format';
+import { cn, principalLabel } from '@/utils/format';
 import type { ActivityItem } from '@/types/api';
 import type { FeedItemType } from '@/types';
 
@@ -58,11 +58,32 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ items, loading }) =>
       ) : (
         items.map((item) => {
           const type = kindToType(item.kind);
+          // Whom the event belongs to. Fall back to the performer for events with
+          // no distinct owner; show nothing only when no identity could be resolved.
+          const account = item.owner ?? item.actor;
+          // A human (admin/user) performed it, distinct from the owning account.
+          const performer =
+            item.actor && item.actor.type !== 'system' && item.actor.id !== item.owner?.id
+              ? principalLabel(item.actor)
+              : null;
+          // No human actor => automated/system-driven event (webhook, worker).
+          const systemDriven = !item.actor || item.actor.type === 'system';
           return (
             <div key={item.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-bg-light transition-colors">
               <div className={cn('w-2 h-2 rounded-full flex-shrink-0 mt-1.5', DOT_COLOR[type])} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-text-primary leading-relaxed">{item.displayText}</p>
+                {account && (
+                  <p className="text-[11px] text-text-secondary truncate mt-0.5" title={account.email ?? account.name}>
+                    <span className="text-text-tertiary">User:</span>{' '}
+                    <span className="font-medium">{principalLabel(account)}</span>
+                    {performer ? (
+                      <span className="text-text-tertiary"> · by {performer}</span>
+                    ) : systemDriven ? (
+                      <span className="text-text-tertiary"> · automated</span>
+                    ) : null}
+                  </p>
+                )}
                 <p className="text-[10px] text-text-tertiary font-mono mt-0.5">{relativeTime(item.createdAt)}</p>
               </div>
             </div>

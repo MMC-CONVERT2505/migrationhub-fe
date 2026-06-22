@@ -7,9 +7,6 @@ export interface CreateInquiryRequest {
   country: string;
   entityName: string;
   financialYearEnd: string;
-  yearsToMigrate: number;
-  migrationStartDate: string; // ISO yyyy-mm-dd
-  migrationEndDate: string;   // ISO yyyy-mm-dd
   migrationPairId?: string;
 }
 

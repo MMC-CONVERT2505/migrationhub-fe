@@ -26,6 +26,10 @@ export interface Plan {
   id?: string;
   name: string;
   history: string;
+  /** Total financial years covered (current + historical). null for inception plans. */
+  years?: number | null;
+  /** Unlimited "inception to date" coverage. */
+  isInception?: boolean;
   support: string;
   basePrice: number;
   features: string[];
@@ -87,6 +91,7 @@ export interface InquiryDetails {
   email: string;
   phone: string;
   entityName: string;
+  financialYearEnd?: string;
 }
 
 export interface AppState {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
@@ -13,14 +13,19 @@ const COUNTRIES = [
   'Canada (CAD)', 'Singapore (SGD)', 'India (INR)', 'United Arab Emirates (AED)', 'South Africa (ZAR)',
 ];
 
-const FY_ENDS = ['31st March', '30th June', '30th September', '31st December'];
-
-const YEARS = [
-  { value: 1, label: '1 Year (Current Year)' },
-  { value: 2, label: '2 Years' },
-  { value: 3, label: '3 Years' },
-  { value: 5, label: '5 Years' },
-  { value: 7, label: '7 Years (Full history)' },
+const FY_ENDS = [
+  '31st January',
+  '28th February',
+  '31st March',
+  '30th April',
+  '31st May',
+  '30th June',
+  '31st July',
+  '31st August',
+  '30th September',
+  '31st October',
+  '30th November',
+  '31st December',
 ];
 
 interface FieldErr { field: string; message: string }
@@ -38,20 +43,11 @@ const MigrationInfoPage: React.FC = () => {
     phone: '',
     country: COUNTRIES[3],
     entityName: '',
-    financialYearEnd: FY_ENDS[0],
-    yearsToMigrate: 1,
-    migrationStartDate: '',
-    migrationEndDate: '',
+    financialYearEnd: '31st March',
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
-
-  const period = useMemo(() => {
-    if (!form.migrationStartDate || !form.migrationEndDate) return null;
-    const fmt = (d: string) => new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
-    return `${fmt(form.migrationStartDate)} → ${fmt(form.migrationEndDate)}`;
-  }, [form.migrationStartDate, form.migrationEndDate]);
 
   if (!selectedPair) {
     navigate('/');
@@ -70,18 +66,10 @@ const MigrationInfoPage: React.FC = () => {
     if (!form.phone.trim()) e.push({ field: 'phone', message: 'Phone number is required.' });
     else if (!/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) e.push({ field: 'phone', message: 'Enter a valid phone number.' });
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
-    if (!form.migrationStartDate) e.push({ field: 'migrationStartDate', message: 'Start date is required.' });
-    if (!form.migrationEndDate) e.push({ field: 'migrationEndDate', message: 'End date is required.' });
-    if (form.migrationStartDate && form.migrationEndDate && form.migrationEndDate < form.migrationStartDate)
-      e.push({ field: 'migrationEndDate', message: 'End date must be after the start date.' });
     return e;
   };
 
-  const setInquiryDetails = useAppStore(
-    (s) => s.setInquiryDetails
-  );
-
-  console.log('setter', setInquiryDetails);
+  const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -99,9 +87,6 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        yearsToMigrate: form.yearsToMigrate,
-        migrationStartDate: form.migrationStartDate,
-        migrationEndDate: form.migrationEndDate,
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
 
@@ -111,9 +96,8 @@ const MigrationInfoPage: React.FC = () => {
         email: form.email.trim(),
         phone: form.phone.trim(),
         entityName: form.entityName.trim(),
+        financialYearEnd: form.financialYearEnd,
       });
-
-      console.log('Saved');
 
       navigate('/migration/faq');
     } catch (err) {
@@ -179,35 +163,6 @@ const MigrationInfoPage: React.FC = () => {
                 <select id="fye" value={form.financialYearEnd} onChange={(e) => set('financialYearEnd', e.target.value)} className={inputCls}>
                   {FY_ENDS.map((f) => <option key={f}>{f}</option>)}
                 </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="years" className="text-xs font-medium text-text-secondary">Number of Years to Migrate</label>
-              <select id="years" value={form.yearsToMigrate} onChange={(e) => set('yearsToMigrate', Number(e.target.value))} className={inputCls}>
-                {YEARS.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
-              </select>
-            </div>
-
-            {/* Migration period summary */}
-            <div className="bg-blue-light border border-blue-200 rounded-xl p-4">
-              <p className="text-sm font-semibold text-blue-700 flex items-center gap-2">📅 Migration Period</p>
-              <p className="mt-2 text-sm text-text-primary font-medium">{period ?? 'Select a start and end date below'}</p>
-              <p className="mt-1 text-xs text-text-secondary">
-                {form.yearsToMigrate} financial {form.yearsToMigrate === 1 ? 'year' : 'years'} of data · based on financial year ending {form.financialYearEnd}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="start" className="text-xs font-medium text-text-secondary">Migration Start Date <span className="text-red-500">*</span></label>
-                <input id="start" type="date" value={form.migrationStartDate} onChange={(e) => set('migrationStartDate', e.target.value)} className={inputCls} />
-                {fieldError('migrationStartDate') && <p className="text-xs text-red-600">{fieldError('migrationStartDate')}</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="end" className="text-xs font-medium text-text-secondary">Migration End Date <span className="text-red-500">*</span></label>
-                <input id="end" type="date" value={form.migrationEndDate} onChange={(e) => set('migrationEndDate', e.target.value)} className={inputCls} />
-                {fieldError('migrationEndDate') && <p className="text-xs text-red-600">{fieldError('migrationEndDate')}</p>}
               </div>
             </div>
 

@@ -1,8 +1,21 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { Principal } from '@/types/api';
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
+}
+
+/** Primary label for an activity principal: email when known, else resolved name, else 'System'. */
+export function principalLabel(p: Principal | null | undefined): string {
+  if (!p) return 'System';
+  return p.email ?? p.name;
+}
+
+/** Secondary label: the resolved name when an email is the primary label (and differs), else null. */
+export function principalSubLabel(p: Principal | null | undefined): string | null {
+  if (!p || !p.email) return null;
+  return p.name && p.name !== p.email ? p.name : null;
 }
 
 export function formatCurrency(amount: number): string {

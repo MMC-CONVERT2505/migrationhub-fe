@@ -22,7 +22,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-bg-light">
-            {['Migration Pair', 'Total', 'Completed', 'In Progress', 'Failed', 'Success Rate', 'Status', 'Avg. Time'].map((h) => (
+            {['Migration Pair', 'Total', 'Completed', 'In Progress', 'Draft', 'Failed', 'Success Rate', 'Status', 'Avg. Time'].map((h) => (
               <th
                 key={h}
                 className="px-4 py-2.5 text-left text-[10px] font-semibold text-text-tertiary uppercase tracking-wider whitespace-nowrap"
@@ -36,7 +36,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
           {loading ? (
             Array(5).fill(null).map((_, i) => (
               <tr key={i} className="border-b border-border">
-                {Array(8).fill(null).map((__, j) => (
+                {Array(9).fill(null).map((__, j) => (
                   <td key={j} className="px-4 py-3">
                     <div className="h-3 bg-bg-lighter rounded animate-pulse w-16" />
                   </td>
@@ -45,7 +45,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
             ))
           ) : pairs.length === 0 ? (
             <tr>
-              <td colSpan={8} className="text-center py-10 text-sm text-text-tertiary">
+              <td colSpan={9} className="text-center py-10 text-sm text-text-tertiary">
                 No pair data available
               </td>
             </tr>
@@ -93,6 +93,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
                   <td className="px-4 py-3 text-xs font-mono text-text-primary">{formatNumber(p.total)}</td>
                   <td className="px-4 py-3 text-xs font-mono text-green-600 font-semibold">{formatNumber(p.completed)}</td>
                   <td className="px-4 py-3 text-xs font-mono text-blue-600 font-semibold">{p.inProgress}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-text-tertiary font-semibold">{p.pending}</td>
                   <td className="px-4 py-3 text-xs font-mono text-red-500 font-semibold">{p.failed}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

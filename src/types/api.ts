@@ -599,6 +599,7 @@ export interface AnalyticsPair {
   total: number;
   completed: number;
   inProgress: number;
+  pending: number;
   failed: number;
   successRate: number;
   isActive: boolean;

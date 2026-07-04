@@ -1,19 +1,4 @@
-// Maps the "Financial Year End Date" label captured at the inquiry step
-// (e.g. "31st March") to its calendar month/day. Months are 0-indexed (JS Date).
-const FY_END_DATE_MAP: Record<string, { month: number; day: number }> = {
-  '31st January': { month: 0, day: 31 },
-  '28th February': { month: 1, day: 28 },
-  '31st March': { month: 2, day: 31 },
-  '30th April': { month: 3, day: 30 },
-  '31st May': { month: 4, day: 31 },
-  '30th June': { month: 5, day: 30 },
-  '31st July': { month: 6, day: 31 },
-  '31st August': { month: 7, day: 31 },
-  '30th September': { month: 8, day: 30 },
-  '31st October': { month: 9, day: 31 },
-  '30th November': { month: 10, day: 30 },
-  '31st December': { month: 11, day: 31 },
-};
+import { FY_END_DATE_MAP } from '@/constants/financialYear';
 
 export interface FinancialYearRange {
   start: Date | null; // null for "inception to date" plans

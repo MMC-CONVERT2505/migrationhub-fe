@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
 import { PlatformMark } from '@/components/common/PlatformMark';
+import { useAppStore } from '@/store/appStore';
 import type { Pair } from '@/types';
 
 interface ConnectStepProps {
@@ -14,13 +15,16 @@ interface ConnectStepProps {
 }
 
 const REGIONS = ['Australia', 'New Zealand', 'United Kingdom', 'United States', 'India', 'UAE', 'Singapore', 'Other'];
-const FY_ENDS  = ['30 June', '31 March', '31 December', '31 January'];
 const PLANS    = ['Standard', 'Premium', 'Enterprise'];
 
 const INPUT = cn(
   'w-full px-3 py-2.5 text-sm bg-bg-light border border-border rounded-lg text-text-primary',
   'placeholder:text-text-tertiary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors'
 );
+
+// Read-only mirror of INPUT for the FY end captured earlier at the inquiry step —
+// the migration always uses that value, so it is shown here, not re-collected.
+const READONLY = cn('w-full px-3 py-2.5 text-sm bg-bg-light border border-border rounded-lg flex items-center');
 
 export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, onBack }) => {
   const isSource = role === 'source';
@@ -29,6 +33,10 @@ export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, on
   const abbr     = isSource ? pair.srcAbbr  : pair.dstAbbr;
   const logo     = isSource ? pair.srcLogo  : pair.dstLogo;
   const stepNum  = isSource ? 1 : 2;
+
+  // FY end is captured once at the inquiry step and is the value the migration
+  // uses — surface it read-only here rather than re-collecting (and discarding) it.
+  const financialYearEnd = useAppStore((s) => s.inquiryDetails?.financialYearEnd);
 
   const [connecting, setConnecting] = useState(false);
 
@@ -111,9 +119,20 @@ export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, on
               <label className="block text-xs font-medium text-text-secondary mb-1.5">
                 {isSource ? 'Financial year end' : 'Subscription plan'}
               </label>
-              <select className={INPUT}>
-                {(isSource ? FY_ENDS : PLANS).map((opt) => <option key={opt}>{opt}</option>)}
-              </select>
+              {isSource ? (
+                <>
+                  <div className={READONLY} title={financialYearEnd ?? undefined}>
+                    <span className={financialYearEnd ? 'text-text-primary' : 'text-text-tertiary'}>
+                      {financialYearEnd ?? 'Not provided'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-text-tertiary">From your migration details</p>
+                </>
+              ) : (
+                <select className={INPUT}>
+                  {PLANS.map((opt) => <option key={opt}>{opt}</option>)}
+                </select>
+              )}
             </div>
           </div>
         </div>

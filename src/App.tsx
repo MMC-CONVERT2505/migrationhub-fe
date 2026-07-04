@@ -30,6 +30,7 @@ const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
 const ContactsPage        = React.lazy(() => import('@/pages/admin/ContactsPage'));
 const MigrationsPage      = React.lazy(() => import('@/pages/admin/MigrationsPage'));
 const MigrationDetailPage = React.lazy(() => import('@/pages/admin/MigrationDetailPage'));
+const ReportsPage         = React.lazy(() => import('@/pages/admin/ReportsPage'));
 const InquiriesPage       = React.lazy(() => import('@/pages/admin/InquiriesPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
 const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
@@ -83,6 +84,7 @@ const App: React.FC = () => (
           <Route path="inquiries"        element={<InquiriesPage />} />
           <Route path="migrations"       element={<MigrationsPage />} />
           <Route path="migrations/:id"   element={<MigrationDetailPage />} />
+          <Route path="reports"          element={<ReportsPage />} />
         </Route>
       </Route>
 

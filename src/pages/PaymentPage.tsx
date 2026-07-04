@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
@@ -20,17 +20,30 @@ const PaymentPage: React.FC = () => {
   const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
 
   const isFree = selectedPair?.isFree ?? false;
-  const plans  = selectedPair?.plans ?? [];
+
+  // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
+  const PLAN_ORDER = ['free', 'basic', 'standard', 'enterprise'];
+  const plans = useMemo(() => {
+    const rank = (name: string) => {
+      const i = PLAN_ORDER.indexOf(name.trim().toLowerCase());
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return [...(selectedPair?.plans ?? [])].sort((a, b) => rank(a.name) - rank(b.name));
+  }, [selectedPair]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [autoCreating, setAutoCreating] = useState(false);
   const [autoError, setAutoError]       = useState('');
 
-  // Auto-select the first plan if nothing valid is selected for the current pair.
+  // Auto-select a plan when none valid is selected for the current pair.
+  // Free pairs default to the Free plan; otherwise the first (lowest-tier) plan.
   useEffect(() => {
     if (plans.length === 0) return;
     const valid = plans.some((p) => p.id === selectedPlanId);
-    if (!valid) setSelectedPlanId(plans[0].id!);
-  }, [plans]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (valid) return;
+    const freePlan = plans.find((p) => p.name.trim().toLowerCase() === 'free');
+    const target = isFree && freePlan ? freePlan : plans[0];
+    setSelectedPlanId(target.id!);
+  }, [plans, isFree]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No plans attached → create a free migration immediately, skip UI.
   useEffect(() => {

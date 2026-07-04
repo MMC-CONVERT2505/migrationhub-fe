@@ -7,26 +7,13 @@ import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
+import { FY_ENDS } from '@/constants/financialYear';
 
 const COUNTRIES = [
   'Australia (AUD)', 'New Zealand (NZD)', 'United Kingdom (GBP)', 'United States (USD)',
   'Canada (CAD)', 'Singapore (SGD)', 'India (INR)', 'United Arab Emirates (AED)', 'South Africa (ZAR)',
 ];
 
-const FY_ENDS = [
-  '31st January',
-  '28th February',
-  '31st March',
-  '30th April',
-  '31st May',
-  '30th June',
-  '31st July',
-  '31st August',
-  '30th September',
-  '31st October',
-  '30th November',
-  '31st December',
-];
 
 interface FieldErr { field: string; message: string }
 

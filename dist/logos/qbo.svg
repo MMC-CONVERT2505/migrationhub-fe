@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="qbo">
+  <rect x="2" y="2" width="44" height="44" rx="10" fill="#ffffff" stroke="#2CA01C" stroke-width="2.5"/>
+  <text x="24" y="22" text-anchor="middle" dominant-baseline="central" fill="#2CA01C" font-family="'Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="20" font-weight="800" letter-spacing="0.3">qb</text>
+  <rect x="15" y="33" width="18" height="3.2" rx="1.6" fill="#2CA01C"/>
+</svg>

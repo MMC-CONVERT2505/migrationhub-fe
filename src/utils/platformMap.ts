@@ -57,6 +57,42 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
   };
 }
 
+// ─── Deep-link pair slug ──────────────────────────────────────────────────────
+
+/** Lowercase, URL-safe token from a platform key or name (e.g. "Xero" → "xero"). */
+function slugToken(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+/** Canonical deep-link slug for a pair, e.g. "xero-to-qbo". Use this to build entry links. */
+export function pairSlug(source: string, destination: string): string {
+  return `${slugToken(source)}-to-${slugToken(destination)}`;
+}
+
+/**
+ * Resolves a URL `:pairSlug` against the available pair entities. Tolerant of the
+ * shapes an external referrer might emit — "source-to-destination", "source-destination",
+ * the slugified displayName, or the raw pair id — so the link keeps working regardless
+ * of which convention the destination platform uses.
+ */
+export function findPairBySlug(
+  entities: MigrationPairEntity[],
+  slug: string,
+): MigrationPairEntity | undefined {
+  const want = slugToken(slug);
+  if (!want) return undefined;
+  return entities.find((e) => {
+    const src = slugToken(e.source);
+    const dst = slugToken(e.destination);
+    return (
+      want === `${src}-to-${dst}` ||
+      want === `${src}-${dst}` ||
+      want === slugToken(e.displayName) ||
+      want === slugToken(String(e.id))
+    );
+  });
+}
+
 // ─── ApiPlan → Plan (UI type) ─────────────────────────────────────────────────
 export function apiPlanToUiPlan(plan: ApiPlan): Plan {
   return {

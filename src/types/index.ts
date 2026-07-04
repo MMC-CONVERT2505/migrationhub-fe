@@ -105,9 +105,12 @@ export interface AppState {
   pendingMigration: PendingMigration | null;
   selectedPlanId: string | null;
   inquiryDetails: InquiryDetails | null;
+  /** True when the user arrived via an external deep link — the home page is then locked. */
+  entryLocked: boolean;
 
   setScreen: (screen: Screen) => void;
   setSelectedPair: (pair: Pair | null) => void;
+  setEntryLocked: (locked: boolean) => void;
   nextMigrationStep: () => void;
   prevMigrationStep: () => void;
   toggleDataCategory: (index: number) => void;

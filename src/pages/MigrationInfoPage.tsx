@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
+import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { InputField } from '@/components/auth/InputField';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
@@ -23,6 +24,7 @@ const inputCls =
 const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
   const selectedPair = useAppStore((s) => s.selectedPair);
+  const entryLocked = useAppStore((s) => s.entryLocked);
 
   const [form, setForm] = useState({
     name: '',
@@ -102,6 +104,9 @@ const MigrationInfoPage: React.FC = () => {
         <MigrationJourney current={2} className="mb-8" />
 
         <div className="bg-white border border-border rounded-2xl shadow-card p-6 sm:p-8">
+          {/* Selected migration pair — highlighted so the user always sees which flow this is */}
+          <SelectedPairBanner pair={selectedPair} className="mb-6" />
+
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Migration Information</h1>
           <p className="mt-1 text-sm text-text-secondary">
             Tell us about the entity you want to migrate — this helps us scope and price your migration.
@@ -154,7 +159,9 @@ const MigrationInfoPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/')}>Cancel</Button>
+              {!entryLocked && (
+                <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/')}>Cancel</Button>
+              )}
               <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>Continue to FAQ</Button>
             </div>
           </form>

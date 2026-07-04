@@ -16,9 +16,11 @@ export const useAppStore = create<AppState>()(
       pendingMigration: null,
       selectedPlanId: null,
       inquiryDetails: null,
+      entryLocked: false,
 
       setScreen: (screen: Screen) => set({ currentScreen: screen }),
       setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
+      setEntryLocked: (locked: boolean) => set({ entryLocked: locked }),
 
       nextMigrationStep: () =>
         set((s) => ({ migrationStep: Math.min(s.migrationStep + 1, 5) })),
@@ -47,6 +49,7 @@ export const useAppStore = create<AppState>()(
           migrationComplete: false,
           pendingMigration: null,
           selectedPlanId: null,
+          entryLocked: false,
         }),
 
       setSelectedPlanId: (planId: string | null) => set({ selectedPlanId: planId }),
@@ -70,6 +73,7 @@ export const useAppStore = create<AppState>()(
         selectedPair: s.selectedPair,
         selectedPlanId: s.selectedPlanId,
         inquiryDetails: s.inquiryDetails,
+        entryLocked: s.entryLocked,
       }),
     },
   ),

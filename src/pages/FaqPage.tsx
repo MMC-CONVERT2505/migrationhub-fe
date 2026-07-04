@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
+import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 
@@ -66,6 +67,8 @@ const FaqPage: React.FC = () => {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <MigrationJourney current={3} className="mb-8" />
+
+        <SelectedPairBanner pair={selectedPair} className="mb-6" />
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Frequently asked questions</h1>

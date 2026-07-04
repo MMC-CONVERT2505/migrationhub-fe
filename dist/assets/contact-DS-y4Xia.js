@@ -1,1 +1,0 @@
-import{c}from"./index-CBEcQ1eS.js";const o={submit:t=>c.post("/contact",t).then(a=>a.data),list:t=>c.get("/contact",{params:t}).then(a=>a.data),update:(t,a)=>c.patch(`/contact/${t}`,a).then(e=>e.data)};export{o as c};

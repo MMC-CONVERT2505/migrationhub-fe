@@ -13,6 +13,7 @@ const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
 const MigrationInfoPage     = React.lazy(() => import('@/pages/MigrationInfoPage'));
+const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDetailsEntryPage'));
 const FaqPage               = React.lazy(() => import('@/pages/FaqPage'));
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
@@ -58,6 +59,8 @@ const App: React.FC = () => (
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
       <Route path="/migration/details" element={<MigrationInfoPage />} />
+      {/* Deep-link entry from an external destination platform — resolves the pair, locks the flow */}
+      <Route path="/migration/details/:pairSlug/:isFree" element={<MigrationDetailsEntryPage />} />
       <Route path="/migration/faq"     element={<FaqPage />} />
       <Route path="/migration"         element={<MigrationPage />} />
       <Route path="/migrations"       element={<MigrationHistoryPage />} />

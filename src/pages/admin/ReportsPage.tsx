@@ -3,26 +3,67 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { reportsService, type ReportDetail, type ReportPairSummary } from '@/api/reports';
 import { ApiError } from '@/api/client';
 import { normalizePlatform } from '@/utils/platformMap';
+import { PLATFORM_ABBR, PLATFORM_COLORS, platformLogo } from '@/constants/logos';
+import { PlatformMark } from '@/components/common/PlatformMark';
 import { Spinner } from '@/components/common/Spinner';
 import { ReportView } from '@/components/admin/ReportView';
+import { cn } from '@/utils/format';
 
-type Filter = 'all' | 'with' | 'without';
-const TABS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All pairs' },
-  { key: 'with', label: 'With report' },
-  { key: 'without', label: 'No data' },
-];
+// ── Tool categorisation ──────────────────────────────────────────────────────
+// The data carries no automated/semi-automated flag, so a pair is classified here
+// by its "<source>→<destination>" key. Anything listed below is an *automated*
+// tool; every other pair (including any newly-added one) is semi-automated, so a
+// new pair always surfaces somewhere rather than silently disappearing.
+const AUTOMATED_PAIRS = new Set<string>([
+  'xero→qbo',
+  'qbo→xero',
+  'xero→myob',
+  'qbo→myob',
+  'myob→qbo',
+]);
 
-const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—';
+// Red/green thresholds per section: avg over the threshold is red, at-or-under is
+// green (requirement: automated > 2d red, semi-automated > 3d red).
+const AUTOMATED_THRESHOLD_DAYS = 2;
+const SEMI_AUTOMATED_THRESHOLD_DAYS = 3;
+
+const pairKey = (p: ReportPairSummary) =>
+  `${p.source.toLowerCase()}→${p.destination.toLowerCase()}`;
+
+const isAutomated = (p: ReportPairSummary) => AUTOMATED_PAIRS.has(pairKey(p));
+
+type Tone = 'red' | 'green' | 'neutral';
+
+// Neutral when there's no timeline yet — no threshold verdict can be given.
+const timelineTone = (avg: number | null, thresholdDays: number): Tone =>
+  avg == null ? 'neutral' : avg > thresholdDays ? 'red' : 'green';
+
+const fmtDays = (n: number | null) =>
+  n == null ? '—' : `${n} ${n === 1 ? 'day' : 'days'}`;
+
+/**
+ * Logo + fallback props for a platform key, e.g. "qbo". Prefers the bundled
+ * public/logos/<key>.svg icon, then the pair's attached DB banner logo, then (via
+ * PlatformMark's onError) the coloured abbr tile — so the reports tool marks are
+ * mapped from the public logos folder for every known platform.
+ */
+function brand(platformKey: string, dbLogo: string | null) {
+  const name = normalizePlatform(platformKey);
+  return {
+    logo: platformLogo(platformKey) ?? (dbLogo || null),
+    name,
+    abbr: PLATFORM_ABBR[name] ?? name.slice(0, 2).toUpperCase(),
+    color: PLATFORM_COLORS[name] ?? '#64748b',
+  };
+}
 
 const ReportsPage: React.FC = () => {
   const [rows, setRows] = useState<ReportPairSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
 
-  // Accordion state — one pair open at a time, with a lazy-loaded report cache.
+  // One report open at a time (across both sections), lazily loaded + cached by
+  // the pair's unique id so two pairs can never share a snapshot.
   const [openId, setOpenId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, ReportDetail>>({});
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
@@ -63,24 +104,19 @@ const ReportsPage: React.FC = () => {
     [reports],
   );
 
-  const toggle = (pair: ReportPairSummary) => {
-    if (openId === pair.id) {
-      setOpenId(null);
-      return;
-    }
-    setOpenId(pair.id);
-    void fetchReport(pair);
-  };
-
-  const visible = useMemo(
-    () =>
-      rows.filter((r) =>
-        filter === 'all' ? true : filter === 'with' ? r.hasReport : !r.hasReport,
-      ),
-    [rows, filter],
+  const toggle = useCallback(
+    (pair: ReportPairSummary) => {
+      setOpenId((cur) => (cur === pair.id ? null : pair.id));
+      void fetchReport(pair);
+    },
+    [fetchReport],
   );
 
-  const withReport = rows.filter((r) => r.hasReport).length;
+  const automated = useMemo(() => rows.filter(isAutomated), [rows]);
+  const semiAutomated = useMemo(() => rows.filter((r) => !isAutomated(r)), [rows]);
+  const withReport = useMemo(() => rows.filter((r) => r.hasReport).length, [rows]);
+
+  const detailProps = { openId, reports, detailLoadingId, detailErrors, onToggle: toggle };
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -88,7 +124,8 @@ const ReportsPage: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Reports</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Daily per-pair order reports. Click a pair to open its latest report.
+          Daily migration performance by tool.
+          {!loading && rows.length > 0 && ` ${withReport} of ${rows.length} tools have report data.`}
         </p>
       </div>
 
@@ -101,147 +138,229 @@ const ReportsPage: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
-        {/* Toolbar */}
-        <div className="px-5 py-4 border-b border-border bg-bg-light flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-text-primary">Migration pairs</h3>
-            <p className="text-xs text-text-secondary mt-0.5">
-              {loading ? 'Loading…' : `${withReport} of ${rows.length} pairs have report data`}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-                  filter === tab.key
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-text-secondary hover:text-text-primary border border-border'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      {loading ? (
+        <SectionSkeletons />
+      ) : (
+        <div className="space-y-8">
+          <Section
+            title="Automated migration tools"
+            subtitle="Fully automated conversions"
+            thresholdDays={AUTOMATED_THRESHOLD_DAYS}
+            pairs={automated}
+            {...detailProps}
+          />
+          <Section
+            title="Semi-automated migration tools"
+            subtitle="Assisted / manual conversions"
+            thresholdDays={SEMI_AUTOMATED_THRESHOLD_DAYS}
+            pairs={semiAutomated}
+            {...detailProps}
+          />
         </div>
-
-        {/* List */}
-        <div className="divide-y divide-border">
-          {loading ? (
-            Array(6).fill(null).map((_, i) => (
-              <div key={i} className="px-5 py-4">
-                <div className="h-4 bg-bg-lighter rounded animate-pulse w-48" />
-              </div>
-            ))
-          ) : visible.length === 0 ? (
-            <div className="text-center py-14 text-sm text-text-tertiary">
-              No migration pairs to show
-            </div>
-          ) : (
-            visible.map((pair) => {
-              const isOpen = openId === pair.id;
-              return (
-                <div key={pair.id}>
-                  {/* Row */}
-                  <button
-                    onClick={() => toggle(pair)}
-                    aria-expanded={isOpen}
-                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${
-                      isOpen ? 'bg-bg-light' : 'hover:bg-bg-light/50'
-                    }`}
-                  >
-                    <svg
-                      className={`w-4 h-4 flex-shrink-0 text-text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-sm font-bold text-text-primary whitespace-nowrap">
-                        {normalizePlatform(pair.source)}
-                      </span>
-                      <svg className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                      <span className="text-sm font-bold text-text-primary whitespace-nowrap">
-                        {normalizePlatform(pair.destination)}
-                      </span>
-                      <span className="hidden md:inline text-xs text-text-tertiary truncate ml-1">
-                        {pair.displayName}
-                      </span>
-                    </div>
-
-                    {/* Summary (when a report exists) */}
-                    {pair.hasReport && (
-                      <div className="hidden sm:flex items-center gap-5 text-xs text-text-secondary whitespace-nowrap">
-                        <Meta label="Orders" value={String(pair.totalOrders ?? 0)} />
-                        <Meta label="Avg" value={pair.averageDays != null ? `${pair.averageDays}d` : '—'} />
-                        <Meta label="Run" value={fmtDate(pair.runDate)} />
-                      </div>
-                    )}
-
-                    {pair.hasReport ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-50 text-green-700 flex-shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Report
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white text-text-tertiary border border-border flex-shrink-0">
-                        No data
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Expanded content */}
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-5 pb-5 pt-1 bg-bg-light/40">
-                          {detailLoadingId === pair.id ? (
-                            <div className="flex items-center justify-center py-10">
-                              <Spinner size="md" />
-                            </div>
-                          ) : detailErrors[pair.id] ? (
-                            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
-                              <p className="text-sm text-red-700">{detailErrors[pair.id]}</p>
-                            </div>
-                          ) : reports[pair.id] ? (
-                            <ReportView report={reports[pair.id]} />
-                          ) : (
-                            <div className="py-8 text-center">
-                              <p className="text-sm font-semibold text-text-primary">No report yet</p>
-                              <p className="mt-1 text-xs text-text-secondary">
-                                No report has been ingested for this pair. It will appear here after the next daily run.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+      )}
     </motion.div>
   );
 };
 
-const Meta: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <span className="flex items-center gap-1">
-    <span className="text-text-tertiary">{label}:</span>
-    <span className="font-semibold text-text-primary">{value}</span>
-  </span>
+// ── Section ──────────────────────────────────────────────────────────────────
+
+interface SectionProps {
+  title: string;
+  subtitle: string;
+  thresholdDays: number;
+  pairs: ReportPairSummary[];
+  openId: string | null;
+  reports: Record<string, ReportDetail>;
+  detailLoadingId: string | null;
+  detailErrors: Record<string, string>;
+  onToggle: (p: ReportPairSummary) => void;
+}
+
+const Section: React.FC<SectionProps> = ({
+  title,
+  subtitle,
+  thresholdDays,
+  pairs,
+  openId,
+  reports,
+  detailLoadingId,
+  detailErrors,
+  onToggle,
+}) => {
+  // The open pair, only if it belongs to this section (so its detail renders here).
+  const openPair = pairs.find((p) => p.id === openId) ?? null;
+
+  return (
+    <section className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
+      {/* Section header + colour-key legend */}
+      <div className="px-5 py-4 border-b border-border bg-bg-light flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-text-primary">{title}</h3>
+          <p className="text-xs text-text-secondary mt-0.5">
+            {pairs.length} {pairs.length === 1 ? 'tool' : 'tools'} · {subtitle}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] font-semibold whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 text-green-600"><Dot tone="green" /> ≤ {thresholdDays}d avg</span>
+          <span className="inline-flex items-center gap-1 text-red-600"><Dot tone="red" /> &gt; {thresholdDays}d avg</span>
+        </div>
+      </div>
+
+      {pairs.length === 0 ? (
+        <div className="text-center py-12 text-sm text-text-tertiary">No tools in this category.</div>
+      ) : (
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {pairs.map((pair) => (
+            <ToolCard
+              key={pair.id}
+              pair={pair}
+              thresholdDays={thresholdDays}
+              isOpen={openId === pair.id}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Full-width report detail for the open pair in this section */}
+      <AnimatePresence initial={false}>
+        {openPair && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-border"
+          >
+            <div className="p-4 bg-bg-light/40">
+              {detailLoadingId === openPair.id ? (
+                <div className="flex items-center justify-center py-10"><Spinner size="md" /></div>
+              ) : detailErrors[openPair.id] ? (
+                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{detailErrors[openPair.id]}</p>
+                </div>
+              ) : reports[openPair.id] ? (
+                <ReportView
+                  report={reports[openPair.id]}
+                  sourceLogo={openPair.sourceLogo}
+                  destinationLogo={openPair.destinationLogo}
+                />
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-semibold text-text-primary">No report yet</p>
+                  <p className="mt-1 text-xs text-text-secondary">
+                    No report has been ingested for this pair. It will appear here after the next daily run.
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+// ── Tool card ────────────────────────────────────────────────────────────────
+
+interface ToolCardProps {
+  pair: ReportPairSummary;
+  thresholdDays: number;
+  isOpen: boolean;
+  onToggle: (p: ReportPairSummary) => void;
+}
+
+const ToolCard: React.FC<ToolCardProps> = ({ pair, thresholdDays, isOpen, onToggle }) => {
+  const src = brand(pair.source, pair.sourceLogo);
+  const dst = brand(pair.destination, pair.destinationLogo);
+  const tone = timelineTone(pair.averageDays, thresholdDays);
+  const interactive = pair.hasReport;
+
+  const toneText =
+    tone === 'red' ? 'text-red-600' : tone === 'green' ? 'text-green-600' : 'text-text-secondary';
+  const toneBox =
+    tone === 'red'
+      ? 'bg-red-50 border-red-100'
+      : tone === 'green'
+      ? 'bg-green-50 border-green-100'
+      : 'bg-bg-light border-border';
+
+  return (
+    <button
+      type="button"
+      onClick={interactive ? () => onToggle(pair) : undefined}
+      disabled={!interactive}
+      aria-expanded={interactive ? isOpen : undefined}
+      className={cn(
+        'w-full text-left rounded-xl border p-4 transition-all',
+        interactive ? 'cursor-pointer hover:shadow-card hover:border-blue-200' : 'cursor-default opacity-70',
+        isOpen
+          ? 'border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/30'
+          : 'border-border bg-white',
+      )}
+    >
+      {/* Pair logos (identity — no text names) */}
+      <div className="flex items-center justify-center gap-3">
+        <PlatformMark logo={src.logo} abbr={src.abbr} color={src.color} name={src.name} className="w-11 h-11 rounded-lg" textClassName="text-sm" />
+        <svg className="w-4 h-4 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        <PlatformMark logo={dst.logo} abbr={dst.abbr} color={dst.color} name={dst.name} className="w-11 h-11 rounded-lg" textClassName="text-sm" />
+      </div>
+      <span className="sr-only">{src.name} to {dst.name}</span>
+
+      {/* Below each tool: only average timeline + files completed */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className={cn('rounded-lg border px-3 py-2', toneBox)}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Average timeline</p>
+          <p className={cn('mt-0.5 text-sm font-bold flex items-center gap-1.5', toneText)}>
+            {tone !== 'neutral' && (
+              <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', tone === 'red' ? 'bg-red-500' : 'bg-green-500')} />
+            )}
+            {fmtDays(pair.averageDays)}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-bg-light px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Files completed</p>
+          <p className="mt-0.5 text-sm font-bold text-text-primary">
+            {pair.hasReport ? (pair.totalOrders ?? 0) : '—'}
+          </p>
+        </div>
+      </div>
+
+      {interactive ? (
+        <p className="mt-3 text-center text-[11px] font-semibold text-blue-600">
+          {isOpen ? 'Hide report ▲' : 'View report ▼'}
+        </p>
+      ) : (
+        <p className="mt-3 text-center text-[11px] font-medium text-text-tertiary">No report data yet</p>
+      )}
+    </button>
+  );
+};
+
+const Dot: React.FC<{ tone: 'red' | 'green' }> = ({ tone }) => (
+  <span className={cn('w-1.5 h-1.5 rounded-full', tone === 'red' ? 'bg-red-500' : 'bg-green-500')} />
+);
+
+const SectionSkeletons: React.FC = () => (
+  <div className="space-y-8">
+    {[0, 1].map((s) => (
+      <div key={s} className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border bg-bg-light">
+          <div className="h-4 w-48 bg-bg-lighter rounded animate-pulse" />
+        </div>
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array(3).fill(null).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border p-4">
+              <div className="h-11 w-32 mx-auto bg-bg-lighter rounded-lg animate-pulse" />
+              <div className="mt-4 h-14 bg-bg-lighter rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
 );
 
 export default ReportsPage;

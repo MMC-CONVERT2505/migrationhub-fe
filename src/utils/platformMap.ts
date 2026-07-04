@@ -1,4 +1,4 @@
-import { PLATFORM_COLORS, PLATFORM_ABBR } from '@/constants/logos';
+import { PLATFORM_COLORS, PLATFORM_ABBR, platformLogo } from '@/constants/logos';
 
 /**
  * Extracts an array from any of the API response shapes:
@@ -46,8 +46,10 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
     dstColor:  PLATFORM_COLORS[dst] ?? '#64748b',
     srcAbbr:   PLATFORM_ABBR[src]   ?? src.slice(0, 2).toUpperCase(),
     dstAbbr:   PLATFORM_ABBR[dst]   ?? dst.slice(0, 2).toUpperCase(),
-    srcLogo:   entity.sourceLogo?.image ?? null,
-    dstLogo:   entity.destinationLogo?.image ?? null,
+    // DB banner logo wins when set; otherwise fall back to the public-folder logo
+    // matched from the pair's source/destination.
+    srcLogo:   entity.sourceLogo?.image ?? platformLogo(entity.source),
+    dstLogo:   entity.destinationLogo?.image ?? platformLogo(entity.destination),
     count:     '',
     status:    entity.isFree ? 'free' : 'paid',
     isFree:    entity.isFree ?? false,

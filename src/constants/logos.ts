@@ -1,13 +1,46 @@
 export const PLATFORM_LOGOS: Record<string, string> = {
-  qbo: '/logos/qbo.png',
-  xero: '/logos/xero.png',
-  myob: '/logos/myob.png',
-  freshbooks: '/logos/freshbooks.png',
-  tally: '/logos/tally.png',
-  zoho: '/logos/zoho.png',
-  reckon: '/logos/reckon.png',
-  prosaic: '/logos/prosaic.png',
+  qbo: '/logos/qbo.svg',
+  xero: '/logos/xero.svg',
+  myob: '/logos/myob.svg',
+  freshbooks: '/logos/freshbooks.svg',
+  tally: '/logos/tally.svg',
+  zoho: '/logos/zoho.svg',
+  reckon: '/logos/reckon.svg',
+  prosaic: '/logos/prosaic.svg',
 };
+
+// Maps a pair's raw source/destination (slug or display name) to the canonical
+// public-folder logo key. Keeps the lookup tolerant of naming variants so any
+// pair tool resolves to its /logos/<file> when one exists.
+const LOGO_ALIASES: Record<string, string> = {
+  qbo: 'qbo',
+  qb: 'qbo',
+  quickbooks: 'qbo',
+  quickbooksonline: 'qbo',
+  xero: 'xero',
+  myob: 'myob',
+  freshbooks: 'freshbooks',
+  freshbook: 'freshbooks',
+  fb: 'freshbooks',
+  tally: 'tally',
+  tallyprime: 'tally',
+  zoho: 'zoho',
+  zohobooks: 'zoho',
+  reckon: 'reckon',
+  prosaic: 'prosaic',
+};
+
+/**
+ * Resolve a platform key/name (e.g. "qbo", "QuickBooks Online") to its bundled
+ * public-folder logo path, or null when there's no matching file. Matching is
+ * case/punctuation-insensitive so it works off a pair's source/destination.
+ */
+export function platformLogo(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const slug = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const canonical = LOGO_ALIASES[slug] ?? slug;
+  return PLATFORM_LOGOS[canonical] ?? null;
+}
 
 export const PLATFORM_KEY: Record<string, string> = {
   QBO: 'qbo',

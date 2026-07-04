@@ -1,5 +1,19 @@
 import React from 'react';
 import type { ReportDetail, ReportOrderRow } from '@/api/reports';
+import { normalizePlatform } from '@/utils/platformMap';
+import { PLATFORM_ABBR, PLATFORM_COLORS, platformLogo } from '@/constants/logos';
+import { PlatformMark } from '@/components/common/PlatformMark';
+
+/** Logo (public folder → DB) + abbr/colour fallback for a platform key, e.g. "qbo". */
+function brand(platformKey: string, dbLogo?: string | null) {
+  const name = normalizePlatform(platformKey);
+  return {
+    logo: platformLogo(platformKey) ?? (dbLogo || null),
+    name,
+    abbr: PLATFORM_ABBR[name] ?? name.slice(0, 2).toUpperCase(),
+    color: PLATFORM_COLORS[name] ?? '#64748b',
+  };
+}
 
 // Date-only fields are stored at UTC midnight — format in UTC to avoid a
 // local-timezone off-by-one day shift.
@@ -36,10 +50,25 @@ function orderRowValues(o: ReportOrderRow): string[] {
  * Dark monospace panel that reproduces the source Slack report layout:
  * header stats, Country Summary, and Order Details grouped by country.
  */
-export const ReportView: React.FC<{ report: ReportDetail }> = ({ report }) => (
+export const ReportView: React.FC<{
+  report: ReportDetail;
+  sourceLogo?: string | null;
+  destinationLogo?: string | null;
+}> = ({ report, sourceLogo, destinationLogo }) => {
+  const src = brand(report.source, sourceLogo);
+  const dst = brand(report.destination, destinationLogo);
+  return (
   <div className="bg-slate-900 text-slate-200 rounded-xl border border-slate-800 overflow-hidden">
     {/* Header */}
-    <div className="px-6 py-5 border-b border-slate-800">
+    <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-4">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <PlatformMark logo={src.logo} abbr={src.abbr} color={src.color} name={src.name} className="w-10 h-10 rounded-lg" textClassName="text-sm" />
+        <svg className="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        <PlatformMark logo={dst.logo} abbr={dst.abbr} color={dst.color} name={dst.name} className="w-10 h-10 rounded-lg" textClassName="text-sm" />
+      </div>
+      <div className="min-w-0">
       <h2 className="text-lg font-bold text-white font-mono tracking-tight">{report.title}</h2>
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-sm font-mono text-slate-300">
         <span><span className="text-slate-400">Run Date:</span> {fmtRunDate(report.runDate)}</span>
@@ -48,6 +77,7 @@ export const ReportView: React.FC<{ report: ReportDetail }> = ({ report }) => (
           <span><span className="text-slate-400">Overall Avg:</span> {report.averageDays} days</span>
         )}
       </p>
+      </div>
     </div>
 
     {/* Country summary */}
@@ -80,7 +110,8 @@ export const ReportView: React.FC<{ report: ReportDetail }> = ({ report }) => (
       )}
     </Section>
   </div>
-);
+  );
+};
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="px-6 py-5 border-b border-slate-800 last:border-b-0">

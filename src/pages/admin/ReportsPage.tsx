@@ -15,11 +15,11 @@ import { cn } from '@/utils/format';
 // tool; every other pair (including any newly-added one) is semi-automated, so a
 // new pair always surfaces somewhere rather than silently disappearing.
 const AUTOMATED_PAIRS = new Set<string>([
-  'xero→qbo',
-  'qbo→xero',
   'xero→myob',
   'qbo→myob',
-  'myob→qbo',
+  'xero→qbo',
+  'xero→prosaic',
+  'xero→reckon',
 ]);
 
 // Red/green thresholds per section: avg over the threshold is red, at-or-under is
@@ -270,20 +270,31 @@ interface ToolCardProps {
   onToggle: (p: ReportPairSummary) => void;
 }
 
-const ToolCard: React.FC<ToolCardProps> = ({ pair, thresholdDays, isOpen, onToggle }) => {
-  const src = brand(pair.source, pair.sourceLogo);
-  const dst = brand(pair.destination, pair.destinationLogo);
+const ToolCard: React.FC<ToolCardProps> = ({
+  pair,
+  thresholdDays,
+  isOpen,
+  onToggle,
+}) => {
+  const srcName = normalizePlatform(pair.source);
+  const dstName = normalizePlatform(pair.destination);
+
   const tone = timelineTone(pair.averageDays, thresholdDays);
   const interactive = pair.hasReport;
 
   const toneText =
-    tone === 'red' ? 'text-red-600' : tone === 'green' ? 'text-green-600' : 'text-text-secondary';
+    tone === 'red'
+      ? 'text-red-600'
+      : tone === 'green'
+        ? 'text-green-600'
+        : 'text-text-secondary';
+
   const toneBox =
     tone === 'red'
       ? 'bg-red-50 border-red-100'
       : tone === 'green'
-      ? 'bg-green-50 border-green-100'
-      : 'bg-bg-light border-border';
+        ? 'bg-green-50 border-green-100'
+        : 'bg-bg-light border-border';
 
   return (
     <button
@@ -292,36 +303,84 @@ const ToolCard: React.FC<ToolCardProps> = ({ pair, thresholdDays, isOpen, onTogg
       disabled={!interactive}
       aria-expanded={interactive ? isOpen : undefined}
       className={cn(
-        'w-full text-left rounded-xl border p-4 transition-all',
-        interactive ? 'cursor-pointer hover:shadow-card hover:border-blue-200' : 'cursor-default opacity-70',
+        'w-full rounded-xl border p-4 text-left transition-all',
+        interactive
+          ? 'cursor-pointer hover:border-blue-200 hover:shadow-card'
+          : 'cursor-default opacity-70',
         isOpen
           ? 'border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/30'
           : 'border-border bg-white',
       )}
     >
-      {/* Pair logos (identity — no text names) */}
+      {/* Pair logos */}
       <div className="flex items-center justify-center gap-3">
-        <PlatformMark logo={src.logo} abbr={src.abbr} color={src.color} name={src.name} className="w-11 h-11 rounded-lg" textClassName="text-sm" />
-        <svg className="w-4 h-4 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-        <PlatformMark logo={dst.logo} abbr={dst.abbr} color={dst.color} name={dst.name} className="w-11 h-11 rounded-lg" textClassName="text-sm" />
-      </div>
-      <span className="sr-only">{src.name} to {dst.name}</span>
+        <PlatformMark
+          logo={pair.sourceLogo}
+          name={srcName}
+          abbr={PLATFORM_ABBR[srcName] ?? srcName.slice(0, 2).toUpperCase()}
+          color={PLATFORM_COLORS[srcName] ?? '#64748b'}
+          className="w-11 h-11 rounded-lg"
+          textClassName="text-sm"
+        />
 
-      {/* Below each tool: only average timeline + files completed */}
+        <svg
+          className="w-4 h-4 flex-shrink-0 text-text-tertiary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13 7l5 5m0 0l-5 5m5-5H6"
+          />
+        </svg>
+
+        <PlatformMark
+          logo={pair.destinationLogo}
+          name={dstName}
+          abbr={PLATFORM_ABBR[dstName] ?? dstName.slice(0, 2).toUpperCase()}
+          color={PLATFORM_COLORS[dstName] ?? '#64748b'}
+          className="w-11 h-11 rounded-lg"
+          textClassName="text-sm"
+        />
+      </div>
+
+      <span className="sr-only">
+        {srcName} to {dstName}
+      </span>
+
+      {/* Metrics */}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className={cn('rounded-lg border px-3 py-2', toneBox)}>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Average timeline</p>
-          <p className={cn('mt-0.5 text-sm font-bold flex items-center gap-1.5', toneText)}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+            Average timeline
+          </p>
+
+          <p
+            className={cn(
+              'mt-0.5 flex items-center gap-1.5 text-sm font-bold',
+              toneText,
+            )}
+          >
             {tone !== 'neutral' && (
-              <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', tone === 'red' ? 'bg-red-500' : 'bg-green-500')} />
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  tone === 'red' ? 'bg-red-500' : 'bg-green-500',
+                )}
+              />
             )}
             {fmtDays(pair.averageDays)}
           </p>
         </div>
+
         <div className="rounded-lg border border-border bg-bg-light px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Files completed</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+            Files completed
+          </p>
+
           <p className="mt-0.5 text-sm font-bold text-text-primary">
             {pair.hasReport ? (pair.totalOrders ?? 0) : '—'}
           </p>
@@ -333,7 +392,9 @@ const ToolCard: React.FC<ToolCardProps> = ({ pair, thresholdDays, isOpen, onTogg
           {isOpen ? 'Hide report ▲' : 'View report ▼'}
         </p>
       ) : (
-        <p className="mt-3 text-center text-[11px] font-medium text-text-tertiary">No report data yet</p>
+        <p className="mt-3 text-center text-[11px] font-medium text-text-tertiary">
+          No report data yet
+        </p>
       )}
     </button>
   );

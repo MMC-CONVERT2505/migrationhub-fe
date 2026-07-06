@@ -160,6 +160,27 @@ interface SectionProps {
   onToggle: (p: ReportPairSummary) => void;
 }
 
+// Live column count of the responsive card grid, matching the Tailwind classes
+// below (grid-cols-1 / sm:grid-cols-2 / lg:grid-cols-3). Used to drop the open
+// report directly beneath the clicked card's *row* rather than at section end.
+function gridColumns(): number {
+  if (typeof window === 'undefined') return 3;
+  const w = window.innerWidth;
+  if (w >= 1024) return 3; // lg
+  if (w >= 640) return 2; // sm
+  return 1;
+}
+
+function useGridColumns(): number {
+  const [cols, setCols] = useState(gridColumns);
+  useEffect(() => {
+    const onResize = () => setCols(gridColumns());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return cols;
+}
+
 const Section: React.FC<SectionProps> = ({
   title,
   subtitle,
@@ -171,8 +192,29 @@ const Section: React.FC<SectionProps> = ({
   detailErrors,
   onToggle,
 }) => {
+  const cols = useGridColumns();
+
   // The open pair, only if it belongs to this section (so its detail renders here).
-  const openPair = pairs.find((p) => p.id === openId) ?? null;
+  const openIndex = pairs.findIndex((p) => p.id === openId);
+  const openPair = openIndex >= 0 ? pairs[openIndex] : null;
+  const openPairId = openPair?.id ?? null;
+
+  // Scroll the report into view when it opens (it mounts with a spinner first, so
+  // the element exists immediately). `nearest` avoids a jarring jump when it's
+  // already visible directly under the clicked card.
+  useEffect(() => {
+    if (!openPairId) return;
+    document
+      .getElementById(`report-panel-${openPairId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [openPairId]);
+
+  // Index of the last card sharing the open card's visual row, so the report is
+  // inserted right after that row (col-span-full) — directly under the clicked card.
+  const rowEndIndex =
+    openIndex < 0
+      ? -1
+      : Math.min(Math.floor(openIndex / cols) * cols + (cols - 1), pairs.length - 1);
 
   return (
     <section className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
@@ -194,56 +236,74 @@ const Section: React.FC<SectionProps> = ({
         <div className="text-center py-12 text-sm text-text-tertiary">No tools in this category.</div>
       ) : (
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {pairs.map((pair) => (
-            <ToolCard
-              key={pair.id}
-              pair={pair}
-              thresholdDays={thresholdDays}
-              isOpen={openId === pair.id}
-              onToggle={onToggle}
-            />
+          {pairs.map((pair, i) => (
+            <React.Fragment key={pair.id}>
+              <ToolCard
+                pair={pair}
+                thresholdDays={thresholdDays}
+                isOpen={openId === pair.id}
+                onToggle={onToggle}
+              />
+
+              {/* Report detail, dropped full-width beneath the open card's row */}
+              <AnimatePresence initial={false}>
+                {i === rowEndIndex && openPair && (
+                  <motion.div
+                    key={openPair.id}
+                    id={`report-panel-${openPair.id}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="col-span-full overflow-hidden scroll-mt-4"
+                  >
+                    <ReportDetailPanel
+                      pair={openPair}
+                      loading={detailLoadingId === openPair.id}
+                      error={detailErrors[openPair.id]}
+                      report={reports[openPair.id]}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </React.Fragment>
           ))}
         </div>
       )}
-
-      {/* Full-width report detail for the open pair in this section */}
-      <AnimatePresence initial={false}>
-        {openPair && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-border"
-          >
-            <div className="p-4 bg-bg-light/40">
-              {detailLoadingId === openPair.id ? (
-                <div className="flex items-center justify-center py-10"><Spinner size="md" /></div>
-              ) : detailErrors[openPair.id] ? (
-                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-700">{detailErrors[openPair.id]}</p>
-                </div>
-              ) : reports[openPair.id] ? (
-                <ReportView
-                  report={reports[openPair.id]}
-                  sourceLogo={openPair.sourceLogo}
-                  destinationLogo={openPair.destinationLogo}
-                />
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="text-sm font-semibold text-text-primary">No report yet</p>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    No report has been ingested for this pair. It will appear here after the next daily run.
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };
+
+// Loading / error / report / empty states for the open pair's detail panel.
+const ReportDetailPanel: React.FC<{
+  pair: ReportPairSummary;
+  loading: boolean;
+  error?: string;
+  report?: ReportDetail;
+}> = ({ pair, loading, error, report }) => (
+  <div className="rounded-xl border border-border bg-bg-light/50 p-4">
+    {loading ? (
+      <div className="flex items-center justify-center py-10"><Spinner size="md" /></div>
+    ) : error ? (
+      <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-sm text-red-700">{error}</p>
+      </div>
+    ) : report ? (
+      <ReportView
+        report={report}
+        sourceLogo={pair.sourceLogo}
+        destinationLogo={pair.destinationLogo}
+      />
+    ) : (
+      <div className="py-8 text-center">
+        <p className="text-sm font-semibold text-text-primary">No report yet</p>
+        <p className="mt-1 text-xs text-text-secondary">
+          No report has been ingested for this pair. It will appear here after the next daily run.
+        </p>
+      </div>
+    )}
+  </div>
+);
 
 // ── Tool card ────────────────────────────────────────────────────────────────
 

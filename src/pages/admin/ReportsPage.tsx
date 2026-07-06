@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { reportsService, type ReportDetail, type ReportPairSummary } from '@/api/reports';
 import { ApiError } from '@/api/client';
 import { normalizePlatform } from '@/utils/platformMap';
-import { PLATFORM_ABBR, PLATFORM_COLORS, platformLogo } from '@/constants/logos';
+import { PLATFORM_ABBR, PLATFORM_COLORS } from '@/constants/logos';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { Spinner } from '@/components/common/Spinner';
 import { ReportView } from '@/components/admin/ReportView';
@@ -40,22 +40,6 @@ const timelineTone = (avg: number | null, thresholdDays: number): Tone =>
 
 const fmtDays = (n: number | null) =>
   n == null ? '—' : `${n} ${n === 1 ? 'day' : 'days'}`;
-
-/**
- * Logo + fallback props for a platform key, e.g. "qbo". Prefers the bundled
- * public/logos/<key>.svg icon, then the pair's attached DB banner logo, then (via
- * PlatformMark's onError) the coloured abbr tile — so the reports tool marks are
- * mapped from the public logos folder for every known platform.
- */
-function brand(platformKey: string, dbLogo: string | null) {
-  const name = normalizePlatform(platformKey);
-  return {
-    logo: platformLogo(platformKey) ?? (dbLogo || null),
-    name,
-    abbr: PLATFORM_ABBR[name] ?? name.slice(0, 2).toUpperCase(),
-    color: PLATFORM_COLORS[name] ?? '#64748b',
-  };
-}
 
 const ReportsPage: React.FC = () => {
   const [rows, setRows] = useState<ReportPairSummary[]>([]);

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { reportsService, type ReportDetail, type ReportPairSummary } from '@/api/reports';
+import { migrationPairsService } from '@/api/migrationPairs';
 import { ApiError } from '@/api/client';
-import { normalizePlatform } from '@/utils/platformMap';
+import type { MigrationPairEntity } from '@/types/api';
+import { extractList, normalizePlatform } from '@/utils/platformMap';
 import { PLATFORM_ABBR, PLATFORM_COLORS, platformLogo } from '@/constants/logos';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { Spinner } from '@/components/common/Spinner';
@@ -46,6 +48,7 @@ const fmtDays = (n: number | null) =>
 
 const ReportsPage: React.FC = () => {
   const [rows, setRows] = useState<ReportPairSummary[]>([]);
+  const [migrationPairs, setMigrationPairs] = useState<MigrationPairEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -59,17 +62,58 @@ const ReportsPage: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    try {
-      setRows(await reportsService.listPairs());
-    } catch (err) {
+    // Migration pairs carry the source/destination brand images uploaded in admin;
+    // fetch them alongside the report pairs so the cards use those exact logos. Its
+    // failure must not block the report list, so settle both independently.
+    const [pairsRes, mpRes] = await Promise.allSettled([
+      reportsService.listPairs(),
+      migrationPairsService.list({ limit: 200 }),
+    ]);
+
+    setMigrationPairs(
+      mpRes.status === 'fulfilled' ? extractList<MigrationPairEntity>(mpRes.value) : [],
+    );
+
+    if (pairsRes.status === 'fulfilled') {
+      setRows(pairsRes.value);
+    } else {
       setRows([]);
-      setError(err instanceof ApiError ? err.message : 'Failed to load reports.');
-    } finally {
-      setLoading(false);
+      setError(
+        pairsRes.reason instanceof ApiError
+          ? pairsRes.reason.message
+          : 'Failed to load reports.',
+      );
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Resolve a report pair's source/destination logos to the migration pair's
+  // uploaded brand images, matched by id then by source→destination. Falls back
+  // to the report pair's own logo, then the bundled public-folder logo.
+  const pairImages = useMemo(() => {
+    const byId = new Map<string, MigrationPairEntity>();
+    const byRoute = new Map<string, MigrationPairEntity>();
+    for (const mp of migrationPairs) {
+      byId.set(String(mp.id), mp);
+      byRoute.set(`${mp.source.toLowerCase()}→${mp.destination.toLowerCase()}`, mp);
+    }
+    return { byId, byRoute };
+  }, [migrationPairs]);
+
+  const logosFor = useCallback(
+    (pair: ReportPairSummary) => {
+      const mp =
+        pairImages.byId.get(String(pair.id)) ??
+        pairImages.byRoute.get(`${pair.source.toLowerCase()}→${pair.destination.toLowerCase()}`);
+      return {
+        src: mp?.sourceLogo?.image ?? pair.sourceLogo ?? platformLogo(pair.source),
+        dst: mp?.destinationLogo?.image ?? pair.destinationLogo ?? platformLogo(pair.destination),
+      };
+    },
+    [pairImages],
+  );
 
   const fetchReport = useCallback(
     async (pair: ReportPairSummary) => {
@@ -103,7 +147,7 @@ const ReportsPage: React.FC = () => {
   const semiAutomated = useMemo(() => rows.filter((r) => !isAutomated(r)), [rows]);
   const withReport = useMemo(() => rows.filter((r) => r.hasReport).length, [rows]);
 
-  const detailProps = { openId, reports, detailLoadingId, detailErrors, onToggle: toggle };
+  const detailProps = { openId, reports, detailLoadingId, detailErrors, onToggle: toggle, logosFor };
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -151,6 +195,9 @@ const ReportsPage: React.FC = () => {
 
 // ── Section ──────────────────────────────────────────────────────────────────
 
+/** Resolves a report pair to its source/destination brand logo image URLs. */
+type LogosFor = (p: ReportPairSummary) => { src: string | null; dst: string | null };
+
 interface SectionProps {
   title: string;
   subtitle: string;
@@ -161,6 +208,7 @@ interface SectionProps {
   detailLoadingId: string | null;
   detailErrors: Record<string, string>;
   onToggle: (p: ReportPairSummary) => void;
+  logosFor: LogosFor;
 }
 
 // Live column count of the responsive card grid, matching the Tailwind classes
@@ -194,6 +242,7 @@ const Section: React.FC<SectionProps> = ({
   detailLoadingId,
   detailErrors,
   onToggle,
+  logosFor,
 }) => {
   const cols = useGridColumns();
 
@@ -246,6 +295,7 @@ const Section: React.FC<SectionProps> = ({
                 thresholdDays={thresholdDays}
                 isOpen={openId === pair.id}
                 onToggle={onToggle}
+                logos={logosFor(pair)}
               />
 
               {/* Report detail, dropped full-width beneath the open card's row */}
@@ -315,6 +365,7 @@ interface ToolCardProps {
   thresholdDays: number;
   isOpen: boolean;
   onToggle: (p: ReportPairSummary) => void;
+  logos: { src: string | null; dst: string | null };
 }
 
 const ToolCard: React.FC<ToolCardProps> = ({
@@ -322,6 +373,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
   thresholdDays,
   isOpen,
   onToggle,
+  logos,
 }) => {
   const srcName = normalizePlatform(pair.source);
   const dstName = normalizePlatform(pair.destination);
@@ -359,12 +411,12 @@ const ToolCard: React.FC<ToolCardProps> = ({
           : 'border-border bg-white',
       )}
     >
-      {/* Pair logos — bare (no surrounding box), sized large for clarity. Prefer the
-          bundled public-folder brand logo, falling back to the pair's DB logo. */}
+      {/* Pair logos — bare (no surrounding box), sized large for clarity. Uses the
+          migration pair's uploaded brand image (resolved by the parent). */}
       <div className="flex items-center justify-center gap-4">
         <PlatformMark
           bare
-          logo={platformLogo(pair.source) ?? pair.sourceLogo}
+          logo={logos.src}
           name={srcName}
           abbr={PLATFORM_ABBR[srcName] ?? srcName.slice(0, 2).toUpperCase()}
           color={PLATFORM_COLORS[srcName] ?? '#64748b'}
@@ -388,7 +440,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
 
         <PlatformMark
           bare
-          logo={platformLogo(pair.destination) ?? pair.destinationLogo}
+          logo={logos.dst}
           name={dstName}
           abbr={PLATFORM_ABBR[dstName] ?? dstName.slice(0, 2).toUpperCase()}
           color={PLATFORM_COLORS[dstName] ?? '#64748b'}

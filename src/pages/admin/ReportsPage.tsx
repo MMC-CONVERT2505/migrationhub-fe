@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { reportsService, type ReportDetail, type ReportPairSummary } from '@/api/reports';
 import { ApiError } from '@/api/client';
 import { normalizePlatform } from '@/utils/platformMap';
-import { PLATFORM_ABBR, PLATFORM_COLORS } from '@/constants/logos';
+import { PLATFORM_ABBR, PLATFORM_COLORS, platformLogo } from '@/constants/logos';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { Spinner } from '@/components/common/Spinner';
 import { ReportView } from '@/components/admin/ReportView';
@@ -20,6 +20,9 @@ const AUTOMATED_PAIRS = new Set<string>([
   'xero→qbo',
   'xero→prosaic',
   'xero→reckon',
+  'myob→qbo',
+  'qbo→freshbooks',
+  'qbo→xero',
 ]);
 
 // Red/green thresholds per section: avg over the threshold is red, at-or-under is
@@ -356,19 +359,21 @@ const ToolCard: React.FC<ToolCardProps> = ({
           : 'border-border bg-white',
       )}
     >
-      {/* Pair logos */}
-      <div className="flex items-center justify-center gap-3">
+      {/* Pair logos — bare (no surrounding box), sized large for clarity. Prefer the
+          bundled public-folder brand logo, falling back to the pair's DB logo. */}
+      <div className="flex items-center justify-center gap-4">
         <PlatformMark
-          logo={pair.sourceLogo}
+          bare
+          logo={platformLogo(pair.source) ?? pair.sourceLogo}
           name={srcName}
           abbr={PLATFORM_ABBR[srcName] ?? srcName.slice(0, 2).toUpperCase()}
           color={PLATFORM_COLORS[srcName] ?? '#64748b'}
-          className="w-11 h-11 rounded-lg"
-          textClassName="text-sm"
+          className="w-16 h-16 rounded-xl"
+          textClassName="text-lg"
         />
 
         <svg
-          className="w-4 h-4 flex-shrink-0 text-text-tertiary"
+          className="w-5 h-5 flex-shrink-0 text-text-tertiary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -382,12 +387,13 @@ const ToolCard: React.FC<ToolCardProps> = ({
         </svg>
 
         <PlatformMark
-          logo={pair.destinationLogo}
+          bare
+          logo={platformLogo(pair.destination) ?? pair.destinationLogo}
           name={dstName}
           abbr={PLATFORM_ABBR[dstName] ?? dstName.slice(0, 2).toUpperCase()}
           color={PLATFORM_COLORS[dstName] ?? '#64748b'}
-          className="w-11 h-11 rounded-lg"
-          textClassName="text-sm"
+          className="w-16 h-16 rounded-xl"
+          textClassName="text-lg"
         />
       </div>
 

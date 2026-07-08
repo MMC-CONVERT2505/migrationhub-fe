@@ -14,6 +14,12 @@ interface PlatformMarkProps {
   className?: string;
   /** Font-size class for the abbr fallback text. */
   textClassName?: string;
+  /**
+   * When true, the logo renders as a bare, size-to-fit image with no white
+   * container box/border/padding — so the brand mark reads bigger and cleaner.
+   * The coloured abbr tile is still shown when the logo is missing or errors.
+   */
+  bare?: boolean;
 }
 
 /**
@@ -27,11 +33,24 @@ export const PlatformMark: React.FC<PlatformMarkProps> = ({
   name,
   className = 'w-12 h-12 rounded-xl',
   textClassName = 'text-base',
+  bare = false,
 }) => {
   const [failed, setFailed] = useState(false);
   const showLogo = !!logo && !failed;
 
   if (showLogo) {
+    if (bare) {
+      return (
+        <img
+          src={logo as string}
+          alt={name}
+          title={name}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className={cn('object-contain flex-shrink-0', className)}
+        />
+      );
+    }
     return (
       <div
         className={cn(

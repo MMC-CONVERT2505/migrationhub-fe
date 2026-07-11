@@ -33,7 +33,39 @@ const fmtRunDate = (iso: string) =>
 
 const days = (n: number | null) => (n != null ? `${n}d` : '');
 
-const ORDER_COLUMNS = ['Order Number', 'File Name', 'PTA', 'Start', 'Completed', 'Days'];
+// Inclusive whole-day span between two UTC-midnight date-only fields (e.g. 22 Jun
+// → 1 Jul = 10 days), matching how the source report counts turnaround.
+function inclusiveDays(fromIso: string | null, toIso: string | null): number | null {
+  if (!fromIso || !toIso) return null;
+  const from = new Date(fromIso).getTime();
+  const to = new Date(toIso).getTime();
+  if (Number.isNaN(from) || Number.isNaN(to)) return null;
+  return Math.round((to - from) / 86_400_000) + 1;
+}
+
+// "Actual" = permission-to-access → completion (real turnaround), derived here
+// since the API stores only the tool metric. "Tool" = the migration tool's own
+// reported processing days (Allocate → completion).
+const actualDays = (o: ReportOrderRow): number | null =>
+  inclusiveDays(o.ptaDate, o.completedAt);
+const toolDays = (o: ReportOrderRow): number | null => o.processingDays;
+
+const finite = (vals: (number | null)[]): number[] =>
+  vals.filter((v): v is number => v != null);
+const mean = (vals: (number | null)[]): number | null => {
+  const ns = finite(vals);
+  return ns.length ? Math.round((ns.reduce((a, b) => a + b, 0) / ns.length) * 10) / 10 : null;
+};
+const minOf = (vals: (number | null)[]): number | null => {
+  const ns = finite(vals);
+  return ns.length ? Math.min(...ns) : null;
+};
+const maxOf = (vals: (number | null)[]): number | null => {
+  const ns = finite(vals);
+  return ns.length ? Math.max(...ns) : null;
+};
+
+const ORDER_COLUMNS = ['Order Number', 'File Name', 'PTA', 'Allocate', 'Completed', 'Actual', 'Tool'];
 
 function orderRowValues(o: ReportOrderRow): string[] {
   return [
@@ -42,7 +74,8 @@ function orderRowValues(o: ReportOrderRow): string[] {
     fmtDay(o.ptaDate),
     fmtDay(o.startedAt),
     fmtDay(o.completedAt),
-    days(o.processingDays),
+    days(actualDays(o)),
+    days(toolDays(o)),
   ];
 }
 
@@ -57,6 +90,18 @@ export const ReportView: React.FC<{
 }> = ({ report, sourceLogo, destinationLogo }) => {
   const src = brand(report.source, sourceLogo);
   const dst = brand(report.destination, destinationLogo);
+
+  // Per-country orders, to derive the Actual (PTA→completion) stats the API
+  // doesn't store. Overall Actual is the mean across every order.
+  const ordersByCode = new Map<string, ReportOrderRow[]>(
+    report.groups.map((g) => [g.code, g.orders] as [string, ReportOrderRow[]]),
+  );
+  const ordersByName = new Map<string, ReportOrderRow[]>(
+    report.groups.map((g) => [g.name, g.orders] as [string, ReportOrderRow[]]),
+  );
+  const overallActual = mean(
+    report.groups.flatMap((g) => g.orders).map(actualDays),
+  );
   return (
   <div className="bg-slate-900 text-slate-200 rounded-xl border border-slate-800 overflow-hidden">
     {/* Header */}
@@ -73,8 +118,11 @@ export const ReportView: React.FC<{
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-sm font-mono text-slate-300">
         <span><span className="text-slate-400">Run Date:</span> {fmtRunDate(report.runDate)}</span>
         <span><span className="text-slate-400">Total Orders:</span> {report.totalOrders}</span>
+        {overallActual != null && (
+          <span><span className="text-slate-400">Overall Avg (Actual):</span> {overallActual} days</span>
+        )}
         {report.averageDays != null && (
-          <span><span className="text-slate-400">Overall Avg:</span> {report.averageDays} days</span>
+          <span><span className="text-slate-400">Overall Avg (Tool):</span> {report.averageDays} days</span>
         )}
       </p>
       </div>
@@ -83,11 +131,23 @@ export const ReportView: React.FC<{
     {/* Country summary */}
     <Section title="Country Summary">
       <MonoTable
-        headers={['Country', 'Orders', 'Avg', 'Min', 'Max']}
-        rows={report.countries.map((c) => ({
-          flagged: c.flagged,
-          values: [c.name, String(c.orders), days(c.averageDays), days(c.minDays), days(c.maxDays)],
-        }))}
+        headers={['Country', 'Orders', 'Avg(A)', 'Avg(T)', 'Min', 'Max']}
+        rows={report.countries.map((c) => {
+          const actuals = (
+            ordersByCode.get(c.code) ?? ordersByName.get(c.name) ?? []
+          ).map(actualDays);
+          return {
+            flagged: c.flagged,
+            values: [
+              c.name,
+              String(c.orders),
+              days(mean(actuals)), // Actual avg — derived from PTA→completion
+              days(c.averageDays), // Tool avg — the stored tool metric
+              days(minOf(actuals)), // Min/Max reflect the Actual distribution
+              days(maxOf(actuals)),
+            ],
+          };
+        })}
       />
     </Section>
 

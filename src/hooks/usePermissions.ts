@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useAuthStore } from '@/store/authStore';
+import { useSession } from '@/store/authStore';
 
 interface JwtPayload {
   sub: number;
@@ -19,7 +19,7 @@ function decodeJwt(token: string): JwtPayload | null {
 }
 
 export function usePermissions() {
-  const token = useAuthStore((s) => s.accessToken);
+  const token = useSession('admin').accessToken;
 
   const payload = useMemo(() => (token ? decodeJwt(token) : null), [token]);
 

@@ -47,11 +47,15 @@ const AdminLoginPage: React.FC = () => {
       const response = await authService.login({ identifier: email.trim(), password });
       const { accessToken } = response;
 
+      // Store first so getMe() is actually authenticated; rolled back below if
+      // the account turns out not to be an admin.
+      setToken('admin', accessToken);
+
       let userRoles: string[] | undefined;
       try {
         const me = await usersService.getMe();
         userRoles = me.data.roles;
-        setUser(me.data);
+        setUser('admin', me.data);
       } catch {
         // non-fatal — check JWT directly
       }
@@ -59,13 +63,12 @@ const AdminLoginPage: React.FC = () => {
       if (!isAdminToken(accessToken, userRoles)) {
         // Logged in successfully but not an admin — reject immediately
         try { await authService.logout(); } catch { /* ignore */ }
-        logout();
+        logout('admin');
         setError('This account does not have admin access.');
         setSubmitting(false);
         return;
       }
 
-      setToken(accessToken);
       navigate('/admin', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && (err.statusCode === 401 || err.statusCode === 404)) {

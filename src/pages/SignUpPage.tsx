@@ -162,10 +162,10 @@ const SignUpPage: React.FC = () => {
       });
 
       const { accessToken } = response;
-      setToken(accessToken);
+      setToken('user', accessToken);
       try {
         const me = await usersService.getMe();
-        setUser(me.data);
+        setUser('user', me.data);
       } catch {
         // profile fetch is non-fatal — token is already stored
       }

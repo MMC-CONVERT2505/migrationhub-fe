@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, useSession } from '@/store/authStore';
+import { useAuthScope } from '@/hooks/useAuthScope';
 import { authService } from '@/api/auth';
 
 interface NavbarProps {
@@ -23,7 +24,9 @@ const UserMenu: React.FC = () => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const scope = useAuthScope();
+  const { user } = useSession(scope);
+  const logout = useAuthStore((s) => s.logout);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -35,8 +38,8 @@ const UserMenu: React.FC = () => {
 
   const handleLogout = async () => {
     try { await authService.logout(); } catch { /* ignore */ }
-    logout();
-    navigate('/sign-in');
+    logout(scope);
+    navigate(scope === 'admin' ? '/admin/login' : '/sign-in');
   };
 
   const displayName = user ? `${user.firstname} ${user.lastname}`.trim() : 'My Account';
@@ -121,7 +124,9 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { accessToken, user, logout } = useAuthStore();
+  const scope = useAuthScope();
+  const { accessToken, user } = useSession(scope);
+  const logout = useAuthStore((s) => s.logout);
   const isLoggedIn = !!accessToken;
 
   useEffect(() => {
@@ -151,8 +156,8 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
   const handleMobileLogout = async () => {
     setMobileOpen(false);
     try { await authService.logout(); } catch { /* ignore */ }
-    logout();
-    navigate('/sign-in');
+    logout(scope);
+    navigate(scope === 'admin' ? '/admin/login' : '/sign-in');
   };
 
   if (variant === 'payment') {

@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import { useAuthStore } from '@/store/authStore';
+import { currentScope, getSession, useAuthStore } from '@/store/authStore';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:9001';
 
@@ -24,8 +24,8 @@ export class ApiError extends Error {
 }
 
 function clearAuthAndRedirect(): void {
-  useAuthStore.getState().logout();
   const path = window.location.pathname;
+  useAuthStore.getState().logout(currentScope());
   if (path.startsWith('/admin') && path !== '/admin/login') {
     window.location.replace('/admin/login');
   } else if (!path.startsWith('/admin') && path !== '/sign-in') {
@@ -33,8 +33,10 @@ function clearAuthAndRedirect(): void {
   }
 }
 
+// Only the session belonging to the current area is sent — an admin session
+// must never authenticate a request made from the public site.
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = useAuthStore.getState().accessToken;
+  const token = getSession(currentScope()).accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -55,7 +57,7 @@ apiClient.interceptors.response.use(
 
       // Only redirect on 401 when the request was sent with a token (session expired).
       // Unauthenticated requests that simply lack a token should fail silently.
-      if (status === 401 && useAuthStore.getState().accessToken) {
+      if (status === 401 && getSession(currentScope()).accessToken) {
         clearAuthAndRedirect();
       }
 

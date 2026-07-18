@@ -28,10 +28,10 @@ const HomePage: React.FC = () => {
     const token = searchParams.get('token');
     if (!token) return;
 
-    setToken(token);
+    setToken('user', token);
     // Remove the token from the URL so it isn't bookmarked or leaked in the browser history
     navigate('/', { replace: true });
-    usersService.getMe().then((res) => setUser(res.data)).catch(() => {});
+    usersService.getMe().then((res) => setUser('user', res.data)).catch(() => {});
   }, []);
 
   // Clear a stale lock that has no pair to return to, so we never trap the user (or loop).

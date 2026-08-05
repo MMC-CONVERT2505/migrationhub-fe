@@ -72,6 +72,33 @@ export function pairSlug(source: string, destination: string): string {
 }
 
 /**
+ * Pair-scoped Migration Details (journey step 2) path, e.g. "/migration/qbo-to-myob/details".
+ * Every navigation into step 2 goes through here so the URL always names the pair and
+ * stays directly shareable — a bare "/migration/details" has no pair to render.
+ */
+export function pairDetailsPath(pair: Pair): string {
+  return `/migration/${pairSlug(pair.src, pair.dst)}/details`;
+}
+
+/**
+ * True when an already-selected UI pair is the one named by a URL `:pairSlug`.
+ * Mirrors the slug shapes findPairBySlug accepts, minus displayName (a UI pair
+ * does not carry it). Used to decide whether the URL still describes what is in
+ * the store, so the URL — not stale state — decides which pair the user sees.
+ */
+export function uiPairMatchesSlug(pair: Pair, slug: string): boolean {
+  const want = slugToken(slug);
+  if (!want) return false;
+  const src = slugToken(pair.src);
+  const dst = slugToken(pair.dst);
+  return (
+    want === `${src}-to-${dst}` ||
+    want === `${src}-${dst}` ||
+    (pair.id != null && want === slugToken(String(pair.id)))
+  );
+}
+
+/**
  * Resolves a URL `:pairSlug` against the available pair entities. Tolerant of the
  * shapes an external referrer might emit — "source-to-destination", "source-destination",
  * the slugified displayName, or the raw pair id — so the link keeps working regardless

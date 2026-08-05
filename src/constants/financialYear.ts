@@ -20,3 +20,19 @@ export const FY_END_DATE_MAP: Record<string, { month: number; day: number }> = {
 
 // Ordered label list (Jan → Dec) for FY-end selectors.
 export const FY_ENDS = Object.keys(FY_END_DATE_MAP);
+
+// FY end used when the pair has no country-specific rule to apply.
+export const DEFAULT_FY_END = '31st March';
+
+/**
+ * Statutory financial-year end per country, keyed by the country labels shown on
+ * the inquiry form. Pairs offered in a fixed set of regions (QBO → MYOB) use this
+ * to pre-select the FY-end field when the country changes; the full FY_ENDS list
+ * stays selectable for entities on a substituted accounting period.
+ * Every value must be a key of FY_END_DATE_MAP, or the order-summary range calc
+ * (calculateMigrationPeriod) cannot resolve the label it is paired with.
+ */
+export const COUNTRY_FY_END: Record<string, string> = {
+  'Australia (AUD)': '30th June',
+  'New Zealand (NZD)': '31st March',
+};

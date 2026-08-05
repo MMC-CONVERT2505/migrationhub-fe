@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@/components/common/Spinner';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
+import { useAppStore } from '@/store/appStore';
+import { pairDetailsPath } from '@/utils/platformMap';
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage            = React.lazy(() => import('@/pages/HomePage'));
@@ -12,7 +14,7 @@ const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
-const MigrationInfoPage     = React.lazy(() => import('@/pages/MigrationInfoPage'));
+const MigrationDetailsPage  = React.lazy(() => import('@/pages/MigrationDetailsPage'));
 const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDetailsEntryPage'));
 const FaqPage               = React.lazy(() => import('@/pages/FaqPage'));
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
@@ -38,6 +40,13 @@ const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUser
 const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
 const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
 
+/** Legacy step-2 URL: send it to the pair-scoped one so old links and bookmarks
+ *  keep working, and so an unresolvable visit still leaves via the homepage. */
+const LegacyMigrationDetailsRedirect: React.FC = () => {
+  const selectedPair = useAppStore((s) => s.selectedPair);
+  return <Navigate to={selectedPair ? pairDetailsPath(selectedPair) : '/'} replace />;
+};
+
 // ─── Full-screen loading fallback ─────────────────────────────────────────────
 const PageLoader: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center bg-bg">
@@ -58,7 +67,9 @@ const App: React.FC = () => (
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
-      <Route path="/migration/details" element={<MigrationInfoPage />} />
+      {/* Step 2 (Migration Details), scoped to the pair so the URL is directly shareable */}
+      <Route path="/migration/:pairSlug/details" element={<MigrationDetailsPage />} />
+      <Route path="/migration/details" element={<LegacyMigrationDetailsRedirect />} />
       {/* Deep-link entry from an external destination platform — resolves the pair, locks the flow */}
       <Route path="/migration/details/:pairSlug/:isFree" element={<MigrationDetailsEntryPage />} />
       <Route path="/migration/faq"     element={<FaqPage />} />

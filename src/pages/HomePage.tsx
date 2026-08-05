@@ -12,6 +12,7 @@ import { WhySection } from '@/components/home/WhySection';
 import { SafetyNet } from '@/components/home/SafetyNet';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
+import { pairDetailsPath } from '@/utils/platformMap';
 import { usersService } from '@/api/users';
 
 const HomePage: React.FC = () => {
@@ -39,7 +40,7 @@ const HomePage: React.FC = () => {
     if (entryLocked && !selectedPair) setEntryLocked(false);
   }, [entryLocked, selectedPair, setEntryLocked]);
 
-  if (entryLocked && selectedPair) return <Navigate to="/migration/details" replace />;
+  if (entryLocked && selectedPair) return <Navigate to={pairDetailsPath(selectedPair)} replace />;
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">

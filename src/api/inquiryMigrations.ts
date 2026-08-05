@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { TransactionPlan } from '@/constants/transactionPlans';
 
 export interface CreateInquiryRequest {
   name: string;
@@ -7,6 +8,7 @@ export interface CreateInquiryRequest {
   country: string;
   entityName: string;
   financialYearEnd: string;
+  transactionPlan?: TransactionPlan;
   migrationPairId?: string;
 }
 

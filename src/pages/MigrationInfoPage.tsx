@@ -9,6 +9,7 @@ import { useAppStore } from '@/store/appStore';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS } from '@/constants/financialYear';
+import { TRANSACTION_PLANS, type TransactionPlan } from '@/constants/transactionPlans';
 
 const COUNTRIES = [
   'Australia (AUD)', 'New Zealand (NZD)', 'United Kingdom (GBP)', 'United States (USD)',
@@ -26,6 +27,9 @@ const MigrationInfoPage: React.FC = () => {
   const selectedPair = useAppStore((s) => s.selectedPair);
   const entryLocked = useAppStore((s) => s.entryLocked);
 
+  const isXeroToQbo =
+    selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -33,6 +37,7 @@ const MigrationInfoPage: React.FC = () => {
     country: COUNTRIES[3],
     entityName: '',
     financialYearEnd: '31st March',
+    transactionPlan: TRANSACTION_PLANS[0].value as TransactionPlan,
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -76,6 +81,7 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
+        ...(isXeroToQbo && form.transactionPlan ? { transactionPlan: form.transactionPlan } : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
 
@@ -150,6 +156,24 @@ const MigrationInfoPage: React.FC = () => {
                 value={form.entityName} onChange={(e) => set('entityName', e.target.value)}
                 placeholder="Acme Pty Ltd" maxLength={150} error={fieldError('entityName')}
               />
+              {isXeroToQbo && (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="transactionPlan" className="text-xs font-medium text-text-secondary">Type of Data Migration <span className="text-red-500">*</span></label>
+                  <select
+                    id="transactionPlan"
+                    value={form.transactionPlan}
+                    onChange={(e) => set('transactionPlan', e.target.value as TransactionPlan)}
+                    className={inputCls}
+                  >
+                    {TRANSACTION_PLANS.map((plan) => (
+                      <option key={plan.value} value={plan.value}>{plan.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="fye" className="text-xs font-medium text-text-secondary">Financial Year End Date <span className="text-red-500">*</span></label>
                 <select id="fye" value={form.financialYearEnd} onChange={(e) => set('financialYearEnd', e.target.value)} className={inputCls}>

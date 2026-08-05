@@ -1,0 +1,1 @@
+import{d as i}from"./index-B_5-wyDG.js";const n={create:t=>i.post("/migrations",t).then(a=>a.data),list:()=>i.get("/migrations").then(t=>t.data.data??t.data),getById:t=>i.get(`/migrations/${t}`).then(a=>a.data)};export{n as m};

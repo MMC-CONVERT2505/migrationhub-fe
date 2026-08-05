@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
@@ -8,13 +8,21 @@ import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
-import { FY_ENDS } from '@/constants/financialYear';
+import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
 import { TRANSACTION_PLANS, type TransactionPlan } from '@/constants/transactionPlans';
 
+// Declared once and reused in the restricted list below, so the two lists can never
+// spell the same country differently — the label is what gets stored on the inquiry.
+const AUSTRALIA = 'Australia (AUD)';
+const NEW_ZEALAND = 'New Zealand (NZD)';
+
 const COUNTRIES = [
-  'Australia (AUD)', 'New Zealand (NZD)', 'United Kingdom (GBP)', 'United States (USD)',
+  AUSTRALIA, NEW_ZEALAND, 'United Kingdom (GBP)', 'United States (USD)',
   'Canada (CAD)', 'Singapore (SGD)', 'India (INR)', 'United Arab Emirates (AED)', 'South Africa (ZAR)',
 ];
+
+// QBO → MYOB is only offered in Australia and New Zealand.
+const QBO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
 
 
 interface FieldErr { field: string; message: string }
@@ -29,27 +37,44 @@ const MigrationInfoPage: React.FC = () => {
 
   const isXeroToQbo =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
+  const isQboToMyob =
+    selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
 
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    country: COUNTRIES[3],
-    entityName: '',
-    financialYearEnd: '31st March',
-    transactionPlan: TRANSACTION_PLANS[0].value as TransactionPlan,
+  // QBO → MYOB ships a region-restricted list whose country drives the FY end.
+  // Every other pair keeps the full list and the flat default.
+  const countries = isQboToMyob ? QBO_MYOB_COUNTRIES : COUNTRIES;
+  const fyEndFor = (country: string) =>
+    (isQboToMyob ? COUNTRY_FY_END[country] : undefined) ?? DEFAULT_FY_END;
+
+  const [form, setForm] = useState(() => {
+    const country = isQboToMyob ? QBO_MYOB_COUNTRIES[0] : COUNTRIES[3];
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      country,
+      entityName: '',
+      financialYearEnd: fyEndFor(country),
+      transactionPlan: TRANSACTION_PLANS[0].value as TransactionPlan,
+    };
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
 
-  if (!selectedPair) {
-    navigate('/');
-    return null;
-  }
+  if (!selectedPair) return <Navigate to="/" replace />;
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
+
+  // Changing the country re-points the FY end at that country's statutory date
+  // (QBO → MYOB only); the customer can still override it for a substituted period.
+  const setCountry = (country: string) =>
+    setForm((p) => ({
+      ...p,
+      country,
+      financialYearEnd: isQboToMyob ? fyEndFor(country) : p.financialYearEnd,
+    }));
   const fieldError = (f: string) => errors.find((e) => e.field === f)?.message;
 
   const validate = (): FieldErr[] => {
@@ -144,8 +169,8 @@ const MigrationInfoPage: React.FC = () => {
               />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="country" className="text-xs font-medium text-text-secondary">Country <span className="text-red-500">*</span></label>
-                <select id="country" value={form.country} onChange={(e) => set('country', e.target.value)} className={inputCls}>
-                  {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
+                <select id="country" value={form.country} onChange={(e) => setCountry(e.target.value)} className={inputCls}>
+                  {countries.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
             </div>

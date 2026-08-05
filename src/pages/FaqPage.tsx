@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { Button } from '@/components/common/Button';
+import { pairDetailsPath } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
 
 const FAQS: { q: string; a: string }[] = [
@@ -56,10 +57,7 @@ const FaqPage: React.FC = () => {
   const selectedPair = useAppStore((s) => s.selectedPair);
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
-  if (!selectedPair) {
-    navigate('/');
-    return null;
-  }
+  if (!selectedPair) return <Navigate to="/" replace />;
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">
@@ -84,7 +82,7 @@ const FaqPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mt-8">
-          <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/migration/details')}>Back</Button>
+          <Button type="button" variant="secondary" size="lg" onClick={() => navigate(pairDetailsPath(selectedPair))}>Back</Button>
           <Button type="button" variant="primary" size="lg" fullWidth onClick={() => navigate('/payment')}>
             Continue to plan &amp; payment
           </Button>

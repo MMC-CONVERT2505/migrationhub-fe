@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/utils/format';
+import { pairDetailsPath } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
 import type { Pair } from '@/types';
 
@@ -53,7 +54,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
       window.open(pair.url, '_blank', 'noopener,noreferrer');
     } else {
       setSelectedPair(pair);
-      navigate('/migration/details');
+      navigate(pairDetailsPath(pair));
     }
   };
 

@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { useAppStore } from '@/store/appStore';
 import { pairDetailsPath } from '@/utils/platformMap';
+import { XERO_MYOB_DETAILS_PATH } from '@/constants/xeroMyob';
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage            = React.lazy(() => import('@/pages/HomePage'));
@@ -16,6 +17,7 @@ const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage')
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
 const MigrationDetailsPage  = React.lazy(() => import('@/pages/MigrationDetailsPage'));
 const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDetailsEntryPage'));
+const XeroToMyobDetailsPage = React.lazy(() => import('@/pages/XeroToMyobDetailsPage'));
 const FaqPage               = React.lazy(() => import('@/pages/FaqPage'));
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
@@ -67,6 +69,9 @@ const App: React.FC = () => (
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
+      {/* Step 2 (Migration Details) for Xero → MYOB — a dedicated route with the pair
+          pinned to the path, matched ahead of the generic pair-scoped one below */}
+      <Route path={XERO_MYOB_DETAILS_PATH} element={<XeroToMyobDetailsPage />} />
       {/* Step 2 (Migration Details), scoped to the pair so the URL is directly shareable */}
       <Route path="/migration/:pairSlug/details" element={<MigrationDetailsPage />} />
       <Route path="/migration/details" element={<LegacyMigrationDetailsRedirect />} />

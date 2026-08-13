@@ -16,6 +16,11 @@ interface PairSlugGateProps {
    * app must stay a normal, escapable page.
    */
   lockEntry?: boolean;
+  /**
+   * Pair slug to resolve, overriding the URL `:pairSlug`. Set by pair-dedicated routes,
+   * whose path names the pair itself and so carries no slug param to read.
+   */
+  slug?: string;
   children: React.ReactNode;
 }
 
@@ -30,8 +35,9 @@ interface PairSlugGateProps {
  * wrong pair. Children mount only once a pair is resolved, so every step below can
  * read `selectedPair` and initialise its form state from it.
  */
-export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, children }) => {
-  const { pairSlug: slug } = useParams<{ pairSlug: string }>();
+export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, slug: fixedSlug, children }) => {
+  const { pairSlug } = useParams<{ pairSlug: string }>();
+  const slug = fixedSlug ?? pairSlug;
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setSelectedPair = useAppStore((s) => s.setSelectedPair);
   const setEntryLocked = useAppStore((s) => s.setEntryLocked);

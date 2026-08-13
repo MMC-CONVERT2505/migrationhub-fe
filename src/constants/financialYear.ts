@@ -26,8 +26,8 @@ export const DEFAULT_FY_END = '31st March';
 
 /**
  * Statutory financial-year end per country, keyed by the country labels shown on
- * the inquiry form. Pairs offered in a fixed set of regions (QBO → MYOB) use this
- * to pre-select the FY-end field when the country changes; the full FY_ENDS list
+ * the inquiry form. Pairs offered in a fixed set of regions (QBO → MYOB, Xero → MYOB)
+ * use this to pre-select the FY-end field when the country changes; the full FY_ENDS list
  * stays selectable for entities on a substituted accounting period.
  * Every value must be a key of FY_END_DATE_MAP, or the order-summary range calc
  * (calculateMigrationPeriod) cannot resolve the label it is paired with.

@@ -4,6 +4,10 @@ import type {
   JourneyStageKey,
   JourneyStageState,
 } from '@/types/api';
+import type {
+  KarbonMigrationView,
+  KarbonWorkItemSummary,
+} from './adminKarbon';
 
 export type { JourneyStage, JourneyStageKey, JourneyStageState };
 
@@ -50,6 +54,8 @@ export interface AdminMigrationListItem {
   user: { email: string | null; firstname: string; lastname: string } | null;
   customer: MigrationCustomer;
   plan: { name: string } | null;
+  /** Karbon mirror state — null when the integration has never run for this row. */
+  karbonWorkItem: KarbonWorkItemSummary | null;
 }
 
 export interface AdminMigrationLog {
@@ -97,6 +103,8 @@ export interface AdminMigrationDetail extends AdminMigrationListItem {
   webhookEvents: AdminMigrationWebhookEvent[];
   journey: JourneyStage[];
   inquiry: AdminMigrationInquiry | null;
+  /** Expected-vs-actual Karbon Work Item state, computed server-side. */
+  karbon: KarbonMigrationView;
 }
 
 export interface AdminMigrationListResponse {

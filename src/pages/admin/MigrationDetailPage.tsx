@@ -8,6 +8,7 @@ import {
 import { ApiError } from '@/api/client';
 import { statusMeta, isTerminal, isQaAllowed } from '@/constants/migrationStatus';
 import { JourneyTimeline } from '@/components/migration/JourneyTimeline';
+import { KarbonSyncCard } from '@/components/admin/KarbonSyncCard';
 
 const POLL_MS = 5000;
 
@@ -261,6 +262,15 @@ const MigrationDetailPage: React.FC = () => {
             )}
             {qaError && <p className="mt-2 text-xs text-red-600">{qaError}</p>}
           </section>
+
+          {/* Karbon mirror — status the wider team tracks in practice management */}
+          {m.karbon && (
+            <KarbonSyncCard
+              migrationId={m.id}
+              karbon={m.karbon}
+              onSynced={() => load(true)}
+            />
+          )}
 
           {/* Summary */}
           <section className="bg-white border border-border rounded-xl shadow-card p-5">

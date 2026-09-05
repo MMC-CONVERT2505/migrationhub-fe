@@ -70,11 +70,82 @@ const XERO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
 
 interface FieldErr { field: string; message: string }
 
+// Unanswered until the customer picks one: a pre-selected Yes/No would record a
+// confirmation they never gave, and these answers drive scoping and quoting.
+type YesNo = boolean | null;
+
+const YES_NO_OPTIONS = [
+  { value: true, label: 'Yes' },
+  { value: false, label: 'No' },
+] as const;
+
 const inputCls =
   'w-full px-3 py-2.5 text-sm bg-white border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors';
 
 // Error treatment for a bare input, matching InputField's.
 const inputErrCls = 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20';
+
+/**
+ * One required Yes/No question, rendered as a real radio group so it is keyboard
+ * operable and announced as a group. Module-level, not nested in the page, so a
+ * re-render never remounts it and steals focus mid-answer.
+ */
+const YesNoField: React.FC<{
+  name: string;
+  legend: string;
+  hint?: string;
+  value: YesNo;
+  onChange: (v: boolean) => void;
+  error?: string;
+}> = ({ name, legend, hint, value, onChange, error }) => (
+  <fieldset
+    className={cn(
+      'rounded-xl border p-4 transition-colors',
+      error ? 'border-red-300 bg-red-50/50' : 'border-border bg-bg-light/50',
+    )}
+    aria-describedby={error ? `${name}-error` : hint ? `${name}-hint` : undefined}
+  >
+    <legend className="px-1 text-sm font-semibold text-text-primary">
+      {legend} <span className="text-red-500">*</span>
+    </legend>
+    {hint && <p id={`${name}-hint`} className="text-xs text-text-secondary">{hint}</p>}
+    <div className="mt-3 flex flex-wrap gap-2">
+      {YES_NO_OPTIONS.map((opt) => {
+        const checked = value === opt.value;
+        return (
+          <label
+            key={opt.label}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 text-sm rounded-lg border cursor-pointer transition-colors',
+              'focus-within:ring-2 focus-within:ring-blue-500/30',
+              checked
+                ? 'border-blue-500 bg-blue-50 text-text-primary font-medium'
+                : 'border-border bg-white text-text-secondary hover:border-border-medium',
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={String(opt.value)}
+              checked={checked}
+              onChange={() => onChange(opt.value)}
+              className="w-3.5 h-3.5 accent-blue-600"
+            />
+            {opt.label}
+          </label>
+        );
+      })}
+    </div>
+    {error && (
+      <p id={`${name}-error`} className="mt-2 text-xs text-red-600 flex items-center gap-1">
+        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        {error}
+      </p>
+    )}
+  </fieldset>
+);
 
 const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
@@ -87,6 +158,10 @@ const MigrationInfoPage: React.FC = () => {
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
   const isXeroToMyob =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'myob';
+
+  // Tracked inventory is a MYOB-destination question: both MYOB tools have to know
+  // whether inventory items carry a quantity on hand before they can map them.
+  const asksTrackingInventory = isXeroToMyob || isQboToMyob;
 
   // QBO → MYOB and Xero → MYOB each ship a region-restricted list whose selected
   // country drives the FY end (AU closes 30 June, NZ 31 March), so neither is left
@@ -111,6 +186,8 @@ const MigrationInfoPage: React.FC = () => {
       entityName: '',
       financialYearEnd: fyEndFor(country),
       transactionPlan: TRANSACTION_PLANS[0].value as TransactionPlan,
+      addOnsConfirmed: null as YesNo,
+      trackingInventory: null as YesNo,
     };
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
@@ -143,6 +220,8 @@ const MigrationInfoPage: React.FC = () => {
     if (!form.phone.trim()) e.push({ field: 'phone', message: 'Phone number is required.' });
     else if (!/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) e.push({ field: 'phone', message: 'Enter a valid phone number.' });
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
+    if (form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
+    if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
   };
 
@@ -167,6 +246,10 @@ const MigrationInfoPage: React.FC = () => {
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
         ...(isXeroToQbo && form.transactionPlan ? { transactionPlan: form.transactionPlan } : {}),
+        ...(form.addOnsConfirmed !== null ? { addOnsConfirmed: form.addOnsConfirmed } : {}),
+        ...(asksTrackingInventory && form.trackingInventory !== null
+          ? { trackingInventory: form.trackingInventory }
+          : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
 
@@ -295,6 +378,28 @@ const MigrationInfoPage: React.FC = () => {
                 </select>
               </div>
             </div>
+
+            {/* Add-ons confirmation — asked on every pair, so the quote reflects what
+                the customer actually wants before they reach payment. */}
+            <YesNoField
+              name="addOnsConfirmed"
+              legend="Add-ons Confirmation"
+              hint="Add-ons are quoted on top of your migration plan. Do you want any add-ons included in this migration?"
+              value={form.addOnsConfirmed}
+              onChange={(v) => set('addOnsConfirmed', v)}
+              error={fieldError('addOnsConfirmed')}
+            />
+
+            {asksTrackingInventory && (
+              <YesNoField
+                name="trackingInventory"
+                legend="Tracking Inventory"
+                hint="MYOB handles tracked inventory differently. Does this file use tracking inventory — inventory items that carry a quantity on hand?"
+                value={form.trackingInventory}
+                onChange={(v) => set('trackingInventory', v)}
+                error={fieldError('trackingInventory')}
+              />
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               {!entryLocked && (

@@ -91,6 +91,9 @@ export interface AdminMigrationInquiry {
   country: string;
   entityName: string;
   financialYearEnd: string;
+  /** Null when the customer was never asked — the row predates the question, or the pair doesn't ask it. */
+  addOnsConfirmed: boolean | null;
+  trackingInventory: boolean | null;
 }
 
 export interface AdminMigrationDetail extends AdminMigrationListItem {

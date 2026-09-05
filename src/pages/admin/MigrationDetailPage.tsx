@@ -6,6 +6,7 @@ import {
   type AdminMigrationDetail,
 } from '@/api/adminMigrations';
 import { ApiError } from '@/api/client';
+import { yesNo } from '@/utils/format';
 import { statusMeta, isTerminal, isQaAllowed } from '@/constants/migrationStatus';
 import { JourneyTimeline } from '@/components/migration/JourneyTimeline';
 import { KarbonSyncCard } from '@/components/admin/KarbonSyncCard';
@@ -295,6 +296,8 @@ const MigrationDetailPage: React.FC = () => {
                 <Row label="Country" value={m.inquiry.country} />
                 <Row label="Entity" value={m.inquiry.entityName} />
                 <Row label="FY end" value={m.inquiry.financialYearEnd} />
+                <Row label="Add-ons" value={yesNo(m.inquiry.addOnsConfirmed)} />
+                <Row label="Tracking inventory" value={yesNo(m.inquiry.trackingInventory)} />
               </dl>
             </section>
           )}

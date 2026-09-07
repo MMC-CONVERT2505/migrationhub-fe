@@ -196,8 +196,13 @@ const MigrationInfoPage: React.FC = () => {
 
   if (!selectedPair) return <Navigate to="/" replace />;
 
-  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
     setForm((p) => ({ ...p, [k]: v }));
+    // Clear the field's error the moment it changes: a section already showing the
+    // customer's answer must not still be shouting that it is unanswered. Errors are
+    // recomputed on submit, so nothing that is still wrong stays hidden.
+    setErrors((p) => (p.some((e) => e.field === k) ? p.filter((e) => e.field !== k) : p));
+  };
 
   // Changing the country re-points the dial code at that country, and the FY end at
   // that country's statutory date (region-restricted pairs only); the customer can

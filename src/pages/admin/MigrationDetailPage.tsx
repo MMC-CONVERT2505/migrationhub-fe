@@ -23,6 +23,7 @@ const EVENT_LABELS: Record<string, string> = {
   MIGRATION_CATEGORY_COMPLETED: 'Category completed',
   MIGRATION_COMPLETED:          'Migration completed',
   MIGRATION_PARTIAL_SUCCESS:    'Completed with partial success',
+  MIGRATION_UNDER_REVIEW:       'Customer requested help',
   MIGRATION_FAILED:             'Migration failed',
   MIGRATION_CANCELLED:          'Migration cancelled',
 };

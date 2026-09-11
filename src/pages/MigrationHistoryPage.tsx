@@ -16,12 +16,13 @@ const STATUS_CONFIG: Record<
   MigrationStatus,
   { label: string; variant: 'default' | 'info' | 'success' | 'error' | 'warning'; pulse?: boolean }
 > = {
-  DRAFT:     { label: 'Draft',     variant: 'default' },
-  QUEUED:    { label: 'Queued',    variant: 'info',    pulse: true },
-  RUNNING:   { label: 'Running',   variant: 'info',    pulse: true },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  FAILED:    { label: 'Failed',    variant: 'error' },
-  CANCELLED: { label: 'Cancelled', variant: 'default' },
+  DRAFT:        { label: 'Draft',        variant: 'default' },
+  QUEUED:       { label: 'Queued',       variant: 'info',    pulse: true },
+  RUNNING:      { label: 'Running',      variant: 'info',    pulse: true },
+  COMPLETED:    { label: 'Completed',    variant: 'success' },
+  UNDER_REVIEW: { label: 'Under review', variant: 'warning' },
+  FAILED:       { label: 'Failed',       variant: 'error' },
+  CANCELLED:    { label: 'Cancelled',    variant: 'default' },
 };
 
 // ─── Platform pill ────────────────────────────────────────────────────────────
@@ -200,7 +201,7 @@ const MigrationHistoryPage: React.FC = () => {
       .then((data) => {
         // Sort: active first, then by newest
         const sorted = [...data].sort((a, b) => {
-          const order: MigrationStatus[] = ['RUNNING', 'QUEUED', 'DRAFT', 'FAILED', 'COMPLETED', 'CANCELLED'];
+          const order: MigrationStatus[] = ['RUNNING', 'QUEUED', 'DRAFT', 'FAILED', 'UNDER_REVIEW', 'COMPLETED', 'CANCELLED'];
           const ai = order.indexOf(a.status);
           const bi = order.indexOf(b.status);
           if (ai !== bi) return ai - bi;
@@ -216,7 +217,7 @@ const MigrationHistoryPage: React.FC = () => {
 
   const active    = migrations.filter((m) => m.status === 'RUNNING' || m.status === 'QUEUED');
   const drafts    = migrations.filter((m) => m.status === 'DRAFT');
-  const completed = migrations.filter((m) => m.status === 'COMPLETED');
+  const completed = migrations.filter((m) => m.status === 'COMPLETED' || m.status === 'UNDER_REVIEW');
   const failed    = migrations.filter((m) => m.status === 'FAILED' || m.status === 'CANCELLED');
 
   return (

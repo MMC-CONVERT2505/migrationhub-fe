@@ -16,6 +16,7 @@ export const STATUS_META: Record<MigrationStatus, { label: string; className: st
   QUEUED:                     { label: 'Queued',             className: 'bg-indigo-50 text-indigo-700' },
   RUNNING:                    { label: 'Running',            className: 'bg-indigo-50 text-indigo-700' },
   PARTIAL_SUCCESS:            { label: 'Partial success',    className: 'bg-yellow-50 text-yellow-700' },
+  UNDER_REVIEW:               { label: 'Under review',       className: 'bg-orange-50 text-orange-700' },
   COMPLETED:                  { label: 'Completed',          className: 'bg-green-50 text-green-700' },
   FAILED:                     { label: 'Failed',             className: 'bg-red-50 text-red-700' },
   CANCELLED:                  { label: 'Cancelled',          className: 'bg-red-50 text-red-700' },
@@ -24,8 +25,8 @@ export const STATUS_META: Record<MigrationStatus, { label: string; className: st
 export const statusMeta = (s: MigrationStatus) =>
   STATUS_META[s] ?? { label: s, className: 'bg-bg-light text-text-secondary' };
 
-const TERMINAL: MigrationStatus[] = ['COMPLETED', 'PARTIAL_SUCCESS', 'FAILED', 'CANCELLED'];
+const TERMINAL: MigrationStatus[] = ['COMPLETED', 'PARTIAL_SUCCESS', 'UNDER_REVIEW', 'FAILED', 'CANCELLED'];
 export const isTerminal = (s: MigrationStatus) => TERMINAL.includes(s);
 
-const QA_ALLOWED: MigrationStatus[] = ['COMPLETED', 'PARTIAL_SUCCESS', 'FAILED'];
+const QA_ALLOWED: MigrationStatus[] = ['COMPLETED', 'PARTIAL_SUCCESS', 'UNDER_REVIEW', 'FAILED'];
 export const isQaAllowed = (s: MigrationStatus) => QA_ALLOWED.includes(s);

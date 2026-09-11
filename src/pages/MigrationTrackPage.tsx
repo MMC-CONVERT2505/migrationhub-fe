@@ -16,6 +16,8 @@ const POLL_MS = 5000;
 const TERMINAL = new Set([
   'COMPLETED',
   'PARTIAL_SUCCESS',
+  // Finished — a help request must not make it look live and keep polling.
+  'UNDER_REVIEW',
   'FAILED',
   'PAYMENT_FAILED',
   'CANCELLED',
@@ -27,6 +29,7 @@ const statusBadge = (status: string): { label: string; variant: BadgeVariant; pu
   switch (status) {
     case 'COMPLETED':       return { label: 'Completed', variant: 'success', pulse: false };
     case 'PARTIAL_SUCCESS': return { label: 'Partial success', variant: 'warning', pulse: false };
+    case 'UNDER_REVIEW':    return { label: 'Under review', variant: 'warning', pulse: false };
     case 'FAILED':          return { label: 'Failed', variant: 'error', pulse: false };
     case 'PAYMENT_FAILED':  return { label: 'Payment failed', variant: 'error', pulse: false };
     case 'CANCELLED':       return { label: 'Cancelled', variant: 'default', pulse: false };
@@ -83,7 +86,8 @@ const MigrationTrackPage: React.FC = () => {
   // Server can return statuses beyond the narrow client union (e.g. PARTIAL_SUCCESS),
   // so compare as a plain string here.
   const status: string = m?.status ?? '';
-  const showProgress = live || status === 'COMPLETED' || status === 'PARTIAL_SUCCESS';
+  const showProgress =
+    live || status === 'COMPLETED' || status === 'PARTIAL_SUCCESS' || status === 'UNDER_REVIEW';
 
   return (
     <div className="min-h-screen bg-bg">

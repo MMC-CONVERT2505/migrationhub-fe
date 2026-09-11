@@ -42,12 +42,12 @@ export interface KarbonWorkItem {
   updatedAt: string;
   /** Deep link into Karbon, computed server-side. */
   workItemUrl: string | null;
-  /** True when Karbon already holds the status the migration is actually in. */
+  /** True when Karbon already shows the stage the latest trigger asked for. */
   inSync: boolean;
   logs?: KarbonSyncLog[];
 }
 
-/** What Karbon *should* hold for the migration's current status. */
+/** What Karbon *should* hold for the migration's latest Karbon trigger. */
 export interface KarbonExpectedStatus {
   primaryStatus: KarbonPrimaryStatus;
   /** null when that PrimaryStatus has no secondary status configured in Karbon. */
@@ -57,7 +57,8 @@ export interface KarbonExpectedStatus {
 
 /** Shape embedded on the admin migration detail response. */
 export interface KarbonMigrationView {
-  expected: KarbonExpectedStatus;
+  /** null until a Karbon trigger has fired for the migration. */
+  expected: KarbonExpectedStatus | null;
   workItem: KarbonWorkItem | null;
 }
 

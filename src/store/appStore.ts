@@ -50,6 +50,8 @@ export const useAppStore = create<AppState>()(
           pendingMigration: null,
           selectedPlanId: null,
           entryLocked: false,
+          // A finished flow's inquiry must not be attached to the next pair's checkout.
+          inquiryDetails: null,
         }),
 
       setSelectedPlanId: (planId: string | null) => set({ selectedPlanId: planId }),

@@ -6,8 +6,10 @@ import {
   type AdminMigrationDetail,
 } from '@/api/adminMigrations';
 import { ApiError } from '@/api/client';
+import { yesNo } from '@/utils/format';
 import { statusMeta, isTerminal, isQaAllowed } from '@/constants/migrationStatus';
 import { JourneyTimeline } from '@/components/migration/JourneyTimeline';
+import { KarbonSyncCard } from '@/components/admin/KarbonSyncCard';
 
 const POLL_MS = 5000;
 
@@ -21,6 +23,7 @@ const EVENT_LABELS: Record<string, string> = {
   MIGRATION_CATEGORY_COMPLETED: 'Category completed',
   MIGRATION_COMPLETED:          'Migration completed',
   MIGRATION_PARTIAL_SUCCESS:    'Completed with partial success',
+  MIGRATION_UNDER_REVIEW:       'Customer requested help',
   MIGRATION_FAILED:             'Migration failed',
   MIGRATION_CANCELLED:          'Migration cancelled',
 };
@@ -262,6 +265,15 @@ const MigrationDetailPage: React.FC = () => {
             {qaError && <p className="mt-2 text-xs text-red-600">{qaError}</p>}
           </section>
 
+          {/* Karbon mirror — status the wider team tracks in practice management */}
+          {m.karbon && (
+            <KarbonSyncCard
+              migrationId={m.id}
+              karbon={m.karbon}
+              onSynced={() => load(true)}
+            />
+          )}
+
           {/* Summary */}
           <section className="bg-white border border-border rounded-xl shadow-card p-5">
             <h3 className="text-sm font-bold text-text-primary mb-3">Details</h3>
@@ -285,6 +297,8 @@ const MigrationDetailPage: React.FC = () => {
                 <Row label="Country" value={m.inquiry.country} />
                 <Row label="Entity" value={m.inquiry.entityName} />
                 <Row label="FY end" value={m.inquiry.financialYearEnd} />
+                <Row label="Add-ons" value={yesNo(m.inquiry.addOnsConfirmed)} />
+                <Row label="Tracking inventory" value={yesNo(m.inquiry.trackingInventory)} />
               </dl>
             </section>
           )}

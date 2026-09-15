@@ -18,6 +18,11 @@ export function principalSubLabel(p: Principal | null | undefined): string | nul
   return p.name && p.name !== p.email ? p.name : null;
 }
 
+/** Yes/No answer for display; null is a question that was never put to the customer. */
+export function yesNo(value: boolean | null | undefined, unanswered = '—'): string {
+  return value == null ? unanswered : value ? 'Yes' : 'No';
+}
+
 export function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }

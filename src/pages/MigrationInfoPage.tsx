@@ -103,7 +103,9 @@ const YesNoField: React.FC<{
       'rounded-xl border p-4 transition-colors',
       error ? 'border-red-300 bg-red-50/50' : 'border-border bg-bg-light/50',
     )}
-    aria-describedby={error ? `${name}-error` : hint ? `${name}-hint` : undefined}
+    aria-describedby={
+      [hint && `${name}-hint`, error && `${name}-error`].filter(Boolean).join(' ') || undefined
+    }
   >
     <legend className="px-1 text-sm font-semibold text-text-primary">
       {legend} <span className="text-red-500">*</span>
@@ -150,6 +152,7 @@ const YesNoField: React.FC<{
 const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
   const selectedPair = useAppStore((s) => s.selectedPair);
+  const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
   const entryLocked = useAppStore((s) => s.entryLocked);
 
   const isXeroToQbo =
@@ -229,8 +232,6 @@ const MigrationInfoPage: React.FC = () => {
     if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
   };
-
-  const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();

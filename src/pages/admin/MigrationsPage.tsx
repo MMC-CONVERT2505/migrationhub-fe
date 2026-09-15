@@ -8,6 +8,7 @@ import {
 } from '@/api/adminMigrations';
 import { ApiError } from '@/api/client';
 import { statusMeta } from '@/constants/migrationStatus';
+import { karbonPrimaryMeta, karbonSyncMeta } from '@/constants/karbonStatus';
 
 const PAGE_SIZE = 20;
 
@@ -138,7 +139,7 @@ const MigrationsPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Migration', 'Customer', 'Status', 'Progress', 'Created', ''].map((h) => (
+                {['Migration', 'Customer', 'Status', 'Karbon', 'Progress', 'Created', ''].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -149,14 +150,14 @@ const MigrationsPage: React.FC = () => {
               {loading ? (
                 Array(6).fill(null).map((_, i) => (
                   <tr key={i}>
-                    {Array(6).fill(null).map((__, j) => (
+                    {Array(7).fill(null).map((__, j) => (
                       <td key={j} className="px-4 py-3"><div className="h-3 bg-bg-lighter rounded animate-pulse w-20" /></td>
                     ))}
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={7} className="text-center py-10 text-sm text-text-tertiary">
                     {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No migrations to show'}
                   </td>
                 </tr>
@@ -191,6 +192,22 @@ const MigrationsPage: React.FC = () => {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${meta.className}`}>
                           {meta.label}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {m.karbonWorkItem ? (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${karbonSyncMeta(m.karbonWorkItem.syncStatus).className}`}
+                            title={
+                              m.karbonWorkItem.lastError ??
+                              `${karbonPrimaryMeta(m.karbonWorkItem.primaryStatus).label} in Karbon`
+                            }
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${karbonSyncMeta(m.karbonWorkItem.syncStatus).dot}`} />
+                            {karbonPrimaryMeta(m.karbonWorkItem.primaryStatus).label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-text-tertiary">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 w-40">
                         <div className="flex items-center gap-2">

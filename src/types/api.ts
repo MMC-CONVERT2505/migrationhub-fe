@@ -297,6 +297,7 @@ export type MigrationStatus =
   | 'QUEUED'
   | 'RUNNING'
   | 'COMPLETED'
+  | 'UNDER_REVIEW'
   | 'FAILED'
   | 'CANCELLED';
 

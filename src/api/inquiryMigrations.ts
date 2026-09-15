@@ -9,13 +9,22 @@ export interface CreateInquiryRequest {
   entityName: string;
   financialYearEnd: string;
   transactionPlan?: TransactionPlan;
+  /** Customer's confirmation of the optional add-ons. */
+  addOnsConfirmed?: boolean;
+  /** Whether the file uses tracked inventory — asked by the MYOB-bound tools only. */
+  trackingInventory?: boolean;
   migrationPairId?: string;
 }
 
-export interface InquiryMigrationUser extends CreateInquiryRequest {
+// Both yes/no answers come back nullable: null is a question that was never put to
+// the customer, which reads differently from a "No" they actually gave.
+export interface InquiryMigrationUser
+  extends Omit<CreateInquiryRequest, 'addOnsConfirmed' | 'trackingInventory'> {
   id: number;
   userId: number | null;
   userEmail?: string | null;
+  addOnsConfirmed: boolean | null;
+  trackingInventory: boolean | null;
   createdAt: string;
   updatedAt: string;
 }

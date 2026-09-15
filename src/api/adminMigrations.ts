@@ -4,6 +4,10 @@ import type {
   JourneyStageKey,
   JourneyStageState,
 } from '@/types/api';
+import type {
+  KarbonMigrationView,
+  KarbonWorkItemSummary,
+} from './adminKarbon';
 
 export type { JourneyStage, JourneyStageKey, JourneyStageState };
 
@@ -12,7 +16,7 @@ export type MigrationStatus =
   | 'SOURCE_AUTH_PENDING' | 'SOURCE_AUTH_AWAITING' | 'SOURCE_AUTH_COMPLETED'
   | 'DESTINATION_AUTH_PENDING' | 'DESTINATION_AUTH_AWAITING' | 'DESTINATION_AUTH_COMPLETED'
   | 'DATA_COUNT_PENDING' | 'DATA_COUNT_READY' | 'SUBMITTING' | 'QUEUED' | 'RUNNING'
-  | 'PARTIAL_SUCCESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  | 'PARTIAL_SUCCESS' | 'UNDER_REVIEW' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 export type MigrationStatusGroup = 'active' | 'completed' | 'failed';
 
@@ -50,6 +54,8 @@ export interface AdminMigrationListItem {
   user: { email: string | null; firstname: string; lastname: string } | null;
   customer: MigrationCustomer;
   plan: { name: string } | null;
+  /** Karbon mirror state — null when the integration has never run for this row. */
+  karbonWorkItem: KarbonWorkItemSummary | null;
 }
 
 export interface AdminMigrationLog {
@@ -85,6 +91,9 @@ export interface AdminMigrationInquiry {
   country: string;
   entityName: string;
   financialYearEnd: string;
+  /** Null when the customer was never asked — the row predates the question, or the pair doesn't ask it. */
+  addOnsConfirmed: boolean | null;
+  trackingInventory: boolean | null;
 }
 
 export interface AdminMigrationDetail extends AdminMigrationListItem {
@@ -97,6 +106,8 @@ export interface AdminMigrationDetail extends AdminMigrationListItem {
   webhookEvents: AdminMigrationWebhookEvent[];
   journey: JourneyStage[];
   inquiry: AdminMigrationInquiry | null;
+  /** Expected-vs-actual Karbon Work Item state, computed server-side. */
+  karbon: KarbonMigrationView;
 }
 
 export interface AdminMigrationListResponse {

@@ -3,8 +3,14 @@ import { motion } from 'framer-motion';
 import { inquiryMigrationsService, type InquiryMigrationUser } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { transactionPlanLabel } from '@/constants/transactionPlans';
+import { yesNo } from '@/utils/format';
 
 const PAGE_SIZE = 20;
+
+const COLUMNS = [
+  'Entity', 'Phone', 'Country', 'FY end', 'Migration type',
+  'Add-ons', 'Tracking inv.', 'Customer', 'Submitted',
+];
 
 const InquiriesPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -76,7 +82,7 @@ const InquiriesPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Entity', 'Phone', 'Country', 'FY end', 'Migration type', 'Customer', 'Submitted'].map((h) => (
+                {COLUMNS.map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -84,12 +90,12 @@ const InquiriesPage: React.FC = () => {
             <tbody className="divide-y divide-border">
               {loading ? (
                 Array(6).fill(null).map((_, i) => (
-                  <tr key={i}>{Array(7).fill(null).map((__, j) => (
+                  <tr key={i}>{COLUMNS.map((__, j) => (
                     <td key={j} className="px-4 py-3"><div className="h-3 bg-bg-lighter rounded animate-pulse w-16" /></td>
                   ))}</tr>
                 ))
               ) : rows.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-10 text-sm text-text-tertiary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
+                <tr><td colSpan={COLUMNS.length} className="text-center py-10 text-sm text-text-tertiary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
               ) : (
                 rows.map((r) => (
                   <tr key={r.id} className="hover:bg-bg-light/50 transition-colors">
@@ -100,6 +106,8 @@ const InquiriesPage: React.FC = () => {
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.country}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.financialYearEnd}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{transactionPlanLabel(r.transactionPlan) ?? '—'}</td>
+                    <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{yesNo(r.addOnsConfirmed)}</td>
+                    <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{yesNo(r.trackingInventory)}</td>
                     <td className="px-4 py-3 text-text-secondary text-xs max-w-[160px] truncate" title={r.userEmail ?? ''}>{r.userEmail ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">{new Date(r.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</td>
                   </tr>

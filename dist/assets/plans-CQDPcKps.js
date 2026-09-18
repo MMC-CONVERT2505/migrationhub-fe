@@ -1,0 +1,1 @@
+import{g as e}from"./index-Gvq_93Rz.js";const s={create:t=>e.post("/plans",t).then(a=>a.data),list:()=>e.get("/plans").then(t=>t.data),update:(t,a)=>e.patch(`/plans/${t}`,a).then(p=>p.data),delete:t=>e.delete(`/plans/${t}`).then(a=>a.data)};export{s as p};

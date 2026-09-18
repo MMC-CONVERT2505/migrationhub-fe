@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
@@ -66,6 +66,19 @@ const QBO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
 // Xero → MYOB is likewise only offered in Australia and New Zealand. Kept as its own
 // list so the regions each pair is sold in can move independently.
 const XERO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
+
+// Xero → Reckon One is sold in Australia and New Zealand only — its own list for the
+// same reason: these three pairs' regions are free to diverge later.
+const XERO_RECKON_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
+
+/**
+ * Statutory FY end for a country, on every pair — not just the region-restricted ones,
+ * which is what used to leave most customers on a flat 31st March whatever they picked.
+ * A country with no statutory rule falls back to DEFAULT_FY_END; either way the customer
+ * can still override it for a substituted accounting period. Module-level because it
+ * depends on nothing but the selected country, which keeps it out of effect deps.
+ */
+const fyEndFor = (country: string) => COUNTRY_FY_END[country] ?? DEFAULT_FY_END;
 
 
 interface FieldErr { field: string; message: string }
@@ -161,25 +174,30 @@ const MigrationInfoPage: React.FC = () => {
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
   const isXeroToMyob =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'myob';
+  // "reckon" is the pair's destination key in the DB; "Reckon One" is the product name.
+  const isXeroToReckon =
+    selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'reckon';
 
   // Tracked inventory is a MYOB-destination question: both MYOB tools have to know
   // whether inventory items carry a quantity on hand before they can map them.
   const asksTrackingInventory = isXeroToMyob || isQboToMyob;
 
-  // QBO → MYOB and Xero → MYOB each ship a region-restricted list whose selected
-  // country drives the FY end (AU closes 30 June, NZ 31 March), so neither is left
-  // on the flat default. Every other pair keeps the full list and DEFAULT_FY_END.
-  const countryDrivesFyEnd = isQboToMyob || isXeroToMyob;
-  const countries = isQboToMyob
-    ? QBO_MYOB_COUNTRIES
-    : isXeroToMyob
-      ? XERO_MYOB_COUNTRIES
-      : COUNTRIES;
-  const fyEndFor = (country: string) =>
-    (countryDrivesFyEnd ? COUNTRY_FY_END[country] : undefined) ?? DEFAULT_FY_END;
+  // QBO → MYOB, Xero → MYOB and Xero → Reckon One are each sold in a fixed set of
+  // regions, so they ship a restricted country list. Every other pair offers the full
+  // list. This governs which countries are *offered* only — the FY end follows the
+  // selected country on every pair alike, via fyEndFor.
+  const restrictedCountries =
+    (isQboToMyob && QBO_MYOB_COUNTRIES) ||
+    (isXeroToMyob && XERO_MYOB_COUNTRIES) ||
+    (isXeroToReckon && XERO_RECKON_COUNTRIES) ||
+    null;
+  const countries = restrictedCountries ?? COUNTRIES;
+  // A restricted pair opens on the first country it is sold in; the rest keep the
+  // historical default so an unrestricted pair lands where it always has.
+  const defaultCountry = restrictedCountries ? restrictedCountries[0] : COUNTRIES[3];
 
   const [form, setForm] = useState(() => {
-    const country = countryDrivesFyEnd ? countries[0] : COUNTRIES[3];
+    const country = defaultCountry;
     return {
       name: '',
       email: '',
@@ -197,6 +215,23 @@ const MigrationInfoPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
 
+  // Both generic step-2 URLs render this same element, so React reuses the component
+  // across a pair change and the form survives with whatever country was picked for the
+  // previous pair — one the new pair may not be sold in. That would leave the select
+  // showing a value it has no <option> for and let submit record a region this pair is
+  // not offered in, so snap back to the pair's own default when it happens. The arrays
+  // are module constants, so this settles in one pass and cannot loop.
+  useEffect(() => {
+    if (countries.includes(form.country)) return;
+    const country = countries[0];
+    setForm((p) => ({
+      ...p,
+      country,
+      dialCode: COUNTRY_DIAL_CODE[country] ?? p.dialCode,
+      financialYearEnd: fyEndFor(country),
+    }));
+  }, [countries, form.country]);
+
   if (!selectedPair) return <Navigate to="/" replace />;
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
@@ -208,15 +243,15 @@ const MigrationInfoPage: React.FC = () => {
   };
 
   // Changing the country re-points the dial code at that country, and the FY end at
-  // that country's statutory date (region-restricted pairs only); the customer can
-  // still override either — a dial code for an overseas contact number, an FY end for
-  // a substituted period.
+  // that country's statutory date — on every pair now, not just the region-restricted
+  // ones. The customer can still override either: a dial code for an overseas contact
+  // number, an FY end for a substituted period.
   const setCountry = (country: string) =>
     setForm((p) => ({
       ...p,
       country,
       dialCode: COUNTRY_DIAL_CODE[country] ?? p.dialCode,
-      financialYearEnd: countryDrivesFyEnd ? fyEndFor(country) : p.financialYearEnd,
+      financialYearEnd: fyEndFor(country),
     }));
   const fieldError = (f: string) => errors.find((e) => e.field === f)?.message;
 

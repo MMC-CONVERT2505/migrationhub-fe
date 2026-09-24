@@ -194,3 +194,83 @@ button {
 .progress-bar {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* FAQ answer bodies — sanitized HTML authored in the admin panel. The base reset
+   and Tailwind preflight strip list markers and margins, and there is no
+   typography plugin here, so every allowed tag is styled back explicitly. */
+.faq-answer > *:first-child {
+  margin-top: 0;
+}
+
+.faq-answer > *:last-child {
+  margin-bottom: 0;
+}
+
+.faq-answer p {
+  margin: 0 0 0.75em;
+}
+
+.faq-answer h3,
+.faq-answer h4 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.faq-answer h3 { font-size: 1.05em; }
+.faq-answer h4 { font-size: 1em; }
+
+.faq-answer ul,
+.faq-answer ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.25rem;
+}
+
+.faq-answer ul { list-style: disc; }
+.faq-answer ol { list-style: decimal; }
+
+.faq-answer li {
+  margin-bottom: 0.25em;
+}
+
+.faq-answer a {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.faq-answer img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75em 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.faq-answer blockquote {
+  margin: 0 0 0.75em;
+  padding-left: 0.875rem;
+  border-left: 3px solid var(--border-medium);
+  color: var(--text-tertiary);
+}
+
+.faq-answer code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+  background: var(--bg-light);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+
+.faq-answer pre {
+  margin: 0 0 0.75em;
+  padding: 0.75rem;
+  background: var(--bg-light);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.faq-answer pre code {
+  background: none;
+  padding: 0;
+}

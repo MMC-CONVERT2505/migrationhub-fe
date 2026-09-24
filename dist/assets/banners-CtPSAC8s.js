@@ -1,1 +1,0 @@
-import{g as a}from"./index-Gvq_93Rz.js";const d={list:e=>a.get("/banner/get-banners",{params:e}).then(t=>t.data),getById:e=>a.get(`/banner/${e}`).then(t=>t.data),create:e=>a.post("/banner/create",e).then(t=>t.data),update:(e,t)=>a.patch(`/banner/update/${e}`,t).then(n=>n.data),delete:e=>a.delete(`/banner/delete/${e}`).then(t=>t.data)};export{d as b};

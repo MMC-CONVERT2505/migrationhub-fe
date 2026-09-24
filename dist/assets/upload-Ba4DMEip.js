@@ -1,0 +1,1 @@
+import{g as o}from"./index-BcjdU9Aj.js";const r={upload:t=>{const a=new FormData;return a.append("file",t),o.post("/upload",a,{headers:{"Content-Type":"multipart/form-data"}}).then(e=>e.data)}};export{r as u};

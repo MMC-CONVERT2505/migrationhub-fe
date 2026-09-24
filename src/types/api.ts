@@ -707,3 +707,68 @@ export interface CreatePlanRequest {
 }
 
 export type UpdatePlanRequest = Partial<CreatePlanRequest>;
+
+// ─── FAQ (one set per migration pair) ─────────────────────────────────────────
+
+export type FaqStatus = 'Active' | 'InActive';
+
+export interface FaqItemEntity {
+  id: string;
+  question: string;
+  /** Sanitized HTML — the API strips anything outside its allowlist on write. */
+  answer: string;
+  sortOrder: number;
+}
+
+export interface FaqPairSummary {
+  id: string;
+  source: string;
+  destination: string;
+  displayName: string;
+}
+
+export interface FaqEntity {
+  id: string;
+  migrationPairId: string;
+  /** Sanitized HTML, same allowlist as answers. */
+  description: string | null;
+  status: FaqStatus;
+  items: FaqItemEntity[];
+  migrationPair: FaqPairSummary | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What the public endpoint exposes — no status, no timestamps. */
+export interface PublicFaq {
+  id: string;
+  migrationPairId: string;
+  description: string | null;
+  items: FaqItemEntity[];
+}
+
+/** `faq` is null when the pair has no FAQ configured — an expected case. */
+export interface PublicFaqResponse {
+  faq: PublicFaq | null;
+}
+
+export interface FaqItemInput {
+  question: string;
+  answer: string;
+}
+
+export interface CreateFaqRequest {
+  migrationPairId: string;
+  description?: string;
+  status?: FaqStatus;
+  items: FaqItemInput[];
+}
+
+export type UpdateFaqRequest = Partial<CreateFaqRequest>;
+
+export interface ListFaqsQuery {
+  migrationPairId?: string;
+  status?: FaqStatus;
+  skip?: number;
+  take?: number;
+}

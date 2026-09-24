@@ -1,0 +1,1 @@
+import{g as e}from"./index-BcjdU9Aj.js";const f={list:a=>e.get("/faqs",{params:a}).then(t=>t.data),getById:a=>e.get(`/faqs/${a}`).then(t=>t.data),create:a=>e.post("/faqs",a).then(t=>t.data),update:(a,t)=>e.patch(`/faqs/${a}`,t).then(s=>s.data),delete:a=>e.delete(`/faqs/${a}`).then(t=>t.data),byPair:a=>e.get(`/faqs/public/pair/${a}`).then(t=>t.data)};export{f};

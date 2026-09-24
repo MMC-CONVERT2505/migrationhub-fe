@@ -8,3 +8,4 @@ export { plansService } from './plans';
 export { bannersService } from './banners';
 export { uploadService } from './upload';
 export { reportsService } from './reports';
+export { faqsService } from './faqs';

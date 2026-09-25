@@ -63,6 +63,11 @@ function toNationalNumber(typed: string): string {
 // QBO → MYOB is only offered in Australia and New Zealand.
 const QBO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
 
+// MYOB → QBO — the opposite direction to the pair above, and a separate row in the DB
+// (source 'myob', destination 'qbo'). Sold in Australia and New Zealand only; kept as
+// its own list so the two directions' regions can diverge later.
+const MYOB_QBO_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
+
 // Xero → MYOB is likewise only offered in Australia and New Zealand. Kept as its own
 // list so the regions each pair is sold in can move independently.
 const XERO_MYOB_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
@@ -172,6 +177,9 @@ const MigrationInfoPage: React.FC = () => {
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
   const isQboToMyob =
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
+  // Distinct from isQboToMyob above: the same two platforms, the opposite direction.
+  const isMyobToQbo =
+    selectedPair?.src?.toLowerCase() === 'myob' && selectedPair?.dst?.toLowerCase() === 'qbo';
   const isXeroToMyob =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'myob';
   // "reckon" is the pair's destination key in the DB; "Reckon One" is the product name.
@@ -182,12 +190,13 @@ const MigrationInfoPage: React.FC = () => {
   // whether inventory items carry a quantity on hand before they can map them.
   const asksTrackingInventory = isXeroToMyob || isQboToMyob;
 
-  // QBO → MYOB, Xero → MYOB and Xero → Reckon One are each sold in a fixed set of
-  // regions, so they ship a restricted country list. Every other pair offers the full
-  // list. This governs which countries are *offered* only — the FY end follows the
+  // QBO → MYOB, MYOB → QBO, Xero → MYOB and Xero → Reckon One are each sold in a fixed
+  // set of regions, so they ship a restricted country list. Every other pair offers the
+  // full list. This governs which countries are *offered* only — the FY end follows the
   // selected country on every pair alike, via fyEndFor.
   const restrictedCountries =
     (isQboToMyob && QBO_MYOB_COUNTRIES) ||
+    (isMyobToQbo && MYOB_QBO_COUNTRIES) ||
     (isXeroToMyob && XERO_MYOB_COUNTRIES) ||
     (isXeroToReckon && XERO_RECKON_COUNTRIES) ||
     null;

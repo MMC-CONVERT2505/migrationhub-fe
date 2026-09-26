@@ -8,6 +8,7 @@ import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { PlatformMark } from '@/components/common/PlatformMark';
+import { pairDetailsPath } from '@/utils/platformMap';
 import type { PendingMigration } from '@/types';
 
 const COUNTDOWN = 5;
@@ -60,6 +61,13 @@ const PaymentSuccessPage: React.FC = () => {
   const [tick, setTick] = useState(COUNTDOWN);
   const [apiError, setApiError] = useState('');
   const calledRef = useRef(false);
+  // Gate on an explicit Confirm click rather than mount — the customer must
+  // get a chance to Edit before anything starts ticking down.
+  const [confirmed, setConfirmed] = useState(false);
+
+  const editUrl = pair
+    ? `${pairDetailsPath(pair)}?edit=1${paymentId ? `&paymentId=${encodeURIComponent(paymentId)}` : ''}`
+    : null;
 
   // ── Create migration (called by countdown or "Start now" button) ──────────
   const triggerCreate = useCallback(async () => {
@@ -120,13 +128,13 @@ const PaymentSuccessPage: React.FC = () => {
     }
   }, [paymentId, pair, plan, inquiryId, resetMigration]);
 
-  // ── Countdown ─────────────────────────────────────────────────────────────
+  // ── Countdown — only once the customer has clicked Confirm ─────────────────
   useEffect(() => {
-    if (stage !== 'summary') return;
+    if (stage !== 'summary' || !confirmed) return;
     if (tick <= 0) { triggerCreate(); return; }
     const t = setTimeout(() => setTick((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [tick, stage, triggerCreate]);
+  }, [tick, stage, confirmed, triggerCreate]);
 
   // ── Auto-navigate after done ──────────────────────────────────────────────
   useEffect(() => {
@@ -246,9 +254,40 @@ const PaymentSuccessPage: React.FC = () => {
               )}
             </div>
 
-            {/* Countdown / spinner */}
+            {/* Edit / Confirm / countdown / spinner */}
             <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, padding: '18px 20px', textAlign: 'center' }}>
-              {stage === 'summary' ? (
+              {!confirmed ? (
+                <>
+                  <p style={{ fontSize: 13, color: '#4b5568', marginBottom: 14 }}>
+                    Please review your details above. You can still edit your migration
+                    details before confirming — the plan and payment are already locked in.
+                  </p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {editUrl && (
+                      <button
+                        onClick={() => navigate(editUrl)}
+                        style={{
+                          flex: 1, background: '#fff', color: '#4b5568',
+                          border: '1px solid #dce2ef', borderRadius: 7, padding: '11px 0',
+                          fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        Edit details
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setConfirmed(true)}
+                      style={{
+                        flex: 1, background: accentColor, color: '#fff',
+                        border: 'none', borderRadius: 7, padding: '11px 0',
+                        fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      Confirm &amp; continue
+                    </button>
+                  </div>
+                </>
+              ) : stage === 'summary' ? (
                 <>
                   <p style={{ fontSize: 13, color: '#4b5568', marginBottom: 12 }}>
                     Your migration will start in{' '}

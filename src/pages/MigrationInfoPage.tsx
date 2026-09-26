@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { MigrationJourney } from '@/components/migration/MigrationJourney';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
@@ -58,6 +58,17 @@ function toNationalNumber(typed: string): string {
   const typedCode = DIAL_CODES_LONGEST_FIRST.find((c) => n.startsWith(c));
   if (typedCode) n = n.slice(typedCode.length);
   return n.replace(/^\+/, '').replace(/^0+/, '');
+}
+
+/**
+ * Inverse of the above, for edit-mode pre-fill: splits a stored "+61412345678"
+ * back into the separate dial-code + national-number controls the form shows.
+ * Falls back to the pair's/country's own dial code if the stored value somehow
+ * doesn't start with one of the known codes.
+ */
+function splitPhone(stored: string, fallbackDialCode: string): { dialCode: string; phone: string } {
+  const code = DIAL_CODES_LONGEST_FIRST.find((c) => stored.startsWith(c));
+  return code ? { dialCode: code, phone: stored.slice(code.length) } : { dialCode: fallbackDialCode, phone: stored };
 }
 
 // QBO → MYOB is only offered in Australia and New Zealand.
@@ -172,6 +183,17 @@ const MigrationInfoPage: React.FC = () => {
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
   const entryLocked = useAppStore((s) => s.entryLocked);
+  const inquiryDetails = useAppStore((s) => s.inquiryDetails);
+
+  // "Final Summary — Edit": reached from PaymentSuccessPage's Edit button
+  // rather than the normal forward flow. Returns to Summary (PATCH) instead
+  // of continuing to FAQ (POST) — see handleSubmit below.
+  const [searchParams] = useSearchParams();
+  const isEdit = searchParams.get('edit') === '1';
+  const paymentIdParam = searchParams.get('paymentId') ?? '';
+  const backToSummaryUrl = paymentIdParam
+    ? `/payment/success?paymentId=${encodeURIComponent(paymentIdParam)}`
+    : '/payment/success';
 
   const isXeroToQbo =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
@@ -206,6 +228,28 @@ const MigrationInfoPage: React.FC = () => {
   const defaultCountry = restrictedCountries ? restrictedCountries[0] : COUNTRIES[3];
 
   const [form, setForm] = useState(() => {
+    // Pre-fill from the inquiry the customer already submitted — everything
+    // it might be missing (an in-flight session from before this field was
+    // widened into the store) falls back exactly like a fresh form would.
+    if (isEdit && inquiryDetails?.id) {
+      const country = inquiryDetails.country ?? defaultCountry;
+      const { dialCode, phone } = splitPhone(
+        inquiryDetails.phone,
+        COUNTRY_DIAL_CODE[country] ?? COUNTRY_DIAL_CODE[defaultCountry],
+      );
+      return {
+        name: inquiryDetails.name,
+        email: inquiryDetails.email,
+        phone,
+        dialCode,
+        country,
+        entityName: inquiryDetails.entityName,
+        financialYearEnd: inquiryDetails.financialYearEnd ?? fyEndFor(country),
+        transactionPlan: (inquiryDetails.transactionPlan ?? TRANSACTION_PLANS[0].value) as TransactionPlan,
+        addOnsConfirmed: (inquiryDetails.addOnsConfirmed ?? null) as YesNo,
+        trackingInventory: (inquiryDetails.trackingInventory ?? null) as YesNo,
+      };
+    }
     const country = defaultCountry;
     return {
       name: '',
@@ -223,6 +267,15 @@ const MigrationInfoPage: React.FC = () => {
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
+  // Set either up front (edit mode reached with no id/token to edit — a stale
+  // or cross-session link) or from a 409 mid-submit (already confirmed in
+  // another tab). Either way, editing is no longer possible — replace the
+  // form with a clear way out rather than leaving it looking submittable.
+  const [editBlocked, setEditBlocked] = useState<string | null>(() =>
+    isEdit && !(inquiryDetails?.id && inquiryDetails.editToken)
+      ? "We couldn't find your details to edit. Please go back to the summary and try again."
+      : null,
+  );
 
   // Both generic step-2 URLs render this same element, so React reuses the component
   // across a pair change and the form survives with whatever country was picked for the
@@ -242,6 +295,25 @@ const MigrationInfoPage: React.FC = () => {
   }, [countries, form.country]);
 
   if (!selectedPair) return <Navigate to="/" replace />;
+
+  if (editBlocked) {
+    return (
+      <div className="min-h-screen bg-bg animate-screen-enter">
+        <Navbar variant="migration" />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <MigrationJourney current={2} className="mb-8" />
+          <div className="bg-white border border-border rounded-2xl shadow-card p-6 sm:p-8 text-center">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Editing unavailable</h1>
+            <p className="mt-2 text-sm text-text-secondary">{editBlocked}</p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button variant="secondary" size="lg" onClick={() => navigate(backToSummaryUrl)}>Back to Summary</Button>
+              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>View your migrations</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
     setForm((p) => ({ ...p, [k]: v }));
@@ -287,6 +359,58 @@ const MigrationInfoPage: React.FC = () => {
     setSubmitting(true);
     // Dial code + national number, still one `phone` string on the wire.
     const phone = `${form.dialCode}${toNationalNumber(form.phone)}`;
+    const transactionPlan = isXeroToQbo ? form.transactionPlan : undefined;
+    const addOnsConfirmed = form.addOnsConfirmed ?? undefined;
+    const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
+
+    if (isEdit) {
+      // Guarded at render time too (see editBlocked) — this is the belt-and-
+      // braces check so a submit can never fall through to create() and
+      // produce a duplicate inquiry.
+      if (!inquiryDetails?.id || !inquiryDetails.editToken) {
+        setGlobalError("We couldn't find your details to save. Please go back to the summary and try again.");
+        setSubmitting(false);
+        return;
+      }
+      try {
+        await inquiryMigrationsService.update(inquiryDetails.id, inquiryDetails.editToken, {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone,
+          country: form.country,
+          entityName: form.entityName.trim(),
+          financialYearEnd: form.financialYearEnd,
+          transactionPlan,
+          addOnsConfirmed,
+          trackingInventory,
+        });
+
+        setInquiryDetails({
+          ...inquiryDetails,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone,
+          country: form.country,
+          entityName: form.entityName.trim(),
+          financialYearEnd: form.financialYearEnd,
+          transactionPlan,
+          addOnsConfirmed,
+          trackingInventory,
+        });
+
+        navigate(backToSummaryUrl);
+      } catch (err) {
+        if (err instanceof ApiError && err.statusCode === 409) {
+          setEditBlocked(err.message);
+        } else {
+          setGlobalError(err instanceof ApiError ? err.message : 'Could not save your details. Please try again.');
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     try {
       const created = await inquiryMigrationsService.create({
         name: form.name.trim(),
@@ -295,11 +419,9 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        ...(isXeroToQbo && form.transactionPlan ? { transactionPlan: form.transactionPlan } : {}),
-        ...(form.addOnsConfirmed !== null ? { addOnsConfirmed: form.addOnsConfirmed } : {}),
-        ...(asksTrackingInventory && form.trackingInventory !== null
-          ? { trackingInventory: form.trackingInventory }
-          : {}),
+        ...(transactionPlan ? { transactionPlan } : {}),
+        ...(addOnsConfirmed !== undefined ? { addOnsConfirmed } : {}),
+        ...(trackingInventory !== undefined ? { trackingInventory } : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
 
@@ -308,8 +430,13 @@ const MigrationInfoPage: React.FC = () => {
         name: form.name.trim(),
         email: form.email.trim(),
         phone,
+        country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
+        transactionPlan,
+        addOnsConfirmed,
+        trackingInventory,
+        editToken: created.editToken,
       });
 
       navigate('/migration/faq');
@@ -452,10 +579,16 @@ const MigrationInfoPage: React.FC = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {!entryLocked && (
-                <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/')}>Cancel</Button>
+              {isEdit ? (
+                <Button type="button" variant="secondary" size="lg" onClick={() => navigate(backToSummaryUrl)}>Back to Summary</Button>
+              ) : (
+                !entryLocked && (
+                  <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/')}>Cancel</Button>
+                )
               )}
-              <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>Continue to FAQ</Button>
+              <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>
+                {isEdit ? 'Save Changes' : 'Continue to FAQ'}
+              </Button>
             </div>
           </form>
         </div>

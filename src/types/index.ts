@@ -1,3 +1,5 @@
+import type { TransactionPlan } from '@/constants/transactionPlans';
+
 // ─── Platform & Migration Pair Types ────────────────────────────────────────
 
 export interface Pair {
@@ -92,6 +94,13 @@ export interface InquiryDetails {
   phone: string;
   entityName: string;
   financialYearEnd?: string;
+  country?: string;
+  transactionPlan?: TransactionPlan;
+  addOnsConfirmed?: boolean;
+  trackingInventory?: boolean;
+  /** Returned only from POST /inquiry-migrations. Sent solely as the PATCH
+   *  x-inquiry-edit-token header — never rendered, logged, or put in a URL. */
+  editToken?: string;
 }
 
 export interface AppState {

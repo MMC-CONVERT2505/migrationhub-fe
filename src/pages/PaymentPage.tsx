@@ -19,7 +19,11 @@ const PaymentPage: React.FC = () => {
   const selectedPlanId    = useAppStore((s) => s.selectedPlanId);
   const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
 
-  const isFree = selectedPair?.isFree ?? false;
+  // Whether the *pair* is globally marketed as free — drives page-level copy
+  // and which plan gets auto-selected. Kept separate from "is this specific
+  // checkout free" (below): a pair that isn't globally free can still carry
+  // a $0 plan alongside paid ones.
+  const pairIsFree = selectedPair?.isFree ?? false;
 
   // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
   const PLAN_ORDER = ['free', 'basic', 'standard', 'enterprise'];
@@ -31,6 +35,15 @@ const PaymentPage: React.FC = () => {
     return [...(selectedPair?.plans ?? [])].sort((a, b) => rank(a.name) - rank(b.name));
   }, [selectedPair]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
+  // The actual "does this checkout need payment" question: true whenever the
+  // pair is globally free, OR the specific plan the customer picked costs
+  // nothing — e.g. a promotional/free tier on an otherwise-paid pair.
+  // Razorpay refuses to process a zero-value payment link, so this plan must
+  // never reach PaymentForm/paymentsService.initiate() (see the backend's
+  // matching fix in MigrationService.create()'s payment gate).
+  const isFreeCheckout = pairIsFree || (selectedPlan != null && Number(selectedPlan.basePrice) === 0);
+
   const [autoCreating, setAutoCreating] = useState(false);
   const [autoError, setAutoError]       = useState('');
 
@@ -41,9 +54,9 @@ const PaymentPage: React.FC = () => {
     const valid = plans.some((p) => p.id === selectedPlanId);
     if (valid) return;
     const freePlan = plans.find((p) => p.name.trim().toLowerCase() === 'free');
-    const target = isFree && freePlan ? freePlan : plans[0];
+    const target = pairIsFree && freePlan ? freePlan : plans[0];
     setSelectedPlanId(target.id!);
-  }, [plans, isFree]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [plans, pairIsFree]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No plans attached → create a free migration immediately, skip UI.
   useEffect(() => {
@@ -138,7 +151,7 @@ const PaymentPage: React.FC = () => {
                   {selectedPair.src} → {selectedPair.dst} Migration
                 </div>
                 <div style={{ fontSize: 12.5, color: '#4b5568', marginTop: 3 }}>
-                  {isFree
+                  {pairIsFree
                     ? 'This migration is free — select a plan to choose your data scope'
                     : 'Select a plan and complete payment to begin your migration'}
                 </div>
@@ -156,7 +169,7 @@ const PaymentPage: React.FC = () => {
           {/* Left: plan list + order summary stacked */}
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>
-              {isFree ? 'Select Plan (Free)' : 'Select Migration Plan'}
+              {pairIsFree ? 'Select Plan (Free)' : 'Select Migration Plan'}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -167,7 +180,9 @@ const PaymentPage: React.FC = () => {
                   index={i}
                   selected={selectedPlanId === plan.id}
                   onSelect={setSelectedPlanId}
-                  isFree={isFree}
+                  // Per-card, not page-wide: a pair can mix a $0 plan with paid
+                  // ones, and each card must show its own real price/Free tag.
+                  isFree={pairIsFree || Number(plan.basePrice) === 0}
                 />
               ))}
             </div>
@@ -182,7 +197,7 @@ const PaymentPage: React.FC = () => {
               <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ padding: '16px 22px', borderBottom: '1px solid #dce2ef', background: '#f0f4fa' }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                    {isFree ? 'Ready to Start' : 'Payment Details'}
+                    {pairIsFree ? 'Ready to Start' : 'Payment Details'}
                   </h3>
                   <p style={{ fontSize: 12, color: '#4b5568', marginTop: 2 }}>
                     Select a plan on the left to continue
@@ -200,11 +215,11 @@ const PaymentPage: React.FC = () => {
                   <p style={{ fontSize: 13, fontWeight: 600, color: '#4b5568' }}>Select a plan to continue</p>
                   <p style={{ fontSize: 12, color: '#9ba3b8', marginTop: 5, lineHeight: 1.5 }}>
                     Choose one of the plans on the left to{' '}
-                    {isFree ? 'start your free migration.' : 'proceed to payment.'}
+                    {pairIsFree ? 'start your free migration.' : 'proceed to payment.'}
                   </p>
                 </div>
               </div>
-            ) : isFree ? (
+            ) : isFreeCheckout ? (
               <FreeMigrationForm />
             ) : (
               <PaymentForm />

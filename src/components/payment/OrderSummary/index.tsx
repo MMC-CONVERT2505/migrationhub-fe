@@ -23,8 +23,10 @@ export const OrderSummary: React.FC = () => {
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
 
   const pair = selectedPair;
-  const isFree = pair?.isFree ?? false;
   const plan = pair?.plans.find((p) => p.id === selectedPlanId) ?? null;
+  // A pair not globally flagged free can still carry a $0 plan — the total
+  // due must read "Free" for that selection regardless of the pair's flag.
+  const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
 
   // Migration date range derived from the customer's financial-year-end + the
   // plan's coverage — mirrors what the backend stores at migration creation.

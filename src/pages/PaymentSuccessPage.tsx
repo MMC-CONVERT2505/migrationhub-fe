@@ -47,7 +47,9 @@ const PaymentSuccessPage: React.FC = () => {
     () => useAppStore.getState().inquiryDetails?.financialYearEnd ?? null,
   );
 
-  const isFree = pair?.isFree ?? false;
+  // A pair not globally flagged free can still carry a $0 plan — this page
+  // must read "free" for that selection too (no "Amount paid: $0.00 USD").
+  const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
 
   // Migration period derived from the FY end + plan coverage — mirrors the
   // checkout order summary and the range the backend stored at creation.

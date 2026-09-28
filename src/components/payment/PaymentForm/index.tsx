@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/utils/format';
 import { paymentsService } from '@/api/payments';
 import { ApiError } from '@/api/client';
@@ -56,6 +57,7 @@ const ReadonlyValue: React.FC<{ value?: string | null; placeholder?: string }> =
   );
 
 export const PaymentForm: React.FC = () => {
+  const navigate = useNavigate();
   const selectedPair = useAppStore((s) => s.selectedPair);
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
   const setPendingMigration = useAppStore((s) => s.setPendingMigration);
@@ -76,11 +78,22 @@ export const PaymentForm: React.FC = () => {
       return;
     }
 
+    const amount = Math.round(parseFloat(String(plan.basePrice)) * 100);
+
+    // Defense in depth: this form shouldn't normally render for a $0 plan
+    // (PaymentPage routes those to FreeMigrationForm instead), but Razorpay
+    // refuses to process a zero-value payment link either way — if this is
+    // ever reached for one anyway, follow the free-migration path rather
+    // than sending an invalid amount.
+    if (amount <= 0) {
+      navigate('/payment/success');
+      return;
+    }
+
     setProcessing(true);
     try {
       const migrationPairId = String(selectedPair.id);
       const planId = plan.id;
-      const amount = Math.round(parseFloat(String(plan.basePrice)) * 100);
 
       const res = await paymentsService.initiate({
         amount,

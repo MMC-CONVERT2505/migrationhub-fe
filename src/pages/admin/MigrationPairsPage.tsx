@@ -118,6 +118,7 @@ interface PairFormFields {
   isActive: boolean;
   isMaintenance: boolean;
   isFree: boolean;
+  enquiryEmails: string[];
   sourceLogoId: number | null;
   destinationLogoId: number | null;
 }
@@ -150,6 +151,91 @@ const LogoSelect: React.FC<{
           ))}
         </select>
       </div>
+    </Field>
+  );
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_ENQUIRY_EMAILS = 20;
+
+/**
+ * Chip-style multi-email input. Splits on comma/whitespace/newline so pasting
+ * a whole team list at once works, not just one-at-a-time typing. Mirrors the
+ * backend's own normalize+validate rules (trim, lowercase, de-dupe, reject a
+ * malformed address instead of silently dropping it) so what the admin sees
+ * here always matches what will actually be saved.
+ */
+const EmailListInput: React.FC<{
+  values: string[];
+  onChange: (emails: string[]) => void;
+}> = ({ values, onChange }) => {
+  const [draft, setDraft] = useState('');
+  const [err, setErr] = useState('');
+
+  const addCandidates = (raw: string) => {
+    const candidates = raw.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+    if (candidates.length === 0) return;
+
+    const next = [...values];
+    for (const email of candidates) {
+      if (!EMAIL_RE.test(email)) {
+        setErr(`"${email}" doesn't look like a valid email address.`);
+        return;
+      }
+      if (next.length >= MAX_ENQUIRY_EMAILS) {
+        setErr(`Up to ${MAX_ENQUIRY_EMAILS} addresses.`);
+        return;
+      }
+      if (!next.includes(email)) next.push(email);
+    }
+    setErr('');
+    setDraft('');
+    onChange(next);
+  };
+
+  const remove = (email: string) => onChange(values.filter((v) => v !== email));
+
+  return (
+    <Field
+      label="Enquiry emails"
+      hint={`Who gets notified for this pair (e.g. "Ask MMC to Review" requests). Press Enter or paste a list — up to ${MAX_ENQUIRY_EMAILS}.`}
+    >
+      <div className="flex flex-wrap gap-1.5 mb-1.5">
+        {values.map((email) => (
+          <span
+            key={email}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-bg-light border border-border rounded-full text-text-primary"
+          >
+            {email}
+            <button
+              type="button"
+              onClick={() => remove(email)}
+              aria-label={`Remove ${email}`}
+              className="text-text-tertiary hover:text-red-600 transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        ))}
+      </div>
+      <input
+        className={inputCls}
+        value={draft}
+        onChange={(e) => { setDraft(e.target.value); if (err) setErr(''); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addCandidates(draft); }
+        }}
+        onBlur={() => draft.trim() && addCandidates(draft)}
+        onPaste={(e) => {
+          const text = e.clipboardData.getData('text');
+          if (/[\s,;]/.test(text)) { e.preventDefault(); addCandidates(text); }
+        }}
+        placeholder={values.length >= MAX_ENQUIRY_EMAILS ? `Maximum ${MAX_ENQUIRY_EMAILS} reached` : 'ops@example.com'}
+        disabled={values.length >= MAX_ENQUIRY_EMAILS}
+      />
+      {err && <p className="text-[11px] text-red-600 mt-1">{err}</p>}
     </Field>
   );
 };
@@ -294,6 +380,14 @@ const PairFormBody: React.FC<{
           description="Skip the payment step — users can start migrating at no charge."
         />
       </div>
+
+      {/* Enquiry emails */}
+      <div className="pt-4 border-t border-border">
+        <EmailListInput
+          values={values.enquiryEmails}
+          onChange={(enquiryEmails) => onChange({ enquiryEmails })}
+        />
+      </div>
     </div>
   );
 };
@@ -416,7 +510,7 @@ const MigrationPairsPage: React.FC = () => {
     serviceUrl: '', fallbackServiceUrl: '',
     apiVersion: 'v1', healthCheckPath: '/health',
     environment: 'PRODUCTION', isActive: true,
-    isMaintenance: false, isFree: false,
+    isMaintenance: false, isFree: false, enquiryEmails: [],
     sourceLogoId: null, destinationLogoId: null,
   });
 
@@ -455,7 +549,7 @@ const MigrationPairsPage: React.FC = () => {
       serviceUrl: '', fallbackServiceUrl: '',
       apiVersion: 'v1', healthCheckPath: '/health',
       environment: 'PRODUCTION', isActive: true,
-      isMaintenance: false, isFree: false,
+      isMaintenance: false, isFree: false, enquiryEmails: [],
       sourceLogoId: null, destinationLogoId: null,
     });
     setFormError('');
@@ -478,6 +572,7 @@ const MigrationPairsPage: React.FC = () => {
         environment:        createForm.environment,
         isActive:           createForm.isActive,
         isFree:             createForm.isFree,
+        enquiryEmails:      createForm.enquiryEmails,
         sourceLogoId:       createForm.sourceLogoId,
         destinationLogoId:  createForm.destinationLogoId,
       };
@@ -506,6 +601,7 @@ const MigrationPairsPage: React.FC = () => {
       isActive:           pair.isActive,
       isMaintenance:      pair.isMaintenance,
       isFree:             pair.isFree ?? false,
+      enquiryEmails:      pair.enquiryEmails ?? [],
       sourceLogoId:       pair.sourceLogoId ?? null,
       destinationLogoId:  pair.destinationLogoId ?? null,
     });
@@ -538,6 +634,7 @@ const MigrationPairsPage: React.FC = () => {
         isActive:           editForm.isActive,
         isMaintenance:      editForm.isMaintenance,
         isFree:             editForm.isFree,
+        enquiryEmails:      editForm.enquiryEmails,
         sourceLogoId:       editForm.sourceLogoId,
         destinationLogoId:  editForm.destinationLogoId,
       };

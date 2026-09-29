@@ -465,6 +465,8 @@ export interface MigrationPairEntity {
   isActive: boolean;
   isMaintenance: boolean;
   isFree: boolean;
+  /** Who to notify for this pair (e.g. "Ask MMC to Review" requests). */
+  enquiryEmails: string[];
   plans: ApiPlan[];
   sourceLogoId: number | null;
   destinationLogoId: number | null;
@@ -487,6 +489,7 @@ export interface CreateMigrationPairRequest {
   environment?: MigrationEnvironment;
   isActive?: boolean;
   isFree?: boolean;
+  enquiryEmails?: string[];
   planIds?: string[];
   sourceLogoId?: number | null;
   destinationLogoId?: number | null;
@@ -514,6 +517,7 @@ export interface UpdateMigrationPairRequest {
   isActive?: boolean;
   isMaintenance?: boolean;
   isFree?: boolean;
+  enquiryEmails?: string[];
   sourceLogoId?: number | null;
   destinationLogoId?: number | null;
 }

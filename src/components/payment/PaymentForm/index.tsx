@@ -86,6 +86,11 @@ export const PaymentForm: React.FC = () => {
     // ever reached for one anyway, follow the free-migration path rather
     // than sending an invalid amount.
     if (amount <= 0) {
+      setPendingMigration({
+        migrationPairId: String(selectedPair.id),
+        planId: plan.id,
+        ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
+      });
       navigate('/payment/success');
       return;
     }

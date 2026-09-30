@@ -14,6 +14,15 @@ import type { PendingMigration } from '@/types';
 const COUNTDOWN = 5;
 type Stage = 'summary' | 'creating' | 'done' | 'error';
 
+function readPendingMigration(): PendingMigration | null {
+  try {
+    const raw = localStorage.getItem(PENDING_MIGRATION_LS_KEY);
+    return raw ? (JSON.parse(raw) as PendingMigration) : null;
+  } catch {
+    return null; // malformed — treat the same as absent
+  }
+}
+
 const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div style={{
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -46,6 +55,22 @@ const PaymentSuccessPage: React.FC = () => {
   const [financialYearEnd] = useState(
     () => useAppStore.getState().inquiryDetails?.financialYearEnd ?? null,
   );
+  // Snapshot localStorage pending-migration once too — read at the top level
+  // (rather than only inside triggerCreate) so we can tell up front whether
+  // this page has enough context to create anything at all.
+  const [pending] = useState(readPendingMigration);
+
+  // Paid: prefer localStorage (survives the Razorpay redirect).
+  // Free / $0-plan: fall back to the snapshotted pair/plan.
+  const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
+  const planId = pending?.planId ?? plan?.id ?? undefined;
+  const resolvedInquiryId = pending?.inquiryId ?? inquiryId ?? undefined;
+
+  // A bare/direct load — no Razorpay paymentId in the URL, no pending
+  // migration in localStorage, no live pair/plan selection in the session
+  // store — can never produce a valid create-migration request. Fail fast
+  // client-side instead of firing a POST that's guaranteed to 400.
+  const canCreate = Boolean(paymentId) || Boolean(migPairId);
 
   // A pair not globally flagged free can still carry a $0 plan — this page
   // must read "free" for that selection too (no "Amount paid: $0.00 USD").
@@ -73,21 +98,9 @@ const PaymentSuccessPage: React.FC = () => {
 
   // ── Create migration (called by countdown or "Start now" button) ──────────
   const triggerCreate = useCallback(async () => {
-    if (calledRef.current) return;
+    if (calledRef.current || !canCreate) return;
     calledRef.current = true;
     setStage('creating');
-
-    let pending: PendingMigration | null = null;
-    try {
-      const raw = localStorage.getItem(PENDING_MIGRATION_LS_KEY);
-      if (raw) pending = JSON.parse(raw) as PendingMigration;
-    } catch { /* malformed */ }
-
-    // Paid: prefer localStorage (survives Razorpay redirect).
-    // Free: fall back to snapshotted pair/plan.
-    const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
-    const planId = pending?.planId ?? plan?.id ?? undefined;
-    const resolvedInquiryId = pending?.inquiryId ?? inquiryId ?? undefined;
 
     try {
       const result = await migrationsService.create({
@@ -128,7 +141,7 @@ const PaymentSuccessPage: React.FC = () => {
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [paymentId, pair, plan, inquiryId, resetMigration]);
+  }, [canCreate, paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration]);
 
   // ── Countdown — only once the customer has clicked Confirm ─────────────────
   useEffect(() => {
@@ -164,8 +177,38 @@ const PaymentSuccessPage: React.FC = () => {
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 24px 80px' }}>
 
+        {/* ── No usable context — bare/stale load, nothing to summarize ───── */}
+        {!canCreate && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', background: '#fee2e2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+            }}>
+              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#dc2626" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+              We couldn&rsquo;t find your migration details
+            </h2>
+            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
+              This page needs to be reached from checkout — please start again from the migration pair you want to set up.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: '#2563eb', color: '#fff', border: 'none',
+                borderRadius: 8, padding: '11px 24px', fontSize: 14,
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Back to home
+            </button>
+          </div>
+        )}
+
         {/* ── Summary + countdown / creating ─────────────────────────────── */}
-        {(stage === 'summary' || stage === 'creating') && (
+        {canCreate && (stage === 'summary' || stage === 'creating') && (
           <>
             {/* Heading */}
             <div style={{ textAlign: 'center', marginBottom: 32 }}>

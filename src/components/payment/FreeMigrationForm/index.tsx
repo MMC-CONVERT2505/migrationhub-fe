@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
 
 export const FreeMigrationForm: React.FC = () => {
-  const navigate       = useNavigate();
-  const selectedPair   = useAppStore((s) => s.selectedPair);
-  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
+  const navigate           = useNavigate();
+  const selectedPair       = useAppStore((s) => s.selectedPair);
+  const selectedPlanId     = useAppStore((s) => s.selectedPlanId);
+  const inquiryDetails     = useAppStore((s) => s.inquiryDetails);
+  const setPendingMigration = useAppStore((s) => s.setPendingMigration);
 
   const [error, setError] = useState('');
 
@@ -16,6 +18,15 @@ export const FreeMigrationForm: React.FC = () => {
       setError('Migration pair or plan is missing. Please go back and try again.');
       return;
     }
+    // Persist to localStorage (not just the in-memory/sessionStorage store) so
+    // /payment/success can build a valid create-migration request even if it
+    // loads in a context where the live store snapshot isn't available —
+    // mirrors what PaymentForm already does before its Razorpay redirect.
+    setPendingMigration({
+      migrationPairId: String(selectedPair.id),
+      planId: selectedPlanId,
+      ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
+    });
     navigate('/payment/success');
   };
 

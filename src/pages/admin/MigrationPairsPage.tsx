@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { plansService } from '@/api/plans';
 import { bannersService } from '@/api/banners';
+import { migrationPersonIpService } from '@/api/migrationPersonIp';
 import { ApiError } from '@/api/client';
 import { extractList, normalizePlatform } from '@/utils/platformMap';
 import type {
@@ -12,6 +13,7 @@ import type {
   CreateMigrationPairRequest,
   UpdateMigrationPairRequest,
   MigrationEnvironment,
+  MigrationPersonIpMappingEntity,
 } from '@/types/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -121,6 +123,7 @@ interface PairFormFields {
   enquiryEmails: string[];
   sourceLogoId: number | null;
   destinationLogoId: number | null;
+  migrationPersonMachineMappingId: string | null;
 }
 
 const LogoSelect: React.FC<{
@@ -244,9 +247,10 @@ const PairFormBody: React.FC<{
   values: PairFormFields;
   onChange: (patch: Partial<PairFormFields>) => void;
   logos: BannerEntity[];
+  mappings: MigrationPersonIpMappingEntity[];
   sourceReadOnly?: boolean;
   destinationReadOnly?: boolean;
-}> = ({ values, onChange, logos, sourceReadOnly = false, destinationReadOnly = false }) => {
+}> = ({ values, onChange, logos, mappings, sourceReadOnly = false, destinationReadOnly = false }) => {
   const handleSourceChange = (src: string) => {
     const auto = autoDisplayName(src, values.destination);
     onChange({ source: src, displayName: auto });
@@ -340,6 +344,27 @@ const PairFormBody: React.FC<{
           onChange={(e) => onChange({ environment: e.target.value as MigrationEnvironment })}
         >
           {ENV_OPTIONS.map((env) => <option key={env} value={env}>{env}</option>)}
+        </select>
+      </Field>
+
+      {/* Default person/machine-IP mapping — attributed to this pair's migrations */}
+      <Field
+        label="Person & Machine IP mapping"
+        hint="Who to attribute this pair's migrations to, and which machine — used for the audit trail."
+      >
+        <select
+          className={inputCls}
+          value={values.migrationPersonMachineMappingId ?? ''}
+          onChange={(e) =>
+            onChange({ migrationPersonMachineMappingId: e.target.value || null })
+          }
+        >
+          <option value="">— None —</option>
+          {mappings.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name} — {m.email} — {m.machineIp}
+            </option>
+          ))}
         </select>
       </Field>
 
@@ -512,6 +537,7 @@ const MigrationPairsPage: React.FC = () => {
     environment: 'PRODUCTION', isActive: true,
     isMaintenance: false, isFree: false, enquiryEmails: [],
     sourceLogoId: null, destinationLogoId: null,
+    migrationPersonMachineMappingId: null,
   });
 
   const [editForm, setEditForm]   = useState<PairFormFields | null>(null);
@@ -519,19 +545,22 @@ const MigrationPairsPage: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<ApiPlan[]>([]);
   const [toolLogos, setToolLogos] = useState<BannerEntity[]>([]);
+  const [mappings, setMappings] = useState<MigrationPersonIpMappingEntity[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [pairsRes, plansRes, logosRes] = await Promise.all([
+      const [pairsRes, plansRes, logosRes, mappingsRes] = await Promise.all([
         migrationPairsService.list({ limit: 100 } as any),
         plansService.list(),
         bannersService.list({ type: 'ToolLogo', take: 200 }),
+        migrationPersonIpService.list({ isActive: true, take: 200 }),
       ]);
       setPairs(extractList<MigrationPairEntity>(pairsRes));
       setAvailablePlans(extractList<ApiPlan>(plansRes));
       setToolLogos(extractList<BannerEntity>(logosRes));
+      setMappings(extractList<MigrationPersonIpMappingEntity>(mappingsRes));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load migration pairs.');
     } finally {
@@ -551,6 +580,7 @@ const MigrationPairsPage: React.FC = () => {
       environment: 'PRODUCTION', isActive: true,
       isMaintenance: false, isFree: false, enquiryEmails: [],
       sourceLogoId: null, destinationLogoId: null,
+      migrationPersonMachineMappingId: null,
     });
     setFormError('');
     setCreateOpen(true);
@@ -575,6 +605,7 @@ const MigrationPairsPage: React.FC = () => {
         enquiryEmails:      createForm.enquiryEmails,
         sourceLogoId:       createForm.sourceLogoId,
         destinationLogoId:  createForm.destinationLogoId,
+        migrationPersonMachineMappingId: createForm.migrationPersonMachineMappingId ?? undefined,
       };
       await migrationPairsService.create(payload);
       setCreateOpen(false);
@@ -604,6 +635,7 @@ const MigrationPairsPage: React.FC = () => {
       enquiryEmails:      pair.enquiryEmails ?? [],
       sourceLogoId:       pair.sourceLogoId ?? null,
       destinationLogoId:  pair.destinationLogoId ?? null,
+      migrationPersonMachineMappingId: pair.migrationPersonMachineMappingId ?? null,
     });
     setEditTarget(pair);
     setFormError('');
@@ -637,6 +669,7 @@ const MigrationPairsPage: React.FC = () => {
         enquiryEmails:      editForm.enquiryEmails,
         sourceLogoId:       editForm.sourceLogoId,
         destinationLogoId:  editForm.destinationLogoId,
+        migrationPersonMachineMappingId: editForm.migrationPersonMachineMappingId,
       };
       await migrationPairsService.update(editTarget.id, payload);
       setEditTarget(null);
@@ -794,6 +827,7 @@ const MigrationPairsPage: React.FC = () => {
               values={createForm}
               onChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
               logos={toolLogos}
+              mappings={mappings}
             />
             <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
@@ -818,6 +852,7 @@ const MigrationPairsPage: React.FC = () => {
               values={editForm}
               onChange={(patch) => setEditForm((f) => f ? { ...f, ...patch } : f)}
               logos={toolLogos}
+              mappings={mappings}
             />
             <PlanManager
               pairId={editTarget.id}

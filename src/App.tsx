@@ -47,6 +47,8 @@ const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
 const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
 const FaqsPage            = React.lazy(() => import('@/pages/admin/FaqsPage'));
 const FaqFormPage         = React.lazy(() => import('@/pages/admin/FaqFormPage'));
+const MigrationPersonIpPage     = React.lazy(() => import('@/pages/admin/MigrationPersonIpPage'));
+const MigrationPersonIpFormPage = React.lazy(() => import('@/pages/admin/MigrationPersonIpFormPage'));
 
 /** Legacy step-2 URL: send it to the pair-scoped one so old links and bookmarks
  *  keep working, and so an unresolvable visit still leaves via the homepage. */
@@ -108,6 +110,9 @@ const App: React.FC = () => (
           <Route path="faqs"             element={<FaqsPage />} />
           <Route path="faqs/new"         element={<FaqFormPage />} />
           <Route path="faqs/:id"         element={<FaqFormPage />} />
+          <Route path="migration-person-ip"      element={<MigrationPersonIpPage />} />
+          <Route path="migration-person-ip/new"  element={<MigrationPersonIpFormPage />} />
+          <Route path="migration-person-ip/:id"  element={<MigrationPersonIpFormPage />} />
           <Route path="plans"            element={<PlansPage />} />
           <Route path="audit"            element={<AuditPage />} />
           <Route path="contacts"         element={<ContactsPage />} />

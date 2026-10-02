@@ -290,6 +290,9 @@ export interface MigrationRecord {
     serviceUrl?: string;
     fallbackServiceUrl?: string | null;
   };
+  /** Audit trail: operator machine this migration ran from, resolved server-side at creation. */
+  machineIp?: string | null;
+  migrationPersonMachineMapping?: MigrationPersonIpMappingSummary | null;
 }
 
 export type MigrationStatus =
@@ -353,6 +356,7 @@ export interface UserMigration {
     destination: string;
     displayName: string;
     isFree: boolean;
+    serviceUrl?: string;
   };
   plan: {
     id: string;
@@ -365,6 +369,9 @@ export interface UserMigration {
     popular: boolean;
   };
   connectors: unknown[];
+  /** Audit trail: operator machine this migration ran from, resolved server-side at creation. */
+  machineIp?: string | null;
+  migrationPersonMachineMapping?: MigrationPersonIpMappingSummary | null;
   /** Present on single-migration fetches (`getById`); absent on list. */
   journey?: JourneyStage[];
 }
@@ -472,6 +479,9 @@ export interface MigrationPairEntity {
   destinationLogoId: number | null;
   sourceLogo: PairLogo | null;
   destinationLogo: PairLogo | null;
+  /** Default person/machine-IP mapping attributed to this pair's migrations (audit trail). */
+  migrationPersonMachineMappingId: string | null;
+  migrationPersonMachineMapping: MigrationPersonIpMappingSummary | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -493,6 +503,7 @@ export interface CreateMigrationPairRequest {
   planIds?: string[];
   sourceLogoId?: number | null;
   destinationLogoId?: number | null;
+  migrationPersonMachineMappingId?: string;
 }
 
 export interface ListMigrationPairsQuery {
@@ -520,6 +531,7 @@ export interface UpdateMigrationPairRequest {
   enquiryEmails?: string[];
   sourceLogoId?: number | null;
   destinationLogoId?: number | null;
+  migrationPersonMachineMappingId?: string | null;
 }
 
 // ─── Banners (incl. tool / home logos) ─────────────────────────────────────────
@@ -773,6 +785,42 @@ export type UpdateFaqRequest = Partial<CreateFaqRequest>;
 export interface ListFaqsQuery {
   migrationPairId?: string;
   status?: FaqStatus;
+  skip?: number;
+  take?: number;
+}
+
+// ─── Migration Person & Machine IP Mapping ─────────────────────────────────────
+
+/** Lightweight shape nested under a migration / migration pair for audit display. */
+export interface MigrationPersonIpMappingSummary {
+  id: string;
+  name: string;
+  email: string;
+  machineIp: string;
+}
+
+export interface MigrationPersonIpMappingEntity {
+  id: string;
+  name: string;
+  email: string;
+  machineIp: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMigrationPersonIpMappingRequest {
+  name: string;
+  email: string;
+  machineIp: string;
+  isActive?: boolean;
+}
+
+export type UpdateMigrationPersonIpMappingRequest =
+  Partial<CreateMigrationPersonIpMappingRequest>;
+
+export interface ListMigrationPersonIpMappingsQuery {
+  isActive?: boolean;
   skip?: number;
   take?: number;
 }

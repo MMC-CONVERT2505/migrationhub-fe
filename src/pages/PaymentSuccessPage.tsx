@@ -10,9 +10,10 @@ import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financia
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { pairDetailsPath } from '@/utils/platformMap';
 import type { PendingMigration } from '@/types';
+import type { UserMigration } from '@/types/api';
 
 const COUNTDOWN = 5;
-type Stage = 'summary' | 'creating' | 'done' | 'error';
+type Stage = 'summary' | 'creating' | 'done' | 'error' | 'loading-existing' | 'already-created';
 
 function readPendingMigration(): PendingMigration | null {
   try {
@@ -21,6 +22,18 @@ function readPendingMigration(): PendingMigration | null {
   } catch {
     return null; // malformed — treat the same as absent
   }
+}
+
+// Shared by the just-created redirect and the already-created recovery view
+// (reached via migrationId in the URL) so both build the same handoff URL.
+function buildToolRedirectUrl(migrationId: string, serviceUrl?: string | null): string | null {
+  const base = serviceUrl?.replace(/\/+$/, '') ?? null;
+  if (!base) return null;
+  const params = new URLSearchParams({
+    migrationId: String(migrationId),
+    journeyStep: String(HANDOFF_STEP),
+  });
+  return `${base}?${params.toString()}`;
 }
 
 const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -37,6 +50,11 @@ const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paymentId = searchParams.get('paymentId') ?? '';
+  // Stamped into the URL (replacing history) right after a successful create
+  // — see triggerCreate. Lets a browser-back from the handoff redirect (or a
+  // reload) show that migration's own summary instead of trying to create a
+  // second one from session state that's already been reset.
+  const [existingMigrationId] = useState(() => searchParams.get('migrationId'));
 
   const resetMigration = useAppStore((s) => s.resetMigration);
 
@@ -66,11 +84,12 @@ const PaymentSuccessPage: React.FC = () => {
   const planId = pending?.planId ?? plan?.id ?? undefined;
   const resolvedInquiryId = pending?.inquiryId ?? inquiryId ?? undefined;
 
-  // A bare/direct load — no Razorpay paymentId in the URL, no pending
-  // migration in localStorage, no live pair/plan selection in the session
-  // store — can never produce a valid create-migration request. Fail fast
-  // client-side instead of firing a POST that's guaranteed to 400.
-  const canCreate = Boolean(paymentId) || Boolean(migPairId);
+  // A bare/direct load — no migrationId for an already-created migration, no
+  // Razorpay paymentId in the URL, no pending migration in localStorage, no
+  // live pair/plan selection in the session store — can never produce a
+  // valid create-migration request. Fail fast client-side instead of firing
+  // a POST that's guaranteed to 400.
+  const canCreate = !existingMigrationId && (Boolean(paymentId) || Boolean(migPairId));
 
   // A pair not globally flagged free can still carry a $0 plan — this page
   // must read "free" for that selection too (no "Amount paid: $0.00 USD").
@@ -84,13 +103,35 @@ const PaymentSuccessPage: React.FC = () => {
       )
     : null;
 
-  const [stage, setStage] = useState<Stage>('summary');
+  const [stage, setStage] = useState<Stage>(existingMigrationId ? 'loading-existing' : 'summary');
   const [tick, setTick] = useState(COUNTDOWN);
   const [apiError, setApiError] = useState('');
+  const [existingMigration, setExistingMigration] = useState<UserMigration | null>(null);
   const calledRef = useRef(false);
   // Gate on an explicit Confirm click rather than mount — the customer must
   // get a chance to Edit before anything starts ticking down.
   const [confirmed, setConfirmed] = useState(false);
+
+  // ── Load an already-created migration instead of creating a new one ───────
+  const loadExisting = useCallback((id: string) => {
+    setApiError('');
+    setStage('loading-existing');
+    migrationsService
+      .getById(id)
+      .then((m) => {
+        setExistingMigration(m);
+        setStage('already-created');
+      })
+      .catch((err) => {
+        setApiError(err instanceof ApiError ? err.message : 'That migration could not be found.');
+        setStage('error');
+      });
+  }, []);
+
+  useEffect(() => {
+    if (existingMigrationId) loadExisting(existingMigrationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const editUrl = pair
     ? `${pairDetailsPath(pair)}?edit=1${paymentId ? `&paymentId=${encodeURIComponent(paymentId)}` : ''}`
@@ -113,26 +154,24 @@ const PaymentSuccessPage: React.FC = () => {
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
       resetMigration();
 
+      // Stamp the created id into this page's own URL (replacing history, not
+      // pushing) before leaving — resetMigration() just wiped the session
+      // state this page was built from, so a later browser-back (from the
+      // handoff redirect below) needs the URL itself to recover this
+      // migration's details instead of landing on a blank slate.
+      const migrationId = result.id;
+      navigate(`/payment/success?migrationId=${migrationId}`, { replace: true });
+
       // Redirect to the migration tool — serviceUrl comes from the nested
       // migrationPair in the response; fall back to the snapshotted pair URL.
-      const migrationId = result.id;
       const serviceUrl = result.migrationPair?.serviceUrl
         ?? result.migrationPair?.fallbackServiceUrl
         ?? pair?.toolUrl
         ?? null;
+      const redirectUrl = buildToolRedirectUrl(migrationId, serviceUrl);
 
-      // Build redirect: strip trailing slash, then pass the migration ID and the
-      // journey step the remote tool should resume from ("Connect Source") as
-      // named query params. The remote React app reads them via
-      // useSearchParams().get('migrationId') / get('journeyStep').
-      const base = serviceUrl?.replace(/\/+$/, '') ?? null;
-
-      if (base && migrationId) {
-        const params = new URLSearchParams({
-          migrationId: String(migrationId),
-          journeyStep: String(HANDOFF_STEP),
-        });
-        window.location.href = `${base}?${params.toString()}`;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       } else {
         setStage('done');
       }
@@ -141,7 +180,7 @@ const PaymentSuccessPage: React.FC = () => {
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [canCreate, paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration]);
+  }, [canCreate, paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration, navigate]);
 
   // ── Countdown — only once the customer has clicked Confirm ─────────────────
   useEffect(() => {
@@ -159,6 +198,10 @@ const PaymentSuccessPage: React.FC = () => {
   }, [stage, navigate]);
 
   const retry = () => {
+    if (existingMigrationId) {
+      loadExisting(existingMigrationId);
+      return;
+    }
     calledRef.current = false;
     setApiError('');
     setTick(COUNTDOWN);
@@ -178,7 +221,7 @@ const PaymentSuccessPage: React.FC = () => {
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* ── No usable context — bare/stale load, nothing to summarize ───── */}
-        {!canCreate && (
+        {!canCreate && !existingMigrationId && (
           <div style={{ textAlign: 'center' }}>
             <div style={{
               width: 64, height: 64, borderRadius: '50%', background: '#fee2e2',
@@ -204,6 +247,53 @@ const PaymentSuccessPage: React.FC = () => {
             >
               Back to home
             </button>
+          </div>
+        )}
+
+        {/* ── Loading an already-created migration ─────────────────────────── */}
+        {stage === 'loading-existing' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '60px 0' }}>
+            <div className="animate-spin" style={{
+              width: 20, height: 20,
+              border: '2.5px solid #dce2ef', borderTopColor: '#2563eb',
+              borderRadius: '50%',
+            }} />
+            <p style={{ fontSize: 13, color: '#4b5568' }}>Loading your migration…</p>
+          </div>
+        )}
+
+        {/* ── Already created — reached via back/reload, not a new checkout ── */}
+        {stage === 'already-created' && existingMigration && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%', background: '#dbeafe',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+            }}>
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#2563eb" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+              This migration is already started
+            </h1>
+            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
+              {existingMigration.migrationPair.displayName} · {existingMigration.plan.name} plan
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  const url = buildToolRedirectUrl(existingMigration.id, existingMigration.migrationPair.serviceUrl);
+                  if (url) { window.location.href = url; } else { navigate('/migrations'); }
+                }}
+                style={{
+                  background: '#2563eb', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
+                  fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Continue migration →
+              </button>
+            </div>
           </div>
         )}
 
@@ -417,7 +507,7 @@ const PaymentSuccessPage: React.FC = () => {
               </svg>
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
-              Migration could not be started
+              {existingMigrationId ? 'This migration could not be loaded' : 'Migration could not be started'}
             </h2>
             <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>{apiError}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>

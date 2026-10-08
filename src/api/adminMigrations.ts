@@ -40,6 +40,16 @@ export interface MigrationCustomer {
   country: string | null;
 }
 
+/** Who ran the migration: an Operation Team member signed in at /login/op-team, otherwise a guest. */
+export interface MigrationRunner {
+  type: 'GUEST' | 'OP_TEAM';
+  id: number | null;
+  name: string;
+  email: string | null;
+  /** The operator's account no longer exists; name/email are the creation-time snapshot. */
+  removed: boolean;
+}
+
 export interface AdminMigrationListItem {
   id: string;
   status: MigrationStatus;
@@ -53,6 +63,7 @@ export interface AdminMigrationListItem {
   migrationPair: AdminMigrationPair;
   user: { email: string | null; firstname: string; lastname: string } | null;
   customer: MigrationCustomer;
+  runner: MigrationRunner;
   plan: { name: string } | null;
   /** Karbon mirror state — null when the integration has never run for this row. */
   karbonWorkItem: KarbonWorkItemSummary | null;

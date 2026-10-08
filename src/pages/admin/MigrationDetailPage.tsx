@@ -280,6 +280,14 @@ const MigrationDetailPage: React.FC = () => {
             <dl className="space-y-2.5 text-sm">
               <Row label="Customer" value={m.customer.name ?? m.customer.email ?? 'Anonymous'} />
               {m.customer.email && m.customer.name && <Row label="Email" value={m.customer.email} />}
+              <Row
+                label="Migration runner"
+                value={
+                  m.runner?.type === 'OP_TEAM'
+                    ? `${m.runner.name} (Operation Team${m.runner.removed ? ', removed' : ''})`
+                    : 'Guest'
+                }
+              />
               <Row label="Plan" value={m.plan?.name ?? '—'} />
               <Row label="Remote job" value={m.remoteJobId ?? '—'} mono />
               <Row label="Created" value={fmt(m.createdAt)} />

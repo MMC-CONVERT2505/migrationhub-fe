@@ -139,7 +139,7 @@ const MigrationsPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Migration', 'Customer', 'Status', 'Karbon', 'Progress', 'Created', ''].map((h) => (
+                {['Migration', 'Customer', 'Migration runner', 'Status', 'Karbon', 'Progress', 'Created', ''].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -150,14 +150,14 @@ const MigrationsPage: React.FC = () => {
               {loading ? (
                 Array(6).fill(null).map((_, i) => (
                   <tr key={i}>
-                    {Array(7).fill(null).map((__, j) => (
+                    {Array(8).fill(null).map((__, j) => (
                       <td key={j} className="px-4 py-3"><div className="h-3 bg-bg-lighter rounded animate-pulse w-20" /></td>
                     ))}
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={8} className="text-center py-10 text-sm text-text-tertiary">
                     {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No migrations to show'}
                   </td>
                 </tr>
@@ -186,6 +186,20 @@ const MigrationsPage: React.FC = () => {
                           </>
                         ) : (
                           <span className="text-text-tertiary text-xs">Anonymous</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 max-w-[180px]">
+                        {m.runner?.type === 'OP_TEAM' ? (
+                          <>
+                            <div className="text-text-primary text-xs font-medium truncate" title={m.runner.name}>
+                              {m.runner.name}
+                            </div>
+                            <div className="text-text-tertiary text-[11px] truncate" title={m.runner.email ?? ''}>
+                              Operation Team{m.runner.removed ? ' · removed' : ''}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-text-tertiary text-xs">Guest</span>
                         )}
                       </td>
                       <td className="px-4 py-3">

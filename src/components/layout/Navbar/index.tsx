@@ -7,6 +7,7 @@ import { Badge } from '@/components/common/Badge';
 import { useAuthStore, useSession } from '@/store/authStore';
 import { useAuthScope } from '@/hooks/useAuthScope';
 import { authService } from '@/api/auth';
+import { OperationTeamBadge } from '@/components/auth/OperationTeamBadge';
 
 interface NavbarProps {
   variant?: 'default' | 'payment' | 'migration' | 'admin';
@@ -66,6 +67,7 @@ const UserMenu: React.FC = () => {
         <span className="text-sm font-medium text-text-primary hidden sm:block">
           {user?.firstname ?? 'Account'}
         </span>
+        <OperationTeamBadge className="hidden sm:inline-flex" />
         <svg
           className={cn('w-3.5 h-3.5 text-text-tertiary transition-transform', open && 'rotate-180')}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
@@ -86,6 +88,7 @@ const UserMenu: React.FC = () => {
             {/* User info header */}
             <div className="px-3 py-2.5 border-b border-border">
               <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
+              <OperationTeamBadge className="mt-1" />
               {user?.email && (
                 <p className="text-xs text-text-tertiary truncate mt-0.5">{user.email}</p>
               )}
@@ -186,12 +189,15 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
                 <span className="font-bold text-text-primary text-lg tracking-tight">MMC Convert</span>
               </Link>
             </div>
-            <Badge variant="success">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Secure Checkout
-            </Badge>
+            <div className="flex items-center gap-3">
+              <OperationTeamBadge variant="pill" />
+              <Badge variant="success">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Secure Checkout
+              </Badge>
+            </div>
           </div>
         </div>
       </header>
@@ -207,9 +213,12 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
               <LogoMark />
               <span className="font-bold text-text-primary text-lg tracking-tight">MMC Convert</span>
             </Link>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              Save &amp; Exit
-            </Button>
+            <div className="flex items-center gap-3">
+              <OperationTeamBadge variant="pill" />
+              <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+                Save &amp; Exit
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -381,6 +390,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
                       <p className="text-sm font-semibold text-text-primary">
                         {user ? `${user.firstname} ${user.lastname}`.trim() : 'My Account'}
                       </p>
+                      <OperationTeamBadge />
                       {user?.email && (
                         <p className="text-xs text-text-tertiary">{user.email}</p>
                       )}

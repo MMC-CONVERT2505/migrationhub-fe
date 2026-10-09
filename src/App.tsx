@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@/components/common/Spinner';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
-import { OpTeamBadge } from '@/components/auth/OpTeamBadge';
 import { useAppStore } from '@/store/appStore';
 import { pairDetailsPath } from '@/utils/platformMap';
 import { XERO_MYOB_DETAILS_PATH } from '@/constants/xeroMyob';
@@ -28,7 +27,6 @@ const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
 const AdminLoginPage      = React.lazy(() => import('@/pages/AdminLoginPage'));
-const OpTeamLoginPage     = React.lazy(() => import('@/pages/OpTeamLoginPage'));
 
 // Admin sub-pages
 const AdminDashboard      = React.lazy(() => import('@/pages/AdminPage'));
@@ -70,7 +68,6 @@ const PageLoader: React.FC = () => (
 // ─── App ──────────────────────────────────────────────────────────────────────
 const App: React.FC = () => (
   <Suspense fallback={<PageLoader />}>
-    <OpTeamBadge />
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/about"     element={<AboutPage />} />
@@ -95,8 +92,6 @@ const App: React.FC = () => (
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
 
-      {/* Operation Team login — end users never need it; the guest flow stays login-free */}
-      <Route path="/login/op-team" element={<OpTeamLoginPage />} />
 
       {/* Admin login — public, no guard */}
       <Route path="/admin/login" element={<AdminLoginPage />} />

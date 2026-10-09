@@ -40,7 +40,7 @@ export interface MigrationCustomer {
   country: string | null;
 }
 
-/** Who ran the migration: an Operation Team member signed in at /login/op-team, otherwise a guest. */
+/** Who ran the migration: an Operation Team member signed in (via the normal Sign in) with the OP_TEAM role, otherwise a guest. */
 export interface MigrationRunner {
   type: 'GUEST' | 'OP_TEAM';
   id: number | null;

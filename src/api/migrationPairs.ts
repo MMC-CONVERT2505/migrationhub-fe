@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   CreateMigrationPairRequest,
   ListMigrationPairsQuery,
+  MigrationPairAssignee,
   MigrationPairEntity,
   PaginatedResponse,
   RotateSecretResponse,
@@ -32,6 +33,12 @@ export const migrationPairsService = {
   getById: (id: number | string) =>
     apiClient
       .get<ApiResponse<MigrationPairEntity>>(`/migration-pairs/${id}`)
+      .then((r) => r.data),
+
+  /** Who a pair is assigned to (admin-only; not part of the public pair payloads). */
+  getAssignees: (id: number | string) =>
+    apiClient
+      .get<MigrationPairAssignee[]>(`/migration-pairs/${id}/assignees`)
       .then((r) => r.data),
 
   /** Update a migration pair. Requires write permission. */

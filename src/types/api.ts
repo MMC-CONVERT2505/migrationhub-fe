@@ -477,7 +477,20 @@ export interface MigrationPairEntity {
   updatedAt: string;
 }
 
+/** A user a migration pair is assigned to (Operation Team member or any user). Admin-only data. */
+export interface MigrationPairAssignee {
+  id: number;
+  name: string;
+  email: string | null;
+  status: UserStatus;
+  /** Currently holds a live OP_TEAM role. */
+  isOpTeam: boolean;
+  assignedAt: string;
+}
+
 export interface CreateMigrationPairRequest {
+  /** User ids to assign this pair to; they must be active. */
+  assigneeIds?: number[];
   source: string;
   destination: string;
   displayName: string;
@@ -506,6 +519,8 @@ export interface ListMigrationPairsQuery {
 }
 
 export interface UpdateMigrationPairRequest {
+  /** Omit to leave the team unchanged; [] clears it. */
+  assigneeIds?: number[];
   source?: string;
   destination?: string;
   displayName?: string;

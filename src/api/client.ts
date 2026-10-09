@@ -1,6 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { currentScope, getSession, useAuthStore } from '@/store/authStore';
-import { getOpTeamToken } from '@/store/opTeamStore';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:9001';
 
@@ -41,12 +40,6 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  // Operation Team session rides in its own header on the public site only, so
-  // the guest flow is identical and it never reaches the user/admin auth.
-  const opToken = getOpTeamToken();
-  if (opToken && currentScope() === 'user') {
-    config.headers['X-Op-Team-Token'] = opToken;
-  }
   return config;
 });
 
@@ -64,9 +57,7 @@ apiClient.interceptors.response.use(
 
       // Only redirect on 401 when the request was sent with a token (session expired).
       // Unauthenticated requests that simply lack a token should fail silently.
-      // The op-team endpoints have their own session; their 401s must never log out a user/admin.
-      const isOpTeamCall = error.config?.url?.startsWith('/auth/op-team/');
-      if (status === 401 && !isOpTeamCall && getSession(currentScope()).accessToken) {
+      if (status === 401 && getSession(currentScope()).accessToken) {
         clearAuthAndRedirect();
       }
 

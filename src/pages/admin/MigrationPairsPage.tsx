@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { plansService } from '@/api/plans';
 import { bannersService } from '@/api/banners';
+import { usersService } from '@/api/users';
 import { ApiError } from '@/api/client';
 import { extractList, normalizePlatform } from '@/utils/platformMap';
 import type {
@@ -12,6 +13,8 @@ import type {
   CreateMigrationPairRequest,
   UpdateMigrationPairRequest,
   MigrationEnvironment,
+  MigrationPairAssignee,
+  UserProfile,
 } from '@/types/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -121,7 +124,109 @@ interface PairFormFields {
   enquiryEmails: string[];
   sourceLogoId: number | null;
   destinationLogoId: number | null;
+  assigneeIds: number[];
 }
+
+// ─── Assignee picker (Operation Team / users this pair is assigned to) ────────
+
+interface AssigneeOption {
+  id: number;
+  name: string;
+  email: string | null;
+  isOpTeam: boolean;
+  inactive: boolean;
+}
+
+const roleNames = (u: UserProfile): string[] =>
+  ((u.roles ?? []) as unknown[]).map((r) =>
+    typeof r === 'string' ? r : ((r as { role?: { name?: string } })?.role?.name ?? ''),
+  );
+
+const userOption = (u: UserProfile): AssigneeOption => ({
+  id: u.id,
+  name: `${u.firstname} ${u.lastname}`.trim() || (u.email ?? `User #${u.id}`),
+  email: u.email,
+  isOpTeam: roleNames(u).includes('OP_TEAM'),
+  inactive: u.status !== 'Active',
+});
+
+const AssigneePicker: React.FC<{
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  users: UserProfile[];
+  /** Already-assigned people, so an assignee who was later deactivated still shows (and can be removed). */
+  existing?: MigrationPairAssignee[];
+  disabledReason?: string;
+}> = ({ selectedIds, onChange, users, existing = [], disabledReason }) => {
+  const [query, setQuery] = useState('');
+
+  const options = React.useMemo(() => {
+    const byId = new Map<number, AssigneeOption>();
+    users.filter((u) => u.status === 'Active').forEach((u) => byId.set(u.id, userOption(u)));
+    existing.forEach((a) =>
+      byId.set(a.id, {
+        id: a.id,
+        name: a.name,
+        email: a.email,
+        isOpTeam: a.isOpTeam,
+        inactive: a.status !== 'Active',
+      }),
+    );
+    return [...byId.values()].sort(
+      (a, b) => Number(b.isOpTeam) - Number(a.isOpTeam) || a.name.localeCompare(b.name),
+    );
+  }, [users, existing]);
+
+  const q = query.trim().toLowerCase();
+  const visible = q
+    ? options.filter((o) => `${o.name} ${o.email ?? ''}`.toLowerCase().includes(q))
+    : options;
+
+  const toggle = (id: number) =>
+    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
+
+  return (
+    <Field
+      label="Assigned team"
+      hint="Operation Team members or users this tool is assigned to. Used by migration features later."
+    >
+      {disabledReason ? (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{disabledReason}</p>
+      ) : (
+        <div className="border border-border rounded-lg">
+          <input
+            className="w-full px-3 py-2 text-sm border-b border-border rounded-t-lg focus:outline-none"
+            placeholder="Search by name or email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <div className="max-h-44 overflow-y-auto divide-y divide-border">
+            {visible.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-text-tertiary">No matching users</p>
+            ) : (
+              visible.map((o) => (
+                <label key={o.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-bg-light">
+                  <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={() => toggle(o.id)} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate text-text-primary">{o.name}</span>
+                    <span className="block truncate text-[11px] text-text-tertiary">{o.email}</span>
+                  </span>
+                  {o.isOpTeam && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">Operation Team</span>
+                  )}
+                  {o.inactive && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-semibold">Inactive</span>
+                  )}
+                </label>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+      <p className="text-[11px] text-text-tertiary">{selectedIds.length} selected</p>
+    </Field>
+  );
+};
 
 const LogoSelect: React.FC<{
   label: string;
@@ -244,9 +349,12 @@ const PairFormBody: React.FC<{
   values: PairFormFields;
   onChange: (patch: Partial<PairFormFields>) => void;
   logos: BannerEntity[];
+  users: UserProfile[];
+  existingAssignees?: MigrationPairAssignee[];
+  assigneeNote?: string;
   sourceReadOnly?: boolean;
   destinationReadOnly?: boolean;
-}> = ({ values, onChange, logos, sourceReadOnly = false, destinationReadOnly = false }) => {
+}> = ({ values, onChange, logos, users, existingAssignees, assigneeNote, sourceReadOnly = false, destinationReadOnly = false }) => {
   const handleSourceChange = (src: string) => {
     const auto = autoDisplayName(src, values.destination);
     onChange({ source: src, displayName: auto });
@@ -343,6 +451,14 @@ const PairFormBody: React.FC<{
         </select>
       </Field>
 
+
+      <AssigneePicker
+        selectedIds={values.assigneeIds}
+        onChange={(ids) => onChange({ assigneeIds: ids })}
+        users={users}
+        existing={existingAssignees}
+        disabledReason={assigneeNote}
+      />
 
       {/* Source / destination brand logos */}
       <div className="grid grid-cols-2 gap-3">
@@ -512,7 +628,7 @@ const MigrationPairsPage: React.FC = () => {
     apiVersion: 'v1', healthCheckPath: '/health',
     environment: 'PRODUCTION', isActive: true,
     isMaintenance: false, isFree: false, enquiryEmails: [],
-    sourceLogoId: null, destinationLogoId: null,
+    sourceLogoId: null, destinationLogoId: null, assigneeIds: [],
   });
 
   const [editForm, setEditForm]   = useState<PairFormFields | null>(null);
@@ -520,6 +636,15 @@ const MigrationPairsPage: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [availablePlans, setAvailablePlans] = useState<ApiPlan[]>([]);
   const [toolLogos, setToolLogos] = useState<BannerEntity[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [usersError, setUsersError] = useState('');
+  // Edit modal: the pair's current team. Until it has loaded (or if it failed) we
+  // never send assigneeIds, so saving can't wipe a team we couldn't read.
+  const [editAssignees, setEditAssignees] = useState<{
+    loaded: boolean;
+    error: string;
+    existing: MigrationPairAssignee[];
+  }>({ loaded: false, error: '', existing: [] });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -533,6 +658,14 @@ const MigrationPairsPage: React.FC = () => {
       setPairs(extractList<MigrationPairEntity>(pairsRes));
       setAvailablePlans(extractList<ApiPlan>(plansRes));
       setToolLogos(extractList<BannerEntity>(logosRes));
+      // Separate from the main load: a missing "users.read" permission must not break this page.
+      usersService
+        .listUsers({ limit: 500 })
+        .then((res) => {
+          setUsers(extractList<UserProfile>(res));
+          setUsersError('');
+        })
+        .catch(() => setUsersError('You do not have permission to list users, so the team cannot be assigned here.'));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load migration pairs.');
     } finally {
@@ -551,7 +684,7 @@ const MigrationPairsPage: React.FC = () => {
       apiVersion: 'v1', healthCheckPath: '/health',
       environment: 'PRODUCTION', isActive: true,
       isMaintenance: false, isFree: false, enquiryEmails: [],
-      sourceLogoId: null, destinationLogoId: null,
+      sourceLogoId: null, destinationLogoId: null, assigneeIds: [],
     });
     setFormError('');
     setCreateOpen(true);
@@ -576,6 +709,7 @@ const MigrationPairsPage: React.FC = () => {
         enquiryEmails:      createForm.enquiryEmails,
         sourceLogoId:       createForm.sourceLogoId,
         destinationLogoId:  createForm.destinationLogoId,
+        ...(!usersError && { assigneeIds: createForm.assigneeIds }),
       };
       await migrationPairsService.create(payload);
       setCreateOpen(false);
@@ -605,9 +739,20 @@ const MigrationPairsPage: React.FC = () => {
       enquiryEmails:      pair.enquiryEmails ?? [],
       sourceLogoId:       pair.sourceLogoId ?? null,
       destinationLogoId:  pair.destinationLogoId ?? null,
+      assigneeIds:        [],
     });
     setEditTarget(pair);
     setFormError('');
+    setEditAssignees({ loaded: false, error: '', existing: [] });
+    migrationPairsService
+      .getAssignees(pair.id)
+      .then((existing) => {
+        setEditAssignees({ loaded: true, error: '', existing });
+        setEditForm((f) => (f ? { ...f, assigneeIds: existing.map((a) => a.id) } : f));
+      })
+      .catch(() =>
+        setEditAssignees({ loaded: false, error: 'Could not load the current team — it will be left unchanged.', existing: [] }),
+      );
   };
 
   // Sync editTarget when pairs list refreshes (e.g. after attach/detach)
@@ -638,6 +783,7 @@ const MigrationPairsPage: React.FC = () => {
         enquiryEmails:      editForm.enquiryEmails,
         sourceLogoId:       editForm.sourceLogoId,
         destinationLogoId:  editForm.destinationLogoId,
+        ...(editAssignees.loaded && !usersError && { assigneeIds: editForm.assigneeIds }),
       };
       await migrationPairsService.update(editTarget.id, payload);
       setEditTarget(null);
@@ -795,6 +941,8 @@ const MigrationPairsPage: React.FC = () => {
               values={createForm}
               onChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
               logos={toolLogos}
+              users={users}
+              assigneeNote={usersError || undefined}
             />
             <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
@@ -819,6 +967,9 @@ const MigrationPairsPage: React.FC = () => {
               values={editForm}
               onChange={(patch) => setEditForm((f) => f ? { ...f, ...patch } : f)}
               logos={toolLogos}
+              users={users}
+              existingAssignees={editAssignees.existing}
+              assigneeNote={usersError || editAssignees.error || (!editAssignees.loaded ? 'Loading the current team…' : undefined)}
             />
             <PlanManager
               pairId={editTarget.id}

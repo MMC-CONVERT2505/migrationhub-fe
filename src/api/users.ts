@@ -18,8 +18,13 @@ export const usersService = {
   /** Get the authenticated user's own profile. */
   getMe: () =>
     apiClient
-      .get<ApiResponse<UserProfile>>('/users/me')
-      .then((r) => r.data),
+      .get<UserProfile | ApiResponse<UserProfile>>('/users/me')
+      // The API returns the bare profile; callers read `.data`. Accept both shapes so the
+      // profile (name, roles) actually reaches the store.
+      .then((r): ApiResponse<UserProfile> => {
+        const body = r.data as UserProfile | ApiResponse<UserProfile>;
+        return { data: ('data' in body && body.data ? body.data : body) as UserProfile } as ApiResponse<UserProfile>;
+      }),
 
   /** Update the authenticated user's own profile. */
   updateMe: (data: UpdateProfileRequest) =>

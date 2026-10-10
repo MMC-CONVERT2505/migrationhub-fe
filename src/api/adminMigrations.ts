@@ -22,6 +22,13 @@ export type MigrationStatusGroup = 'active' | 'completed' | 'failed';
 
 interface PairLogo { image: string; name: string }
 
+export type OrderSource = 'MIGRATION_HUB' | 'APP_STORE';
+
+export const ORDER_SOURCE_LABEL: Record<OrderSource, string> = {
+  MIGRATION_HUB: 'MigrationHub',
+  APP_STORE: 'App Store',
+};
+
 export interface AdminMigrationPair {
   source: string;
   destination: string;
@@ -64,6 +71,10 @@ export interface AdminMigrationListItem {
   user: { email: string | null; firstname: string; lastname: string } | null;
   customer: MigrationCustomer;
   runner: MigrationRunner;
+  /** Where the order was placed: the MigrationHub itself, or the App Store (run by the migration tool). */
+  orderSource: OrderSource;
+  /** What an App Store tool said it sold (years, matched plan…); null for hub orders. */
+  externalDetails?: { years?: number | null; isInception?: boolean } | null;
   plan: { name: string } | null;
   /** Karbon mirror state — null when the integration has never run for this row. */
   karbonWorkItem: KarbonWorkItemSummary | null;
@@ -130,6 +141,7 @@ export interface AdminMigrationListResponse {
 
 export interface ListAdminMigrationsParams {
   group?: MigrationStatusGroup;
+  orderSource?: OrderSource;
   search?: string;
   skip?: number;
   take?: number;

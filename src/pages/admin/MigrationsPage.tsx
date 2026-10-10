@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  ORDER_SOURCE_LABEL,
+  type OrderSource,
   adminMigrationsService,
   type AdminMigrationListItem,
   type MigrationStatusGroup,
@@ -24,6 +26,7 @@ const MigrationsPage: React.FC = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('all');
   const [skip, setSkip] = useState(0);
+  const [source, setSource] = useState<OrderSource | 'all'>('all');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -39,7 +42,7 @@ const MigrationsPage: React.FC = () => {
   }, [search]);
 
   // Any filter change resets pagination back to the first page.
-  useEffect(() => { setSkip(0); }, [tab, debouncedSearch]);
+  useEffect(() => { setSkip(0); }, [tab, source, debouncedSearch]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,6 +50,7 @@ const MigrationsPage: React.FC = () => {
     try {
       const res = await adminMigrationsService.list({
         group: tab === 'all' ? undefined : tab,
+        orderSource: source === 'all' ? undefined : source,
         search: debouncedSearch || undefined,
         skip,
         take: PAGE_SIZE,
@@ -60,7 +64,7 @@ const MigrationsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [tab, skip, debouncedSearch]);
+  }, [tab, source, skip, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -118,6 +122,16 @@ const MigrationsPage: React.FC = () => {
                 </button>
               )}
             </div>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value as OrderSource | 'all')}
+              aria-label="Filter by order source"
+              className="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value="all">All sources</option>
+              <option value="MIGRATION_HUB">{ORDER_SOURCE_LABEL.MIGRATION_HUB}</option>
+              <option value="APP_STORE">{ORDER_SOURCE_LABEL.APP_STORE}</option>
+            </select>
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -139,7 +153,7 @@ const MigrationsPage: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Migration', 'Customer', 'Migration runner', 'Status', 'Karbon', 'Progress', 'Created', ''].map((h) => (
+                {['Migration', 'Customer', 'Order source', 'Migration runner', 'Status', 'Karbon', 'Progress', 'Created', ''].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -157,7 +171,7 @@ const MigrationsPage: React.FC = () => {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={9} className="text-center py-10 text-sm text-text-tertiary">
                     {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No migrations to show'}
                   </td>
                 </tr>
@@ -187,6 +201,17 @@ const MigrationsPage: React.FC = () => {
                         ) : (
                           <span className="text-text-tertiary text-xs">Anonymous</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                            m.orderSource === 'APP_STORE'
+                              ? 'bg-purple-50 text-purple-700'
+                              : 'bg-gray-100 text-text-secondary'
+                          }`}
+                        >
+                          {ORDER_SOURCE_LABEL[m.orderSource] ?? 'MigrationHub'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 max-w-[180px]">
                         {m.runner?.type === 'OP_TEAM' ? (

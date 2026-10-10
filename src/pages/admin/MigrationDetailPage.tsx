@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  ORDER_SOURCE_LABEL,
   adminMigrationsService,
   type AdminMigrationDetail,
 } from '@/api/adminMigrations';
@@ -281,6 +282,10 @@ const MigrationDetailPage: React.FC = () => {
               <Row label="Customer" value={m.customer.name ?? m.customer.email ?? 'Anonymous'} />
               {m.customer.email && m.customer.name && <Row label="Email" value={m.customer.email} />}
               <Row
+                label="Order source"
+                value={ORDER_SOURCE_LABEL[m.orderSource] ?? 'MigrationHub'}
+              />
+              <Row
                 label="Migration runner"
                 value={
                   m.runner?.type === 'OP_TEAM'
@@ -288,7 +293,17 @@ const MigrationDetailPage: React.FC = () => {
                     : 'Guest'
                 }
               />
-              <Row label="Plan" value={m.plan?.name ?? '—'} />
+              <Row
+                label="Plan"
+                value={
+                  m.plan?.name ??
+                  (m.orderSource === 'APP_STORE'
+                    ? m.externalDetails?.isInception
+                      ? 'Not matched · inception to date'
+                      : `Not matched · ${m.externalDetails?.years ?? '?'} years`
+                    : '—')
+                }
+              />
               <Row label="Remote job" value={m.remoteJobId ?? '—'} mono />
               <Row label="Created" value={fmt(m.createdAt)} />
             </dl>

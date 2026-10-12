@@ -33,6 +33,8 @@ export interface AdminMigrationPair {
   source: string;
   destination: string;
   displayName: string;
+  /** Returned by the detail endpoint only. */
+  isFree?: boolean;
   sourceLogo?: PairLogo | null;
   destinationLogo?: PairLogo | null;
 }
@@ -118,6 +120,28 @@ export interface AdminMigrationInquiry {
   trackingInventory: boolean | null;
 }
 
+export type PaymentStatus = 'Pending' | 'Success' | 'Failed' | 'Cancelled';
+
+export interface AdminMigrationPayment {
+  id: number;
+  status: PaymentStatus;
+  /** Decimal string, 2 places. */
+  amount: string;
+  currency: string;
+  /** Who took the payment: Razorpay for hub checkouts, AppStore for App Store orders. */
+  gateway: string;
+  /** The gateway's own payment / transaction id, once one exists. */
+  transactionId: string | null;
+  reference: string | null;
+  isSettled: boolean;
+  settledOn: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  company: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminMigrationDetail extends AdminMigrationListItem {
   remoteJobId: string | null;
   failedCategory: string | null;
@@ -128,6 +152,8 @@ export interface AdminMigrationDetail extends AdminMigrationListItem {
   webhookEvents: AdminMigrationWebhookEvent[];
   journey: JourneyStage[];
   inquiry: AdminMigrationInquiry | null;
+  /** The payment ledger entry; null when none was recorded (free pair, or not paid yet). */
+  payment: AdminMigrationPayment | null;
   /** Expected-vs-actual Karbon Work Item state, computed server-side. */
   karbon: KarbonMigrationView;
 }

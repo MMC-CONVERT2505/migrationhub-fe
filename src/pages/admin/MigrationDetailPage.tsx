@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ORDER_SOURCE_LABEL,
+  type PaymentStatus,
   adminMigrationsService,
   type AdminMigrationDetail,
 } from '@/api/adminMigrations';
@@ -34,6 +35,13 @@ const LOG_LEVEL_STYLES: Record<string, string> = {
   INFO:    'bg-blue-50 text-blue-700',
   WARNING: 'bg-yellow-50 text-yellow-700',
   FAILED:  'bg-red-50 text-red-700',
+};
+
+const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; className: string }> = {
+  Success: { label: 'Paid', className: 'bg-green-50 text-green-700' },
+  Pending: { label: 'Pending', className: 'bg-amber-50 text-amber-700' },
+  Failed: { label: 'Failed', className: 'bg-red-50 text-red-700' },
+  Cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-text-secondary' },
 };
 
 const fmt = (d?: string | null) =>
@@ -274,6 +282,51 @@ const MigrationDetailPage: React.FC = () => {
               onSynced={() => load(true)}
             />
           )}
+
+          {/* Payment — the ledger entry, or why there isn't one */}
+          <section className="bg-white border border-border rounded-xl shadow-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-text-primary">Payment</h3>
+              {m.payment ? (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${PAYMENT_STATUS_META[m.payment.status].className}`}
+                >
+                  {PAYMENT_STATUS_META[m.payment.status].label}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-text-secondary">
+                  {m.migrationPair.isFree ? 'Free' : 'No payment'}
+                </span>
+              )}
+            </div>
+            {m.payment ? (
+              <dl className="space-y-2.5 text-sm">
+                <Row
+                  label="Amount"
+                  value={`${m.payment.currency} ${Number(m.payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                />
+                <Row label="Gateway" value={m.payment.gateway} />
+                <Row label="Transaction ID" value={m.payment.transactionId ?? '—'} mono />
+                <Row label="Reference" value={m.payment.reference ?? '—'} mono />
+                <Row
+                  label={m.payment.isSettled ? 'Paid on' : 'Settled'}
+                  value={m.payment.settledOn ? fmt(m.payment.settledOn) : m.payment.isSettled ? '—' : 'Not settled'}
+                />
+                <Row label="Recorded" value={fmt(m.payment.createdAt)} />
+                {m.payment.customerName && <Row label="Payer" value={m.payment.customerName} />}
+                {m.payment.customerEmail && <Row label="Payer email" value={m.payment.customerEmail} />}
+                {m.payment.company && <Row label="Company" value={m.payment.company} />}
+              </dl>
+            ) : (
+              <p className="text-sm text-text-tertiary">
+                {m.migrationPair.isFree
+                  ? 'Free migration — no payment is required.'
+                  : m.orderSource === 'APP_STORE'
+                    ? 'The App Store tool has not reported a payment for this order yet.'
+                    : 'No payment has been recorded for this migration.'}
+              </p>
+            )}
+          </section>
 
           {/* Summary */}
           <section className="bg-white border border-border rounded-xl shadow-card p-5">

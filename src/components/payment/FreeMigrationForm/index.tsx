@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
+import { formatCurrency } from '@/utils/format';
 
-export const FreeMigrationForm: React.FC = () => {
+interface FreeMigrationFormProps {
+  /** Operation Team member on a paid plan: same start flow, payment skipped. */
+  operationTeam?: boolean;
+}
+
+export const FreeMigrationForm: React.FC<FreeMigrationFormProps> = ({ operationTeam = false }) => {
   const navigate           = useNavigate();
   const selectedPair       = useAppStore((s) => s.selectedPair);
   const selectedPlanId     = useAppStore((s) => s.selectedPlanId);
@@ -42,10 +48,16 @@ export const FreeMigrationForm: React.FC = () => {
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
-          Free migration
+          {operationTeam ? 'Operation Team' : 'Free migration'}
         </div>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>No payment required</h3>
-        <p style={{ fontSize: 12, color: '#4b5568', marginTop: 2 }}>Start your migration immediately</p>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+          {operationTeam ? 'Payment skipped' : 'No payment required'}
+        </h3>
+        <p style={{ fontSize: 12, color: '#4b5568', marginTop: 2 }}>
+          {operationTeam
+            ? 'Operation Team migrations are started without payment'
+            : 'Start your migration immediately'}
+        </p>
       </div>
 
       <div style={{ padding: 22 }}>
@@ -65,7 +77,16 @@ export const FreeMigrationForm: React.FC = () => {
                 {plan.history} history · {plan.support}
               </p>
             </div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#16a34a', fontFamily: 'monospace' }}>Free</span>
+            <span style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#16a34a', fontFamily: 'monospace' }}>
+                {operationTeam ? 'Skipped' : 'Free'}
+              </span>
+              {operationTeam && (
+                <span style={{ display: 'block', fontSize: 11, color: '#9ba3b8', textDecoration: 'line-through', fontFamily: 'monospace' }}>
+                  {formatCurrency(plan.basePrice)} USD
+                </span>
+              )}
+            </span>
           </div>
         )}
 

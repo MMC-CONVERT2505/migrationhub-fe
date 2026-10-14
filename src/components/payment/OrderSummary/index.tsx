@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/utils/format';
+import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { useAppStore } from '@/store/appStore';
 
@@ -27,6 +28,8 @@ export const OrderSummary: React.FC = () => {
   // A pair not globally flagged free can still carry a $0 plan — the total
   // due must read "Free" for that selection regardless of the pair's flag.
   const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
+  // Operation Team: the plan is paid, but nothing is due at checkout.
+  const paymentSkipped = usePaymentSkipped(pair?.isFree ?? false, plan);
 
   // Migration date range derived from the customer's financial-year-end + the
   // plan's coverage — mirrors what the backend stores at migration creation.
@@ -85,10 +88,10 @@ export const OrderSummary: React.FC = () => {
             <span style={{
               fontSize: 16,
               fontWeight: 700,
-              color: isFree ? '#16a34a' : '#2563eb',
+              color: isFree || paymentSkipped ? '#16a34a' : '#2563eb',
               fontFamily: 'monospace',
             }}>
-              {isFree ? 'Free' : `${formatCurrency(plan.basePrice)} USD`}
+              {isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(plan.basePrice)} USD`}
             </span>
           </div>
         </>

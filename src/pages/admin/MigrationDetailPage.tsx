@@ -295,7 +295,7 @@ const MigrationDetailPage: React.FC = () => {
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-text-secondary">
-                  {m.migrationPair.isFree ? 'Free' : 'No payment'}
+                  {m.paymentWaived ? 'Skipped' : m.migrationPair.isFree ? 'Free' : 'No payment'}
                 </span>
               )}
             </div>
@@ -319,7 +319,9 @@ const MigrationDetailPage: React.FC = () => {
               </dl>
             ) : (
               <p className="text-sm text-text-tertiary">
-                {m.migrationPair.isFree
+                {m.paymentWaived
+                  ? `Payment skipped — this migration was started by the Operation Team${m.runner?.type === 'OP_TEAM' ? ` (${m.runner.name})` : ''}.`
+                  : m.migrationPair.isFree
                   ? 'Free migration — no payment is required.'
                   : m.orderSource === 'APP_STORE'
                     ? 'The App Store tool has not reported a payment for this order yet.'

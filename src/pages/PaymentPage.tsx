@@ -9,6 +9,7 @@ import { PlanCard } from '@/components/payment/PlanCard';
 import { Spinner } from '@/components/common/Spinner';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { useAppStore } from '@/store/appStore';
+import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
@@ -44,6 +45,10 @@ const PaymentPage: React.FC = () => {
   // matching fix in MigrationService.create()'s payment gate).
   const isFreeCheckout = pairIsFree || (selectedPlan != null && Number(selectedPlan.basePrice) === 0);
 
+  // Operation Team members start a paid migration without paying: the same
+  // "Start migration" → summary → create flow a free migration takes.
+  const paymentSkipped = usePaymentSkipped(pairIsFree, selectedPlan);
+
   const [autoCreating, setAutoCreating] = useState(false);
   const [autoError, setAutoError]       = useState('');
 
@@ -64,6 +69,17 @@ const PaymentPage: React.FC = () => {
 
     if (!selectedPair.id) {
       setAutoError('Migration pair is missing an ID. Please go back and try again.');
+      return;
+    }
+
+    // Only a free pair can start without a plan. A paid pair with no plans
+    // attached has nothing to charge or to record, so the server would refuse
+    // it ("requires payment") and report a failed order to MMC — say what is
+    // actually wrong instead of firing that request.
+    if (!pairIsFree) {
+      setAutoError(
+        `No plans are configured for ${selectedPair.src} → ${selectedPair.dst} yet, so this migration can't be started. Please contact support.`,
+      );
       return;
     }
 
@@ -153,7 +169,9 @@ const PaymentPage: React.FC = () => {
                 <div style={{ fontSize: 12.5, color: '#4b5568', marginTop: 3 }}>
                   {pairIsFree
                     ? 'This migration is free — select a plan to choose your data scope'
-                    : 'Select a plan and complete payment to begin your migration'}
+                    : paymentSkipped
+                      ? 'Select a plan and start the migration — payment is skipped for the Operation Team'
+                      : 'Select a plan and complete payment to begin your migration'}
                 </div>
               </div>
             </div>
@@ -221,6 +239,8 @@ const PaymentPage: React.FC = () => {
               </div>
             ) : isFreeCheckout ? (
               <FreeMigrationForm />
+            ) : paymentSkipped ? (
+              <FreeMigrationForm operationTeam />
             ) : (
               <PaymentForm />
             )}

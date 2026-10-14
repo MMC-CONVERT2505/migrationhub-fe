@@ -75,6 +75,8 @@ export interface AdminMigrationListItem {
   runner: MigrationRunner;
   /** Where the order was placed: the MigrationHub itself, or the App Store (run by the migration tool). */
   orderSource: OrderSource;
+  /** An Operation Team member started this paid migration without payment. */
+  paymentWaived: boolean;
   /** What an App Store tool said it sold (years, matched plan…); null for hub orders. */
   externalDetails?: { years?: number | null; isInception?: boolean } | null;
   plan: { name: string } | null;

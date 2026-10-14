@@ -37,6 +37,7 @@ const AuditPage           = React.lazy(() => import('@/pages/admin/AuditPage'));
 const ContactsPage        = React.lazy(() => import('@/pages/admin/ContactsPage'));
 const MigrationsPage      = React.lazy(() => import('@/pages/admin/MigrationsPage'));
 const MigrationDetailPage = React.lazy(() => import('@/pages/admin/MigrationDetailPage'));
+const ErrorLogsPage             = React.lazy(() => import('@/pages/admin/ErrorLogsPage'));
 const MigrationReviewsPage      = React.lazy(() => import('@/pages/admin/MigrationReviewsPage'));
 const MigrationReviewDetailPage = React.lazy(() => import('@/pages/admin/MigrationReviewDetailPage'));
 const ReportsPage         = React.lazy(() => import('@/pages/admin/ReportsPage'));
@@ -119,6 +120,7 @@ const App: React.FC = () => (
           <Route path="migrations/:id"   element={<MigrationDetailPage />} />
           <Route path="migration-reviews"       element={<MigrationReviewsPage />} />
           <Route path="migration-reviews/:id"   element={<MigrationReviewDetailPage />} />
+          <Route path="error-logs"       element={<ErrorLogsPage />} />
           <Route path="reports"          element={<ReportsPage />} />
         </Route>
       </Route>

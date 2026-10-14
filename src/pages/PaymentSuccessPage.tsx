@@ -5,6 +5,7 @@ import { MigrationJourney, SUMMARY_STEP, HANDOFF_STEP } from '@/components/migra
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
+import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { formatCurrency } from '@/utils/format';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { PlatformMark } from '@/components/common/PlatformMark';
@@ -94,6 +95,10 @@ const PaymentSuccessPage: React.FC = () => {
   // A pair not globally flagged free can still carry a $0 plan — this page
   // must read "free" for that selection too (no "Amount paid: $0.00 USD").
   const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
+  // Operation Team on a paid plan, arriving without a payment: nothing was paid
+  // and nothing is owed — read like a free migration, labelled as skipped.
+  const operationTeamSkip = usePaymentSkipped(pair?.isFree ?? false, plan) && !paymentId;
+  const noPayment = isFree || operationTeamSkip;
 
   // Migration period derived from the FY end + plan coverage — mirrors the
   // checkout order summary and the range the backend stored at creation.
@@ -208,7 +213,7 @@ const PaymentSuccessPage: React.FC = () => {
     setStage('summary');
   };
 
-  const accentColor = isFree ? '#16a34a' : '#2563eb';
+  const accentColor = noPayment ? '#16a34a' : '#2563eb';
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
@@ -304,7 +309,7 @@ const PaymentSuccessPage: React.FC = () => {
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <div style={{
                 width: 56, height: 56, borderRadius: '50%',
-                background: isFree ? '#dcfce7' : '#dbeafe',
+                background: noPayment ? '#dcfce7' : '#dbeafe',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px',
               }}>
@@ -314,10 +319,10 @@ const PaymentSuccessPage: React.FC = () => {
                 </svg>
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
-                {isFree ? 'Migration Ready' : 'Payment Confirmed'}
+                {noPayment ? 'Migration Ready' : 'Payment Confirmed'}
               </h1>
               <p style={{ fontSize: 14, color: '#4b5568' }}>
-                {isFree
+                {noPayment
                   ? 'Review your migration details below'
                   : 'Your payment has been processed successfully'}
               </p>
@@ -375,10 +380,14 @@ const PaymentSuccessPage: React.FC = () => {
                     padding: '13px 20px', background: '#f0f4fa',
                   }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
-                      {isFree ? 'Total' : 'Amount paid'}
+                      {operationTeamSkip ? 'Payment' : isFree ? 'Total' : 'Amount paid'}
                     </span>
                     <span style={{ fontSize: 16, fontWeight: 700, fontFamily: 'monospace', color: accentColor }}>
-                      {isFree ? 'Free' : `${formatCurrency(plan.basePrice)} USD`}
+                      {operationTeamSkip
+                        ? 'Skipped (Operation Team)'
+                        : isFree
+                          ? 'Free'
+                          : `${formatCurrency(plan.basePrice)} USD`}
                     </span>
                   </div>
                 </>

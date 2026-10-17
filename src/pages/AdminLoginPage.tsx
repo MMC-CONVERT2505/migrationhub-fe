@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { signInErrorMessage } from '@/utils/authErrors';
 import { authService } from '@/api/auth';
 import { usersService } from '@/api/users';
-import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 
 interface JwtPayload {
@@ -71,13 +71,10 @@ const AdminLoginPage: React.FC = () => {
 
       navigate('/admin', { replace: true });
     } catch (err) {
-      if (err instanceof ApiError && (err.statusCode === 401 || err.statusCode === 404)) {
-        setError('Invalid email or password.');
-      } else if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+      setError(signInErrorMessage(err));
+      setPassword('');
+      // After the re-render re-enables the field — a disabled input can't take focus.
+      setTimeout(() => document.getElementById('admin-password')?.focus(), 0);
       setSubmitting(false);
     }
   };
@@ -100,7 +97,7 @@ const AdminLoginPage: React.FC = () => {
           <h2 className="text-base font-semibold text-text-primary mb-5">Sign in to continue</h2>
 
           {error && (
-            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+            <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
               <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -110,39 +107,44 @@ const AdminLoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              <label htmlFor="admin-email" className="block text-xs font-medium text-text-secondary mb-1.5">
                 Email address
               </label>
               <input
+                id="admin-email"
                 type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@mmcconvert.com"
                 required
                 disabled={submitting}
-                className="w-full px-3 py-2.5 text-sm text-text-primary bg-white border border-border rounded-lg placeholder:text-text-tertiary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2.5 text-sm text-text-primary bg-white border border-border rounded-lg placeholder:text-text-secondary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              <label htmlFor="admin-password" className="block text-xs font-medium text-text-secondary mb-1.5">
                 Password
               </label>
               <div className="relative">
                 <input
+                  id="admin-password"
+                  autoComplete="current-password"
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   disabled={submitting}
-                  className="w-full px-3 py-2.5 pr-10 text-sm text-text-primary bg-white border border-border rounded-lg placeholder:text-text-tertiary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2.5 pr-10 text-sm text-text-primary bg-white border border-border rounded-lg placeholder:text-text-secondary focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors"
-                  tabIndex={-1}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPass}
                 >
                   {showPass ? (
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

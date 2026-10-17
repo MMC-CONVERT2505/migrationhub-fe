@@ -6,9 +6,9 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Divider } from '@/components/auth/Divider';
 import { Button } from '@/components/common/Button';
+import { safeNextPath, signInErrorMessage } from '@/utils/authErrors';
 import { authService } from '@/api/auth';
 import { usersService } from '@/api/users';
-import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import type { SignInFormData, AuthError } from '@/types/auth';
 
@@ -33,7 +33,7 @@ function validate(form: SignInFormData): AuthError[] {
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const next = safeNextPath(searchParams.get('next'));
   const { setToken, setUser } = useAuthStore();
 
   const [form, setForm] = useState<SignInFormData>({ email: '', password: '', rememberMe: false });
@@ -41,6 +41,7 @@ const SignInPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | null>(null);
   const [globalError, setGlobalError] = useState('');
+  const sessionExpired = searchParams.get('expired') === '1';
 
   const fieldError = (field: string) => errors.find((e) => e.field === field)?.message;
 
@@ -75,17 +76,11 @@ const SignInPage: React.FC = () => {
 
       navigate(next, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.statusCode === 404 || err.statusCode === 401) {
-          setGlobalError('Invalid email or password. Please try again.');
-        } else if (err.errors?.length) {
-          setGlobalError(err.errors.join(' '));
-        } else {
-          setGlobalError(err.message);
-        }
-      } else {
-        setGlobalError('Something went wrong. Please try again.');
-      }
+      setGlobalError(signInErrorMessage(err));
+      // A failed attempt leaves the email, clears the password and returns focus to it,
+      // so the next try is one keystroke away and a wrong password isn't left on screen.
+      setForm((prev) => ({ ...prev, password: '' }));
+      setTimeout(() => document.getElementById('password')?.focus(), 0);
     } finally {
       setSubmitting(false);
     }
@@ -120,9 +115,15 @@ const SignInPage: React.FC = () => {
 
       <Divider label="or sign in with email" />
 
+      {sessionExpired && !globalError && (
+        <div role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          Your session expired. Please sign in again to continue.
+        </div>
+      )}
+
       {/* Global error banner */}
       {globalError && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
           <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>

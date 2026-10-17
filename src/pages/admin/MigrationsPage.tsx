@@ -114,7 +114,7 @@ const MigrationsPage: React.FC = () => {
                 <button
                   onClick={() => setSearch('')}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -171,7 +171,7 @@ const MigrationsPage: React.FC = () => {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={9} className="text-center py-10 text-sm text-text-secondary">
                     {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No migrations to show'}
                   </td>
                 </tr>
@@ -181,7 +181,7 @@ const MigrationsPage: React.FC = () => {
                   return (
                     <tr key={m.id} className="hover:bg-bg-light/50 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-mono text-xs text-text-tertiary">#{m.id}</div>
+                        <div className="font-mono text-xs text-text-secondary">#{m.id}</div>
                         <div className="font-medium text-text-primary">
                           {m.migrationPair.source.toUpperCase()} → {m.migrationPair.destination.toUpperCase()}
                         </div>
@@ -192,14 +192,14 @@ const MigrationsPage: React.FC = () => {
                             <div className="text-text-primary text-xs font-medium truncate" title={m.customer.name ?? ''}>
                               {m.customer.name ?? m.customer.email}
                             </div>
-                            <div className="text-text-tertiary text-[11px] truncate" title={[m.customer.entityName, m.customer.email].filter(Boolean).join(' · ')}>
+                            <div className="text-text-secondary text-[11px] truncate" title={[m.customer.entityName, m.customer.email].filter(Boolean).join(' · ')}>
                               {m.customer.name
                                 ? [m.customer.entityName, m.customer.email].filter(Boolean).join(' · ')
                                 : m.customer.entityName ?? ''}
                             </div>
                           </>
                         ) : (
-                          <span className="text-text-tertiary text-xs">Anonymous</span>
+                          <span className="text-text-secondary text-xs">Anonymous</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -219,12 +219,12 @@ const MigrationsPage: React.FC = () => {
                             <div className="text-text-primary text-xs font-medium truncate" title={m.runner.name}>
                               {m.runner.name}
                             </div>
-                            <div className="text-text-tertiary text-[11px] truncate" title={m.runner.email ?? ''}>
+                            <div className="text-text-secondary text-[11px] truncate" title={m.runner.email ?? ''}>
                               Operation Team{m.runner.removed ? ' · removed' : ''}
                             </div>
                           </>
                         ) : (
-                          <span className="text-text-tertiary text-xs">Guest</span>
+                          <span className="text-text-secondary text-xs">Guest</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -245,7 +245,7 @@ const MigrationsPage: React.FC = () => {
                             {karbonPrimaryMeta(m.karbonWorkItem.primaryStatus).label}
                           </span>
                         ) : (
-                          <span className="text-xs text-text-tertiary">—</span>
+                          <span className="text-xs text-text-secondary">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 w-40">
@@ -253,10 +253,10 @@ const MigrationsPage: React.FC = () => {
                           <div className="flex-1 h-1.5 bg-bg-lighter rounded-full overflow-hidden min-w-[64px]">
                             <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${m.progress}%` }} />
                           </div>
-                          <span className="text-xs text-text-tertiary tabular-nums w-8 text-right">{m.progress}%</span>
+                          <span className="text-xs text-text-secondary tabular-nums w-8 text-right">{m.progress}%</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
+                      <td className="px-4 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">
                         {new Date(m.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -278,7 +278,7 @@ const MigrationsPage: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-text-secondary">
               Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}
             </p>
             <div className="flex items-center gap-1">

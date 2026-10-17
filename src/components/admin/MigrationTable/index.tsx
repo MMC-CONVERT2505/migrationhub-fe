@@ -13,7 +13,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
   <div className="bg-white border border-border rounded-xl overflow-hidden shadow-card">
     <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-bg-light">
       <h3 className="text-sm font-bold text-text-primary">Pair-wise Migration Breakdown</h3>
-      <span className="text-xs text-text-tertiary">
+      <span className="text-xs text-text-secondary">
         {loading ? 'Loading…' : `${pairs.length} pair${pairs.length !== 1 ? 's' : ''} · Live data`}
       </span>
     </div>
@@ -25,7 +25,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
             {['Migration Pair', 'Total', 'Completed', 'In Progress', 'Draft', 'Failed', 'Success Rate', 'Status', 'Avg. Time'].map((h) => (
               <th
                 key={h}
-                className="px-4 py-2.5 text-left text-[10px] font-semibold text-text-tertiary uppercase tracking-wider whitespace-nowrap"
+                className="px-4 py-2.5 text-left text-[10px] font-semibold text-text-secondary uppercase tracking-wider whitespace-nowrap"
               >
                 {h}
               </th>
@@ -45,7 +45,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
             ))
           ) : pairs.length === 0 ? (
             <tr>
-              <td colSpan={9} className="text-center py-10 text-sm text-text-tertiary">
+              <td colSpan={9} className="text-center py-10 text-sm text-text-secondary">
                 No pair data available
               </td>
             </tr>
@@ -75,7 +75,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
                         <div className="w-5 h-5 rounded text-[9px] font-extrabold text-white flex items-center justify-center" style={{ backgroundColor: srcColor }}>
                           {srcAbbr}
                         </div>
-                        <span className="text-text-tertiary text-[10px]">→</span>
+                        <span className="text-text-secondary text-[10px]">→</span>
                         <div className="w-5 h-5 rounded text-[9px] font-extrabold text-white flex items-center justify-center" style={{ backgroundColor: dstColor }}>
                           {dstAbbr}
                         </div>
@@ -93,7 +93,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
                   <td className="px-4 py-3 text-xs font-mono text-text-primary">{formatNumber(p.total)}</td>
                   <td className="px-4 py-3 text-xs font-mono text-green-600 font-semibold">{formatNumber(p.completed)}</td>
                   <td className="px-4 py-3 text-xs font-mono text-blue-600 font-semibold">{p.inProgress}</td>
-                  <td className="px-4 py-3 text-xs font-mono text-text-tertiary font-semibold">{p.pending}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-text-secondary font-semibold">{p.pending}</td>
                   <td className="px-4 py-3 text-xs font-mono text-red-500 font-semibold">{p.failed}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

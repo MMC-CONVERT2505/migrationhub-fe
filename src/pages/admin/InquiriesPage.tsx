@@ -95,7 +95,7 @@ const InquiriesPage: React.FC = () => {
                   ))}</tr>
                 ))
               ) : rows.length === 0 ? (
-                <tr><td colSpan={COLUMNS.length} className="text-center py-10 text-sm text-text-tertiary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
+                <tr><td colSpan={COLUMNS.length} className="text-center py-10 text-sm text-text-secondary">{debounced ? 'No inquiries match your search' : 'No inquiries to show'}</td></tr>
               ) : (
                 rows.map((r) => (
                   <tr key={r.id} className="hover:bg-bg-light/50 transition-colors">
@@ -109,7 +109,7 @@ const InquiriesPage: React.FC = () => {
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{yesNo(r.addOnsConfirmed)}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{yesNo(r.trackingInventory)}</td>
                     <td className="px-4 py-3 text-text-secondary text-xs max-w-[160px] truncate" title={r.userEmail ?? ''}>{r.userEmail ?? '—'}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">{new Date(r.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">{new Date(r.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</td>
                   </tr>
                 ))
               )}
@@ -119,7 +119,7 @@ const InquiriesPage: React.FC = () => {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}</p>
+            <p className="text-xs text-text-secondary">Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}</p>
             <div className="flex items-center gap-1">
               <button onClick={() => setSkip((p) => Math.max(0, p - PAGE_SIZE))} disabled={skip === 0} className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors">Previous</button>
               <span className="px-3 py-1 text-xs text-text-secondary">{currentPage} / {totalPages}</span>

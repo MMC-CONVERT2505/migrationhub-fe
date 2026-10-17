@@ -16,7 +16,7 @@ const Field: React.FC<{ label: string; required?: boolean; hint?: string; childr
   <div>
     <label className="block text-xs font-medium text-text-secondary mb-1.5">
       {label} {required && <span className="text-red-500">*</span>}
-      {hint && <span className="font-normal text-text-tertiary ml-1">({hint})</span>}
+      {hint && <span className="font-normal text-text-secondary ml-1">({hint})</span>}
     </label>
     {children}
   </div>
@@ -104,7 +104,7 @@ const CreateSubUserPage: React.FC = () => {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/admin/users')} className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg-light transition-colors">
+        <button onClick={() => navigate('/admin/users')} className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
         <div>
@@ -150,11 +150,11 @@ const CreateSubUserPage: React.FC = () => {
         <div className="bg-white border border-border rounded-xl p-6 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-text-primary">Assign Roles</h2>
-            <span className="text-xs text-text-tertiary">{(form.roleIds ?? []).length} selected · optional</span>
+            <span className="text-xs text-text-secondary">{(form.roleIds ?? []).length} selected · optional</span>
           </div>
 
           {allRoles.length === 0 ? (
-            <p className="text-sm text-text-tertiary text-center py-4">No roles available</p>
+            <p className="text-sm text-text-secondary text-center py-4">No roles available</p>
           ) : (
             <div className="space-y-2">
               {allRoles.map((role) => (
@@ -170,9 +170,9 @@ const CreateSubUserPage: React.FC = () => {
                       <span className="text-sm font-medium text-text-primary">{role.name}</span>
                       {role.isSystem && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">System</span>}
                     </div>
-                    {role.description && <p className="text-xs text-text-tertiary mt-0.5">{role.description}</p>}
+                    {role.description && <p className="text-xs text-text-secondary mt-0.5">{role.description}</p>}
                     {role.permissions.length > 0 && (
-                      <p className="text-xs text-text-tertiary mt-1">
+                      <p className="text-xs text-text-secondary mt-1">
                         {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
                         {' · '}
                         {role.permissions.slice(0, 3).map((rp) => `${rp.permission.module}.${rp.permission.action}`).join(', ')}

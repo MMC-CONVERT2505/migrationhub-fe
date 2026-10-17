@@ -37,7 +37,7 @@ const Field: React.FC<{
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     {children}
-    {hint && <p className="text-[11px] text-text-tertiary">{hint}</p>}
+    {hint && <p className="text-[11px] text-text-secondary">{hint}</p>}
   </div>
 );
 
@@ -57,7 +57,7 @@ const Modal: React.FC<{
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <button
           onClick={onClose}
-          className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
+          className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -123,7 +123,7 @@ const LogoPicker: React.FC<{
           >
             {shown ? 'Replace image' : 'Choose image'}
           </button>
-          <p className="text-[11px] text-text-tertiary">PNG, JPG, WEBP, or SVG · max 2 MB</p>
+          <p className="text-[11px] text-text-secondary">PNG, JPG, WEBP, or SVG · max 2 MB</p>
         </div>
         <input
           ref={inputRef}
@@ -298,7 +298,7 @@ const ToolLogosPage: React.FC = () => {
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : logos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-text-tertiary">
+          <div className="flex flex-col items-center justify-center h-48 text-text-secondary">
             <svg className="w-10 h-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 8h.01M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" />
             </svg>
@@ -324,7 +324,7 @@ const ToolLogosPage: React.FC = () => {
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => openEdit(logo)}
-                    className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                    className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
                     title="Edit"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -333,7 +333,7 @@ const ToolLogosPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(logo)}
-                    className="p-1.5 rounded-md text-text-tertiary hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-md text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Delete"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

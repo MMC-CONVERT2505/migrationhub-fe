@@ -115,7 +115,7 @@ const MigrationReviewDetailPage: React.FC = () => {
             </h1>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${meta.className}`}>{meta.label}</span>
           </div>
-          <p className="mt-1 text-sm text-text-tertiary font-mono">
+          <p className="mt-1 text-sm text-text-secondary font-mono">
             #{r.migration.id} · {r.migration.migrationPair.displayName}
           </p>
         </div>
@@ -237,7 +237,7 @@ const MigrationReviewDetailPage: React.FC = () => {
 
 const Row: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => (
   <div className="flex items-start justify-between gap-3">
-    <dt className="text-text-tertiary flex-shrink-0">{label}</dt>
+    <dt className="text-text-secondary flex-shrink-0">{label}</dt>
     <dd className={`text-text-primary font-medium text-right break-all ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
   </div>
 );

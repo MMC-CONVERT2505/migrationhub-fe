@@ -19,7 +19,7 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
     >
       <div className="flex items-center justify-between p-5 border-b border-border">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary">
+        <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -156,7 +156,7 @@ const UsersPage: React.FC = () => {
             <thead>
               <tr className="border-b border-border bg-bg-light">
                 {['User', 'Email', 'Username', 'Status', 'Roles', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -170,14 +170,14 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ))
               ) : users.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-sm text-text-tertiary">No users found</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-sm text-text-secondary">No users found</td></tr>
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-bg-light/50 transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium text-text-primary">{user.firstname} {user.lastname}</p>
-                        <p className="text-xs text-text-tertiary font-mono">#{user.id}</p>
+                        <p className="text-xs text-text-secondary font-mono">#{user.id}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-text-secondary text-xs">{user.email}</td>
@@ -190,7 +190,7 @@ const UsersPage: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {user.roles.length === 0 ? (
-                          <span className="text-xs text-text-tertiary italic">No roles</span>
+                          <span className="text-xs text-text-secondary italic">No roles</span>
                         ) : (
                           user.roles.slice(0, 2).map((r) => (
                             <span key={r.role.id} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-xs font-medium">
@@ -199,7 +199,7 @@ const UsersPage: React.FC = () => {
                           ))
                         )}
                         {user.roles.length > 2 && (
-                          <span className="text-xs text-text-tertiary">+{user.roles.length - 2}</span>
+                          <span className="text-xs text-text-secondary">+{user.roles.length - 2}</span>
                         )}
                       </div>
                     </td>
@@ -208,7 +208,7 @@ const UsersPage: React.FC = () => {
                         {can('roles.assign') && (
                           <button
                             onClick={() => openRoleModal(user)}
-                            className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
                             title="Edit Roles"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -217,7 +217,7 @@ const UsersPage: React.FC = () => {
                         {can('users.ban') && (
                           <button
                             onClick={() => handleBanToggle(user)}
-                            className={`p-1.5 rounded-md transition-colors ${user.status === 'Active' ? 'text-text-tertiary hover:text-red-600 hover:bg-red-50' : 'text-text-tertiary hover:text-green-600 hover:bg-green-50'}`}
+                            className={`p-1.5 rounded-md transition-colors ${user.status === 'Active' ? 'text-text-secondary hover:text-red-600 hover:bg-red-50' : 'text-text-secondary hover:text-green-600 hover:bg-green-50'}`}
                             title={user.status === 'Active' ? 'Ban user' : 'Activate user'}
                           >
                             {user.status === 'Active' ? (
@@ -239,7 +239,7 @@ const UsersPage: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-text-secondary">
               Showing {skip + 1}–{Math.min(skip + take, total)} of {total}
             </p>
             <div className="flex items-center gap-1">
@@ -289,14 +289,14 @@ const UsersPage: React.FC = () => {
             )}
 
             <div>
-              <p className="text-xs font-medium text-text-secondary mb-1.5">Assign roles <span className="text-text-tertiary font-normal">({roleSelection.length} selected)</span></p>
+              <p className="text-xs font-medium text-text-secondary mb-1.5">Assign roles <span className="text-text-secondary font-normal">({roleSelection.length} selected)</span></p>
               <div className="border border-border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
                 {allRoles.map((role) => (
                   <label key={role.id} className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-bg-light cursor-pointer border-b border-border last:border-0">
                     <input type="checkbox" className="accent-blue-600" checked={roleSelection.includes(role.id)} onChange={() => toggleRole(role.id)} />
                     <div>
                       <p className="text-sm font-medium text-text-primary">{role.name}</p>
-                      {role.description && <p className="text-xs text-text-tertiary">{role.description}</p>}
+                      {role.description && <p className="text-xs text-text-secondary">{role.description}</p>}
                     </div>
                     {role.isSystem && <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">System</span>}
                   </label>

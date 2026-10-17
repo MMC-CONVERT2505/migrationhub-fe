@@ -21,7 +21,7 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
     >
       <div className="flex items-center justify-between p-5 border-b border-border">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary">
+        <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -50,7 +50,7 @@ const PermissionPicker: React.FC<{
     <div className="border border-border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
       {Object.entries(byModule).map(([module, perms]) => (
         <div key={module}>
-          <div className="px-3 py-1.5 bg-bg-light text-xs font-semibold text-text-tertiary uppercase tracking-wide sticky top-0">
+          <div className="px-3 py-1.5 bg-bg-light text-xs font-semibold text-text-secondary uppercase tracking-wide sticky top-0">
             {module}
           </div>
           {perms.map((p) => (
@@ -62,13 +62,13 @@ const PermissionPicker: React.FC<{
                 onChange={() => toggle(p.id)}
               />
               <span className="text-sm text-text-primary font-mono">{p.module}.{p.action}</span>
-              <span className="text-xs text-text-tertiary ml-auto">{p.description}</span>
+              <span className="text-xs text-text-secondary ml-auto">{p.description}</span>
             </label>
           ))}
         </div>
       ))}
       {allPermissions.length === 0 && (
-        <p className="px-3 py-6 text-sm text-text-tertiary text-center">No permissions found</p>
+        <p className="px-3 py-6 text-sm text-text-secondary text-center">No permissions found</p>
       )}
     </div>
   );
@@ -203,9 +203,9 @@ const RolesPage: React.FC = () => {
       </div>
       {isCreate && (
         <div>
-          <label className="block text-xs font-medium text-text-secondary mb-1">Permissions <span className="text-text-tertiary font-normal">(optional)</span></label>
+          <label className="block text-xs font-medium text-text-secondary mb-1">Permissions <span className="text-text-secondary font-normal">(optional)</span></label>
           <PermissionPicker allPermissions={allPerms} selected={form.permissionIds ?? []} onChange={(ids) => setF('permissionIds', ids)} />
-          <p className="text-xs text-text-tertiary mt-1">{(form.permissionIds ?? []).length} selected</p>
+          <p className="text-xs text-text-secondary mt-1">{(form.permissionIds ?? []).length} selected</p>
         </div>
       )}
     </div>
@@ -238,7 +238,7 @@ const RolesPage: React.FC = () => {
           <thead>
             <tr className="border-b border-border bg-bg-light">
               {['Role', 'Description', 'Permissions', '', 'Actions'].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wide">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
@@ -252,7 +252,7 @@ const RolesPage: React.FC = () => {
                 </tr>
               ))
             ) : roles.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-10 text-sm text-text-tertiary">No roles found</td></tr>
+              <tr><td colSpan={5} className="text-center py-10 text-sm text-text-secondary">No roles found</td></tr>
             ) : (
               roles.map((role) => (
                 <React.Fragment key={role.id}>
@@ -278,12 +278,12 @@ const RolesPage: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         {can('permissions.assign') && (
-                          <button onClick={() => openAssign(role)} className="p-1.5 rounded-md text-text-tertiary hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Assign Permissions">
+                          <button onClick={() => openAssign(role)} className="p-1.5 rounded-md text-text-secondary hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Assign Permissions">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                           </button>
                         )}
                         {can('roles.write') && (
-                          <button onClick={() => openEdit(role)} className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
+                          <button onClick={() => openEdit(role)} className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                         )}
@@ -292,7 +292,7 @@ const RolesPage: React.FC = () => {
                             onClick={() => !role.isSystem && setDeleteTarget(role)}
                             disabled={role.isSystem}
                             title={role.isSystem ? 'System roles cannot be deleted' : 'Delete'}
-                            className={`p-1.5 rounded-md transition-colors ${role.isSystem ? 'text-text-tertiary opacity-40 cursor-not-allowed' : 'text-text-tertiary hover:text-red-600 hover:bg-red-50'}`}
+                            className={`p-1.5 rounded-md transition-colors ${role.isSystem ? 'text-text-secondary opacity-40 cursor-not-allowed' : 'text-text-secondary hover:text-red-600 hover:bg-red-50'}`}
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
@@ -307,7 +307,7 @@ const RolesPage: React.FC = () => {
                       >
                         <td colSpan={5} className="px-4 pb-4 pt-0 bg-bg-light/40">
                           {role.permissions.length === 0 ? (
-                            <p className="text-xs text-text-tertiary italic">No permissions assigned</p>
+                            <p className="text-xs text-text-secondary italic">No permissions assigned</p>
                           ) : (
                             <div className="flex flex-wrap gap-1.5 pt-2">
                               {role.permissions.map((rp) => (
@@ -381,7 +381,7 @@ const RolesPage: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-medium text-text-secondary mb-1.5">
-                Permissions <span className="text-text-tertiary font-normal">({assignPermIds.length} selected)</span>
+                Permissions <span className="text-text-secondary font-normal">({assignPermIds.length} selected)</span>
               </p>
               <div className="border border-border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                 {Object.entries(
@@ -390,7 +390,7 @@ const RolesPage: React.FC = () => {
                   }, {})
                 ).map(([module, perms]) => (
                   <div key={module}>
-                    <div className="px-3 py-1.5 bg-bg-light text-xs font-semibold text-text-tertiary uppercase tracking-wide sticky top-0">
+                    <div className="px-3 py-1.5 bg-bg-light text-xs font-semibold text-text-secondary uppercase tracking-wide sticky top-0">
                       {module}
                     </div>
                     {perms.map((p) => (
@@ -402,7 +402,7 @@ const RolesPage: React.FC = () => {
                           onChange={() => toggleAssignPerm(p.id)}
                         />
                         <span className="text-sm font-mono text-text-primary">{module}.{p.action}</span>
-                        <span className="text-xs text-text-tertiary ml-auto">{p.description}</span>
+                        <span className="text-xs text-text-secondary ml-auto">{p.description}</span>
                       </label>
                     ))}
                   </div>

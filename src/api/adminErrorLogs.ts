@@ -60,6 +60,39 @@ export interface ErrorLogDetail extends ErrorLogEntry {
   rawException: string | null;
 }
 
+/** One error as listed by `/admin/errors/logs`: an entry plus its module and cause status. */
+export interface ErrorLogRow extends ErrorLogEntry {
+  module: string;
+  groupStatus: ErrorGroupStatus;
+}
+
+/** One function (the failing "file") with its error totals — drives the module → function view. */
+export interface ErrorFunctionSummary {
+  functionId: string;
+  module: string;
+  errors: number;
+  /** Distinct causes (error groups) among them. */
+  groups: number;
+  lastErrorAt: string | null;
+  severities: Record<ErrorSeverity, number>;
+}
+
+/** One migration that has errors — a row of the "By migration" view. */
+export interface ErrorMigrationSummary {
+  migrationId: string;
+  errors: number;
+  /** Distinct causes (error groups) among them. */
+  causes: number;
+  lastErrorAt: string | null;
+  severities: Record<ErrorSeverity, number>;
+  /** The tool(s) that reported them, e.g. qbo_to_xero. */
+  pairCodes: string[];
+  /** No migration in the hub carries this id. */
+  unmatched: boolean;
+  /** The hub migration's current status, null when unmatched. */
+  hubStatus: string | null;
+}
+
 interface Paged<T> {
   data: T[];
   total: number;
@@ -73,6 +106,14 @@ export interface ListErrorGroupsParams {
   category?: ErrorCategory;
   severity?: ErrorSeverity;
   search?: string;
+  /** Only errors of this MigrationHub migration id. */
+  migration_id?: string;
+  /** Exact function id, e.g. customers.push. */
+  function_id?: string;
+  /** Module: the function id up to its first dot. */
+  module?: string;
+  /** Error list order; `function` sorts by function id, then newest. */
+  sort?: 'recent' | 'function';
   skip?: number;
   take?: number;
 }
@@ -86,9 +127,31 @@ export const adminErrorLogsService = {
       .get<Paged<ErrorGroup>>('/admin/errors/groups', { params })
       .then((r) => r.data),
 
+  functions: (params?: Omit<ListErrorGroupsParams, 'skip' | 'take' | 'sort'>) =>
+    apiClient
+      .get<{ data: ErrorFunctionSummary[]; total: number }>('/admin/errors/functions', { params })
+      .then((r) => r.data),
+
+  /** Migrations that have errors, newest first; `migration_id` is a prefix search here. */
+  migrations: (params?: Omit<ListErrorGroupsParams, 'sort'>) =>
+    apiClient
+      .get<Paged<ErrorMigrationSummary>>('/admin/errors/migrations', { params })
+      .then((r) => r.data),
+
+  logs: (params?: ListErrorGroupsParams) =>
+    apiClient
+      .get<Paged<ErrorLogRow>>('/admin/errors/logs', { params })
+      .then((r) => r.data),
+
   groupErrors: (
     groupId: string,
-    params?: { category?: ErrorCategory; severity?: ErrorSeverity; skip?: number; take?: number },
+    params?: {
+      category?: ErrorCategory;
+      severity?: ErrorSeverity;
+      migration_id?: string;
+      skip?: number;
+      take?: number;
+    },
   ) =>
     apiClient
       .get<Paged<ErrorLogEntry>>(`/admin/errors/groups/${groupId}/errors`, { params })

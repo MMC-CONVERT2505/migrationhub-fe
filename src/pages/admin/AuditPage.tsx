@@ -184,7 +184,7 @@ const AuditPage: React.FC = () => {
               className="px-2 py-1 text-xs border border-border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               title="From date"
             />
-            <span className="text-xs text-text-tertiary">–</span>
+            <span className="text-xs text-text-secondary">–</span>
             <input
               type="date"
               value={toDate}
@@ -195,7 +195,7 @@ const AuditPage: React.FC = () => {
             {(fromDate || toDate) && (
               <button
                 onClick={() => { setFromDate(''); setToDate(''); }}
-                className="text-xs text-text-tertiary hover:text-text-primary"
+                className="text-xs text-text-secondary hover:text-text-primary"
                 title="Clear dates"
               >
                 ✕
@@ -246,7 +246,7 @@ const AuditPage: React.FC = () => {
                 ))
               ) : auditRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={5} className="text-center py-10 text-sm text-text-secondary">
                     No events match this filter
                   </td>
                 </tr>
@@ -272,7 +272,7 @@ const AuditPage: React.FC = () => {
                           <span className="text-text-primary text-xs truncate" title={row.owner.email ?? row.owner.name}>
                             {principalLabel(row.owner)}
                           </span>
-                          <span className="text-text-tertiary text-[11px] truncate" title={row.message}>
+                          <span className="text-text-secondary text-[11px] truncate" title={row.message}>
                             {principalSubLabel(row.owner) ?? row.message}
                           </span>
                         </div>
@@ -287,7 +287,7 @@ const AuditPage: React.FC = () => {
                         {row.level}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
+                    <td className="px-4 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">
                       {new Date(row.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
                     </td>
                   </tr>
@@ -300,7 +300,7 @@ const AuditPage: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-text-secondary">
               Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, auditTotal)} of {auditTotal}
             </p>
             <div className="flex items-center gap-1">

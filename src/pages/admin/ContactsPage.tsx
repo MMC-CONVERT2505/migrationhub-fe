@@ -161,7 +161,7 @@ const ContactsPage: React.FC = () => {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={6} className="text-center py-10 text-sm text-text-secondary">
                     {debouncedSearch ? 'No contacts match your search' : 'No contacts to show'}
                   </td>
                 </tr>
@@ -178,7 +178,7 @@ const ContactsPage: React.FC = () => {
                       {row.phone ? (
                         <a href={`tel:${row.phone}`} className="hover:text-blue-600 hover:underline">{row.phone}</a>
                       ) : (
-                        <span className="text-text-tertiary">—</span>
+                        <span className="text-text-secondary">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{row.country}</td>
@@ -191,7 +191,7 @@ const ContactsPage: React.FC = () => {
                         inactiveLabel="Mark done"
                       />
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
+                    <td className="px-4 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">
                       {new Date(row.createdAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
                     </td>
                   </tr>
@@ -204,7 +204,7 @@ const ContactsPage: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-text-secondary">
               Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}
             </p>
             <div className="flex items-center gap-1">

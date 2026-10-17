@@ -139,7 +139,7 @@ const MigrationReviewsPage: React.FC = () => {
                 <button
                   onClick={() => setSearch('')}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -186,7 +186,7 @@ const MigrationReviewsPage: React.FC = () => {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-sm text-text-tertiary">
+                  <td colSpan={7} className="text-center py-10 text-sm text-text-secondary">
                     {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No review requests to show'}
                   </td>
                 </tr>
@@ -203,14 +203,14 @@ const MigrationReviewsPage: React.FC = () => {
                       >
                         <td className="px-4 py-3 w-8">
                           <svg
-                            className={`w-4 h-4 text-text-tertiary transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                            className={`w-4 h-4 text-text-secondary transition-transform ${isOpen ? 'rotate-90' : ''}`}
                             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="font-mono text-xs text-text-tertiary">#{g.migrationId}</div>
+                          <div className="font-mono text-xs text-text-secondary">#{g.migrationId}</div>
                           <div className="font-medium text-text-primary">
                             {g.migrationPair ? `${g.migrationPair.source.toUpperCase()} → ${g.migrationPair.destination.toUpperCase()}` : '—'}
                           </div>
@@ -234,7 +234,7 @@ const MigrationReviewsPage: React.FC = () => {
                         <td className="px-4 py-3 max-w-[260px] truncate text-xs text-text-secondary" title={g.latestRequest.reason}>
                           {g.latestRequest.reason}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
+                        <td className="px-4 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">
                           {fmt(g.latestRequest.createdAt)}
                         </td>
                       </tr>
@@ -262,7 +262,7 @@ const MigrationReviewsPage: React.FC = () => {
                                     >
                                       <div className="min-w-0 flex-1">
                                         <p className="text-xs text-text-primary truncate">{item.reason}</p>
-                                        <p className="text-[11px] text-text-tertiary mt-0.5">{fmt(item.createdAt)}</p>
+                                        <p className="text-[11px] text-text-secondary mt-0.5">{fmt(item.createdAt)}</p>
                                       </div>
                                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap flex-shrink-0 ${im.className}`}>
                                         {im.label}
@@ -289,7 +289,7 @@ const MigrationReviewsPage: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-text-secondary">
               Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}
             </p>
             <div className="flex items-center gap-1">

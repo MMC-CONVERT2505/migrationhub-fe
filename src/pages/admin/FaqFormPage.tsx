@@ -33,7 +33,7 @@ const Field: React.FC<{
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     {children}
-    {hint && <p className="text-[11px] text-text-tertiary">{hint}</p>}
+    {hint && <p className="text-[11px] text-text-secondary">{hint}</p>}
   </div>
 );
 
@@ -77,7 +77,7 @@ const IconButton: React.FC<{
     aria-label={title}
     disabled={disabled}
     onClick={onClick}
-    className={`p-1.5 rounded-md text-text-tertiary transition-colors disabled:opacity-30 disabled:hover:bg-transparent ${
+    className={`p-1.5 rounded-md text-text-secondary transition-colors disabled:opacity-30 disabled:hover:bg-transparent ${
       danger ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-blue-600 hover:bg-blue-50'
     }`}
   >
@@ -126,7 +126,7 @@ const QaList: React.FC<{
                 className="flex items-center gap-2.5 min-w-0 flex-1 text-left group"
               >
                 <svg
-                  className={`w-4 h-4 flex-shrink-0 text-text-tertiary transition-transform ${open ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 flex-shrink-0 text-text-secondary transition-transform ${open ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -138,7 +138,7 @@ const QaList: React.FC<{
                   className={`text-sm truncate ${
                     item.question.trim()
                       ? 'font-medium text-text-primary group-hover:text-blue-700'
-                      : 'italic text-text-tertiary'
+                      : 'italic text-text-secondary'
                   }`}
                 >
                   {item.question.trim() || 'Untitled question'}
@@ -390,7 +390,7 @@ const FaqFormPage: React.FC = () => {
           <Link
             to="/admin/faqs"
             title="Back to FAQs"
-            className="p-1.5 -ml-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-light transition-colors flex-shrink-0"
+            className="p-1.5 -ml-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -496,7 +496,7 @@ const FaqFormPage: React.FC = () => {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <h2 className="text-sm font-semibold text-text-primary">
                 Questions &amp; answers
-                <span className="ml-2 font-normal text-text-tertiary">
+                <span className="ml-2 font-normal text-text-secondary">
                   ({form.items.length})
                 </span>
               </h2>

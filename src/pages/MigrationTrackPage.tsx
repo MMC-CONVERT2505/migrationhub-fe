@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
+import { CompactFooter } from '@/components/layout/Footer';
 import { Badge } from '@/components/common/Badge';
 import { Spinner } from '@/components/common/Spinner';
+import { FlowStepper } from '@/components/migration/FlowStepper';
 import { JourneyTimeline } from '@/components/migration/JourneyTimeline';
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
@@ -90,10 +92,11 @@ const MigrationTrackPage: React.FC = () => {
     live || status === 'COMPLETED' || status === 'PARTIAL_SUCCESS' || status === 'UNDER_REVIEW';
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Navbar variant="default" />
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar showBack />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <FlowStepper page="track" className="max-w-xl mx-auto mb-8" />
         <Link to="/migrations" className="text-sm text-blue-600 hover:underline">← Back to my migrations</Link>
 
         {loading && (
@@ -185,6 +188,7 @@ const MigrationTrackPage: React.FC = () => {
           </motion.div>
         )}
       </div>
+      <CompactFooter />
     </div>
   );
 };

@@ -1,105 +1,71 @@
 import React from 'react';
-import { formatCurrency } from '@/utils/format';
+import { Link } from 'react-router-dom';
+import { formatCurrency, yesNo } from '@/utils/format';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { useAppStore } from '@/store/appStore';
+import { findSelectedPlan, isFreeSelection, planCurrency } from '@/constants/migrationFlow';
+import { pairCustomerPath, pairPlanPath } from '@/utils/platformMap';
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '11px 18px',
-    borderBottom: '1px solid #dce2ef',
-    fontSize: 13,
-  }}>
-    <span style={{ color: '#4b5568' }}>{label}</span>
-    <span style={{ fontWeight: 600, color: '#111827' }}>{value}</span>
+  <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 text-[13px] sm:px-5">
+    <dt className="text-text-secondary">{label}</dt>
+    <dd className="text-right font-semibold text-text-primary">{value}</dd>
   </div>
 );
 
+/** Order summary only — no personal details. Read straight from the flow state, so changing
+ *  the plan or details and coming back always shows the recalculated figures. */
 export const OrderSummary: React.FC = () => {
-  const selectedPair = useAppStore((s) => s.selectedPair);
+  const pair = useAppStore((s) => s.selectedPair);
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
 
-  const pair = selectedPair;
-  const plan = pair?.plans.find((p) => p.id === selectedPlanId) ?? null;
-  // A pair not globally flagged free can still carry a $0 plan — the total
-  // due must read "Free" for that selection regardless of the pair's flag.
-  const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
+  const plan = findSelectedPlan(pair, selectedPlanId);
+  const isFree = isFreeSelection(pair, plan);
   // Operation Team: the plan is paid, but nothing is due at checkout.
   const paymentSkipped = usePaymentSkipped(pair?.isFree ?? false, plan);
+  const currency = planCurrency(plan);
 
-  // Migration date range derived from the customer's financial-year-end + the
-  // plan's coverage — mirrors what the backend stores at migration creation.
   const dateRange = plan
-    ? formatFinancialRange(
-      calculateMigrationPeriod(
-        inquiryDetails?.financialYearEnd,
-        plan.years,
-        plan.isInception,
-      ),
-    )
+    ? formatFinancialRange(calculateMigrationPeriod(inquiryDetails?.financialYearEnd, plan.years, plan.isInception))
     : null;
 
+  const total = isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(plan?.basePrice ?? 0)} ${currency}`;
+
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #dce2ef',
-      borderRadius: 12,
-      overflow: 'hidden',
-      marginTop: 24,
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: '13px 18px',
-        borderBottom: '1px solid #dce2ef',
-        fontSize: 11,
-        fontWeight: 600,
-        color: '#4b5568',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        background: '#f0f4fa',
-      }}>
-        Order Summary
+    <section aria-labelledby="order-summary-title" className="overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-bg-light px-4 py-3 sm:px-5">
+        <h2 id="order-summary-title" className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+          Order Summary
+        </h2>
+        {pair && (
+          <div className="flex items-center gap-3 text-xs font-medium">
+            <Link to={pairPlanPath(pair)} className="text-blue-600 hover:underline">Change plan</Link>
+            <Link to={pairCustomerPath(pair)} className="text-blue-600 hover:underline">Edit details</Link>
+          </div>
+        )}
       </div>
 
-      <Row label="Migration pair" value={pair ? `${pair.src} → ${pair.dst}` : '—'} />
-
-      {plan ? (
-        <>
-          <Row label="Plan" value={plan.name} />
-          <Row label="Historical data" value={plan.history} />
-          {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}
-          {dateRange && <Row label="Date range" value={dateRange} />}
-          <Row label="Support tier" value={plan.support} />
-          <Row label="Subtotal" value={isFree ? 'Free' : `${formatCurrency(plan.basePrice)} USD`} />
-          {/* Total row */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '13px 18px',
-            background: '#f0f4fa',
-            fontSize: 13,
-          }}>
-            <span style={{ fontWeight: 700, color: '#111827' }}>Total due today</span>
-            <span style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: isFree || paymentSkipped ? '#16a34a' : '#2563eb',
-              fontFamily: 'monospace',
-            }}>
-              {isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(plan.basePrice)} USD`}
-            </span>
-          </div>
-        </>
-      ) : (
-        <div style={{ padding: '16px 18px', fontSize: 13, color: '#9ba3b8' }}>
-          Select a plan above to see the order summary.
+      <dl>
+        <Row label="Migration pair" value={pair ? `${pair.src} → ${pair.dst}` : '—'} />
+        {plan && (
+          <>
+            <Row label="Plan" value={plan.name} />
+            <Row label="Historical data" value={plan.history} />
+            {dateRange && <Row label="Date range" value={dateRange} />}
+            {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}
+            <Row
+              label="Add-ons"
+              value={inquiryDetails?.addOnsConfirmed == null ? '—' : inquiryDetails.addOnsConfirmed ? `${yesNo(true)} — quoted separately` : 'None'}
+            />
+          </>
+        )}
+        <div className="flex items-center justify-between gap-4 bg-bg-light px-4 py-3.5 sm:px-5">
+          <dt className="text-[13px] font-bold text-text-primary">Total due today</dt>
+          <dd className={`font-mono text-base font-bold ${isFree || paymentSkipped ? 'text-green-600' : 'text-blue-600'}`}>{total}</dd>
         </div>
-      )}
-    </div>
+      </dl>
+    </section>
   );
 };

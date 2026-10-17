@@ -140,7 +140,7 @@ const ContactPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">
-      <Navbar variant="default" />
+      <Navbar />
 
       <main>
         <section className="relative pt-16 pb-24 overflow-hidden">

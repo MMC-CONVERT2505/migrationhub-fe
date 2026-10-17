@@ -34,6 +34,8 @@ export interface Plan {
   isInception?: boolean;
   support: string;
   basePrice: number;
+  /** ISO currency code the plan is priced in; absent falls back to DEFAULT_CURRENCY. */
+  currency?: string;
   features: string[];
   popular?: boolean;
 }
@@ -89,6 +91,8 @@ export interface PendingMigration {
 
 export interface InquiryDetails {
   id?: number;
+  /** UI-only: the pair this inquiry was created for, so a different pair never reuses it. */
+  migrationPairId?: string;
   name: string;
   email: string;
   phone: string;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
-import { Navbar } from '@/components/layout/Navbar';
-import { MigrationJourney } from '@/components/migration/MigrationJourney';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { FlowLayout } from '@/components/migration/FlowLayout';
+import { FaqAccordion } from '@/components/migration/FaqAccordion';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { InputField } from '@/components/auth/InputField';
 import { Button } from '@/components/common/Button';
@@ -11,6 +11,11 @@ import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
 import { TRANSACTION_PLANS, type TransactionPlan } from '@/constants/transactionPlans';
+import {
+  PAYMENT_PATH, SUCCESS_PATH, findSelectedPlan, inquiryForPair, isFreeSelection, resolveFlowRedirect,
+} from '@/constants/migrationFlow';
+import { pairPlanPath } from '@/utils/platformMap';
+import { countryForDialCode } from '@/utils/phone';
 
 // Declared once and reused in the restricted list below, so the two lists can never
 // spell the same country differently — the label is what gets stored on the inquiry.
@@ -182,18 +187,13 @@ const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
-  const entryLocked = useAppStore((s) => s.entryLocked);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
+  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
 
-  // "Final Summary — Edit": reached from PaymentSuccessPage's Edit button
-  // rather than the normal forward flow. Returns to Summary (PATCH) instead
-  // of continuing to FAQ (POST) — see handleSubmit below.
-  const [searchParams] = useSearchParams();
-  const isEdit = searchParams.get('edit') === '1';
-  const paymentIdParam = searchParams.get('paymentId') ?? '';
-  const backToSummaryUrl = paymentIdParam
-    ? `/payment/success?paymentId=${encodeURIComponent(paymentIdParam)}`
-    : '/payment/success';
+  // Going back to this page after the inquiry was created (e.g. "Edit details" on the
+  // payment page) updates that inquiry rather than creating a duplicate.
+  const existing = inquiryForPair(selectedPair, inquiryDetails);
+  const canUpdate = !!(existing?.id && existing.editToken);
 
   const isXeroToQbo =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
@@ -231,23 +231,24 @@ const MigrationInfoPage: React.FC = () => {
     // Pre-fill from the inquiry the customer already submitted — everything
     // it might be missing (an in-flight session from before this field was
     // widened into the store) falls back exactly like a fresh form would.
-    if (isEdit && inquiryDetails?.id) {
-      const country = inquiryDetails.country ?? defaultCountry;
+    if (existing) {
+      const inquiry = existing;
+      const country = inquiry.country ?? defaultCountry;
       const { dialCode, phone } = splitPhone(
-        inquiryDetails.phone,
+        inquiry.phone,
         COUNTRY_DIAL_CODE[country] ?? COUNTRY_DIAL_CODE[defaultCountry],
       );
       return {
-        name: inquiryDetails.name,
-        email: inquiryDetails.email,
+        name: inquiry.name,
+        email: inquiry.email,
         phone,
         dialCode,
         country,
-        entityName: inquiryDetails.entityName,
-        financialYearEnd: inquiryDetails.financialYearEnd ?? fyEndFor(country),
-        transactionPlan: (inquiryDetails.transactionPlan ?? TRANSACTION_PLANS[0].value) as TransactionPlan,
-        addOnsConfirmed: (inquiryDetails.addOnsConfirmed ?? null) as YesNo,
-        trackingInventory: (inquiryDetails.trackingInventory ?? null) as YesNo,
+        entityName: inquiry.entityName,
+        financialYearEnd: inquiry.financialYearEnd ?? fyEndFor(country),
+        transactionPlan: (inquiry.transactionPlan ?? TRANSACTION_PLANS[0].value) as TransactionPlan,
+        addOnsConfirmed: (inquiry.addOnsConfirmed ?? null) as YesNo,
+        trackingInventory: (inquiry.trackingInventory ?? null) as YesNo,
       };
     }
     const country = defaultCountry;
@@ -267,15 +268,10 @@ const MigrationInfoPage: React.FC = () => {
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
-  // Set either up front (edit mode reached with no id/token to edit — a stale
-  // or cross-session link) or from a 409 mid-submit (already confirmed in
-  // another tab). Either way, editing is no longer possible — replace the
-  // form with a clear way out rather than leaving it looking submittable.
-  const [editBlocked, setEditBlocked] = useState<string | null>(() =>
-    isEdit && !(inquiryDetails?.id && inquiryDetails.editToken)
-      ? "We couldn't find your details to edit. Please go back to the summary and try again."
-      : null,
-  );
+  // Set from a 409 mid-submit (already confirmed in another tab). Editing is then no
+  // longer possible — replace the form with a clear way out rather than leaving it
+  // looking submittable.
+  const [editBlocked, setEditBlocked] = useState<string | null>(null);
 
   // Both generic step-2 URLs render this same element, so React reuses the component
   // across a pair change and the form survives with whatever country was picked for the
@@ -294,24 +290,25 @@ const MigrationInfoPage: React.FC = () => {
     }));
   }, [countries, form.country]);
 
-  if (!selectedPair) return <Navigate to="/" replace />;
+  // Pair or plan missing (refresh, pasted URL, stale session): back to the earliest incomplete step.
+  const redirect = resolveFlowRedirect('details', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails });
+  if (!selectedPair || redirect) return <Navigate to={redirect ?? '/'} replace />;
+
+  const plan = findSelectedPlan(selectedPair, selectedPlanId);
+  // A free selection skips the Payment page and goes straight to Start Migration.
+  const nextPath = isFreeSelection(selectedPair, plan) ? SUCCESS_PATH : PAYMENT_PATH;
 
   if (editBlocked) {
     return (
-      <div className="min-h-screen bg-bg animate-screen-enter">
-        <Navbar variant="migration" />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <MigrationJourney current={2} className="mb-8" />
-          <div className="bg-white border border-border rounded-2xl shadow-card p-6 sm:p-8 text-center">
-            <h1 className="text-xl font-bold text-text-primary tracking-tight">Editing unavailable</h1>
-            <p className="mt-2 text-sm text-text-secondary">{editBlocked}</p>
-            <div className="mt-6 flex justify-center gap-3">
-              <Button variant="secondary" size="lg" onClick={() => navigate(backToSummaryUrl)}>Back to Summary</Button>
-              <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>View your migrations</Button>
-            </div>
+      <FlowLayout page="details">
+        <div className="bg-white border border-border rounded-2xl shadow-card p-6 sm:p-8 text-center">
+          <h1 className="text-xl font-bold text-text-primary tracking-tight">Editing unavailable</h1>
+          <p className="mt-2 text-sm text-text-secondary">{editBlocked}</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Button variant="primary" size="lg" onClick={() => navigate('/migrations')}>View your migrations</Button>
           </div>
         </div>
-      </div>
+      </FlowLayout>
     );
   }
 
@@ -334,6 +331,21 @@ const MigrationInfoPage: React.FC = () => {
       dialCode: COUNTRY_DIAL_CODE[country] ?? p.dialCode,
       financialYearEnd: fyEndFor(country),
     }));
+  // Picking a dial code follows through to the country when that is unambiguous (see
+  // countryForDialCode). The FY end follows only if the customer hasn't changed it from the
+  // old country's statutory date, so a deliberately chosen period is never overwritten.
+  const setDialCode = (dialCode: string) =>
+    setForm((p) => {
+      const country = countryForDialCode(dialCode, countries, p.country, COUNTRY_DIAL_CODE);
+      if (!country) return { ...p, dialCode };
+      const fyUntouched = p.financialYearEnd === fyEndFor(p.country);
+      return {
+        ...p,
+        dialCode,
+        country,
+        financialYearEnd: fyUntouched ? fyEndFor(country) : p.financialYearEnd,
+      };
+    });
   const fieldError = (f: string) => errors.find((e) => e.field === f)?.message;
 
   const validate = (): FieldErr[] => {
@@ -347,6 +359,16 @@ const MigrationInfoPage: React.FC = () => {
     if (form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
     if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
+  };
+
+  // Inline validation: check a field as the customer leaves it, so a mistake shows up
+  // beside the field instead of only after pressing the CTA.
+  const validateOnBlur = (field: string) => {
+    const msg = validate().find((e) => e.field === field);
+    setErrors((p) => {
+      const rest = p.filter((e) => e.field !== field);
+      return msg ? [...rest, msg] : rest;
+    });
   };
 
   const handleSubmit = async (ev: React.FormEvent) => {
@@ -363,17 +385,9 @@ const MigrationInfoPage: React.FC = () => {
     const addOnsConfirmed = form.addOnsConfirmed ?? undefined;
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
 
-    if (isEdit) {
-      // Guarded at render time too (see editBlocked) — this is the belt-and-
-      // braces check so a submit can never fall through to create() and
-      // produce a duplicate inquiry.
-      if (!inquiryDetails?.id || !inquiryDetails.editToken) {
-        setGlobalError("We couldn't find your details to save. Please go back to the summary and try again.");
-        setSubmitting(false);
-        return;
-      }
+    if (canUpdate && existing?.id && existing.editToken) {
       try {
-        await inquiryMigrationsService.update(inquiryDetails.id, inquiryDetails.editToken, {
+        await inquiryMigrationsService.update(existing.id, existing.editToken, {
           name: form.name.trim(),
           email: form.email.trim(),
           phone,
@@ -386,7 +400,7 @@ const MigrationInfoPage: React.FC = () => {
         });
 
         setInquiryDetails({
-          ...inquiryDetails,
+          ...existing,
           name: form.name.trim(),
           email: form.email.trim(),
           phone,
@@ -398,7 +412,7 @@ const MigrationInfoPage: React.FC = () => {
           trackingInventory,
         });
 
-        navigate(backToSummaryUrl);
+        navigate(nextPath);
       } catch (err) {
         if (err instanceof ApiError && err.statusCode === 409) {
           setEditBlocked(err.message);
@@ -437,9 +451,10 @@ const MigrationInfoPage: React.FC = () => {
         addOnsConfirmed,
         trackingInventory,
         editToken: created.editToken,
+        migrationPairId: selectedPair.id ? String(selectedPair.id) : undefined,
       });
 
-      navigate('/migration/faq');
+      navigate(nextPath);
     } catch (err) {
       setGlobalError(err instanceof ApiError ? err.message : 'Could not save your details. Please try again.');
     } finally {
@@ -448,13 +463,9 @@ const MigrationInfoPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
-      <Navbar variant="migration" />
-
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <MigrationJourney current={2} className="mb-8" />
-
-        <div className="bg-white border border-border rounded-2xl shadow-card p-6 sm:p-8">
+    <FlowLayout page="details" widthClass="max-w-6xl">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <div className="min-w-0 bg-white border border-border rounded-2xl shadow-card p-5 sm:p-8">
           {/* Selected migration pair — highlighted so the user always sees which flow this is */}
           <SelectedPairBanner pair={selectedPair} className="mb-6" />
 
@@ -464,19 +475,20 @@ const MigrationInfoPage: React.FC = () => {
           </p>
 
           {globalError && (
-            <div className="mt-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{globalError}</div>
+            <div role="alert" className="mt-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{globalError}</div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="lg:contents">
+            <div className="mt-6 space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 label="Name" id="name" required
-                value={form.name} onChange={(e) => set('name', e.target.value)}
+                value={form.name} onChange={(e) => set('name', e.target.value)} onBlur={() => validateOnBlur('name')}
                 placeholder="John Doe" error={fieldError('name')}
               />
               <InputField
                 label="Email" id="email" type="email" required
-                value={form.email} onChange={(e) => set('email', e.target.value)}
+                value={form.email} onChange={(e) => set('email', e.target.value)} onBlur={() => validateOnBlur('email')}
                 placeholder="john.doe@example.com" error={fieldError('email')}
               />
             </div>
@@ -492,7 +504,7 @@ const MigrationInfoPage: React.FC = () => {
                   <select
                     id="dialCode"
                     value={form.dialCode}
-                    onChange={(e) => set('dialCode', e.target.value)}
+                    onChange={(e) => setDialCode(e.target.value)}
                     aria-label="Dial code"
                     className={cn(inputCls, 'w-24 flex-shrink-0 px-2')}
                   >
@@ -500,7 +512,7 @@ const MigrationInfoPage: React.FC = () => {
                   </select>
                   <input
                     id="phone" type="tel" inputMode="tel" aria-required="true"
-                    value={form.phone} onChange={(e) => set('phone', e.target.value)}
+                    value={form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => validateOnBlur('phone')}
                     placeholder="412 345 678" autoComplete="tel-national" maxLength={20}
                     aria-invalid={!!fieldError('phone')}
                     aria-describedby={fieldError('phone') ? 'phone-error' : undefined}
@@ -527,7 +539,7 @@ const MigrationInfoPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 label="Name of Entity to be Migrated" id="entityName" required
-                value={form.entityName} onChange={(e) => set('entityName', e.target.value)}
+                value={form.entityName} onChange={(e) => set('entityName', e.target.value)} onBlur={() => validateOnBlur('entityName')}
                 placeholder="Acme Pty Ltd" maxLength={150} error={fieldError('entityName')}
               />
               {isXeroToQbo && (
@@ -578,22 +590,30 @@ const MigrationInfoPage: React.FC = () => {
               />
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {isEdit ? (
-                <Button type="button" variant="secondary" size="lg" onClick={() => navigate(backToSummaryUrl)}>Back to Summary</Button>
-              ) : (
-                !entryLocked && (
-                  <Button type="button" variant="secondary" size="lg" onClick={() => navigate('/')}>Cancel</Button>
-                )
-              )}
+            </div>
+
+            {/* CTA — sticks to the bottom of the viewport on desktop so it never scrolls out of view */}
+            <div className="mt-5 lg:sticky lg:bottom-0 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 bg-white/95 backdrop-blur-sm border-t border-border">
               <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>
-                {isEdit ? 'Save Changes' : 'Continue to FAQ'}
+                {nextPath === SUCCESS_PATH ? 'Continue' : 'Continue to Payment'}
               </Button>
+              <button
+                type="button"
+                onClick={() => navigate(pairPlanPath(selectedPair))}
+                className="mt-2 w-full text-center text-xs font-medium text-text-secondary hover:text-text-primary underline-offset-2 hover:underline"
+              >
+                Change plan
+              </button>
             </div>
           </form>
         </div>
+
+        {/* FAQ — right column on desktop, below the form on mobile (DOM order) */}
+        <aside className="min-w-0 lg:sticky lg:top-6">
+          <FaqAccordion pairId={selectedPair.id} />
+        </aside>
       </div>
-    </div>
+    </FlowLayout>
   );
 };
 

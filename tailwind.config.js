@@ -63,8 +63,13 @@ export default {
         blink: 'blink 1.2s step-end infinite',
         'screen-enter': 'sc 0.4s ease both',
         'panel-enter': 'pIn 0.35s ease both',
+        float: 'float 6s ease-in-out infinite',
       },
       keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
         blink: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' },

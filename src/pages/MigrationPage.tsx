@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
-import { MigrationJourney } from '@/components/migration/MigrationJourney';
+import { CompactFooter } from '@/components/layout/Footer';
+import { FlowStepper } from '@/components/migration/FlowStepper';
 import { StepBar } from '@/components/migration/StepBar';
 import { ConnectStep } from '@/components/migration/ConnectStep';
 import { DataSelector } from '@/components/migration/DataSelector';
@@ -37,8 +38,8 @@ const MigrationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
-      <Navbar variant="migration" />
+    <div className="min-h-screen bg-bg animate-screen-enter flex flex-col">
+      <Navbar showBack />
 
       {/* Migration header */}
       <div className="bg-bg-light border-b border-border">
@@ -97,10 +98,7 @@ const MigrationPage: React.FC = () => {
 
       {/* Wizard */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <MigrationJourney
-          current={migrationStep === 1 ? 5 : migrationStep === 2 ? 6 : migrationStep === 5 ? 8 : 7}
-          className="mb-8"
-        />
+        <FlowStepper page={migrationStep >= 5 ? 'track' : 'connect'} className="max-w-xl mx-auto mb-8" />
         <StepBar currentStep={migrationStep} />
 
         {/* Step panels */}
@@ -129,6 +127,7 @@ const MigrationPage: React.FC = () => {
           <ProgressStep />
         )}
       </div>
+      <CompactFooter />
     </div>
   );
 };

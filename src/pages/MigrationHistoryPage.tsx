@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
+import { CompactFooter } from '@/components/layout/Footer';
 import { Badge } from '@/components/common/Badge';
 import { Spinner } from '@/components/common/Spinner';
 
@@ -221,8 +222,8 @@ const MigrationHistoryPage: React.FC = () => {
   const failed    = migrations.filter((m) => m.status === 'FAILED' || m.status === 'CANCELLED');
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Navbar variant="default" />
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar showBack />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
@@ -338,6 +339,7 @@ const MigrationHistoryPage: React.FC = () => {
           </div>
         )}
       </div>
+      <CompactFooter />
     </div>
   );
 };

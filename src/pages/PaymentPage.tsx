@@ -1,254 +1,136 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Navbar } from '@/components/layout/Navbar';
-import { MigrationJourney } from '@/components/migration/MigrationJourney';
+import React, { useRef, useState } from 'react';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { FlowLayout } from '@/components/migration/FlowLayout';
+import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { OrderSummary } from '@/components/payment/OrderSummary';
-import { PaymentForm } from '@/components/payment/PaymentForm';
-import { FreeMigrationForm } from '@/components/payment/FreeMigrationForm';
-import { PlanCard } from '@/components/payment/PlanCard';
-import { Spinner } from '@/components/common/Spinner';
-import { PlatformMark } from '@/components/common/PlatformMark';
+import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
-
-import { migrationsService } from '@/api/migrations';
+import { paymentsService } from '@/api/payments';
 import { ApiError } from '@/api/client';
+import { formatCurrencyCompact } from '@/utils/format';
+import { findSelectedPlan, planCurrency, resolveFlowRedirect, SUCCESS_PATH } from '@/constants/migrationFlow';
 
+/** Why the customer is back here after the payment provider sent them away (see /payment/failed). */
+const FAILURE_LABELS: Record<string, string> = {
+  cancelled:       'Payment was cancelled.',
+  expired:         'The payment link has expired.',
+  failed:          'Payment was declined by your bank.',
+  signature_error: 'Payment could not be verified. Please contact support.',
+  invalid_signature: 'Payment could not be verified. Please contact support.',
+};
+
+/** Flow step 3: review the order and pay. Summary and a single CTA — nothing to fill in. */
 const PaymentPage: React.FC = () => {
-  const navigate          = useNavigate();
-  const selectedPair      = useAppStore((s) => s.selectedPair);
-  const selectedPlanId    = useAppStore((s) => s.selectedPlanId);
-  const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPair = useAppStore((s) => s.selectedPair);
+  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
+  const inquiryDetails = useAppStore((s) => s.inquiryDetails);
+  const setPendingMigration = useAppStore((s) => s.setPendingMigration);
 
-  // Whether the *pair* is globally marketed as free — drives page-level copy
-  // and which plan gets auto-selected. Kept separate from "is this specific
-  // checkout free" (below): a pair that isn't globally free can still carry
-  // a $0 plan alongside paid ones.
-  const pairIsFree = selectedPair?.isFree ?? false;
+  const plan = findSelectedPlan(selectedPair, selectedPlanId);
+  const paymentSkipped = usePaymentSkipped(selectedPair?.isFree ?? false, plan);
 
-  // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
-  const PLAN_ORDER = ['free', 'basic', 'standard', 'enterprise'];
-  const plans = useMemo(() => {
-    const rank = (name: string) => {
-      const i = PLAN_ORDER.indexOf(name.trim().toLowerCase());
-      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  const [processing, setProcessing] = useState(false);
+  // Synchronous guard: state updates are async, so two fast clicks could both pass a
+  // `processing` check before the first render disables the button.
+  const inFlight = useRef(false);
+
+  const failureReason = searchParams.get('status') === 'failed' ? (searchParams.get('reason') ?? 'failed') : null;
+  const failurePaymentId = searchParams.get('paymentId');
+  const [error, setError] = useState(failureReason ? (FAILURE_LABELS[failureReason] ?? 'Something went wrong with your payment.') : '');
+
+  // Missing pair, plan or details (refresh, pasted URL): back to the earliest incomplete step.
+  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails });
+  if (!selectedPair || !plan || redirect) return <Navigate to={redirect ?? '/'} replace />;
+
+  const currency = planCurrency(plan);
+  const amount = Math.round(parseFloat(String(plan.basePrice)) * 100);
+
+  const handlePay = async () => {
+    if (inFlight.current) return;
+    if (!selectedPair.id || !plan.id) {
+      setError('Migration pair or plan is missing. Please go back and try again.');
+      return;
+    }
+    inFlight.current = true;
+    setError('');
+    setProcessing(true);
+
+    const migrationPairId = String(selectedPair.id);
+    const planId = plan.id;
+    const pending = {
+      migrationPairId,
+      planId,
+      ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
     };
-    return [...(selectedPair?.plans ?? [])].sort((a, b) => rank(a.name) - rank(b.name));
-  }, [selectedPair]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
-  // The actual "does this checkout need payment" question: true whenever the
-  // pair is globally free, OR the specific plan the customer picked costs
-  // nothing — e.g. a promotional/free tier on an otherwise-paid pair.
-  // Razorpay refuses to process a zero-value payment link, so this plan must
-  // never reach PaymentForm/paymentsService.initiate() (see the backend's
-  // matching fix in MigrationService.create()'s payment gate).
-  const isFreeCheckout = pairIsFree || (selectedPlan != null && Number(selectedPlan.basePrice) === 0);
-
-  // Operation Team members start a paid migration without paying: the same
-  // "Start migration" → summary → create flow a free migration takes.
-  const paymentSkipped = usePaymentSkipped(pairIsFree, selectedPlan);
-
-  const [autoCreating, setAutoCreating] = useState(false);
-  const [autoError, setAutoError]       = useState('');
-
-  // Auto-select a plan when none valid is selected for the current pair.
-  // Free pairs default to the Free plan; otherwise the first (lowest-tier) plan.
-  useEffect(() => {
-    if (plans.length === 0) return;
-    const valid = plans.some((p) => p.id === selectedPlanId);
-    if (valid) return;
-    const freePlan = plans.find((p) => p.name.trim().toLowerCase() === 'free');
-    const target = pairIsFree && freePlan ? freePlan : plans[0];
-    setSelectedPlanId(target.id!);
-  }, [plans, pairIsFree]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // No plans attached → create a free migration immediately, skip UI.
-  useEffect(() => {
-    if (!selectedPair || plans.length > 0) return;
-
-    if (!selectedPair.id) {
-      setAutoError('Migration pair is missing an ID. Please go back and try again.');
+    // Operation Team: paid plan, nothing due — same Start migration step a free one takes.
+    if (paymentSkipped) {
+      setPendingMigration(pending);
+      navigate(SUCCESS_PATH);
       return;
     }
 
-    // Only a free pair can start without a plan. A paid pair with no plans
-    // attached has nothing to charge or to record, so the server would refuse
-    // it ("requires payment") and report a failed order to MMC — say what is
-    // actually wrong instead of firing that request.
-    if (!pairIsFree) {
-      setAutoError(
-        `No plans are configured for ${selectedPair.src} → ${selectedPair.dst} yet, so this migration can't be started. Please contact support.`,
-      );
-      return;
-    }
-
-    setAutoCreating(true);
-    const inquiryId = useAppStore.getState().inquiryDetails?.id;
-    migrationsService
-      .create({
-        migrationPairId: String(selectedPair.id),
-        ...(inquiryId ? { inquiryId } : {}),
-      })
-      .then(() => navigate('/migrations'))
-      .catch((err) => {
-        setAutoError(err instanceof ApiError ? err.message : 'Could not start migration. Please try again.');
-        setAutoCreating(false);
+    try {
+      const res = await paymentsService.initiate({
+        amount,
+        migrationPairId,
+        planId,
+        currency: 'USD',
+        description: `${plan.name} Migration Plan`,
+        name: inquiryDetails?.name,
+        email: inquiryDetails?.email,
+        company: inquiryDetails?.entityName,
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      if (!res.paymentUrl) throw new Error('No payment URL returned by server.');
 
-  // ── No-plans: full-screen loading / error ────────────────────────────────────
-  if (plans.length === 0) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
-        <Navbar variant="payment" />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
-          {autoCreating && (
-            <>
-              <Spinner size="lg" />
-              <p style={{ fontSize: 14, color: '#4b5568' }}>Starting your migration…</p>
-            </>
-          )}
-          {autoError && (
-            <div style={{ maxWidth: 360, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>Migration could not be started</p>
-              <p style={{ fontSize: 14, color: '#4b5568' }}>{autoError}</p>
-              <button
-                style={{ fontSize: 14, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={() => navigate('/')}
-              >
-                ← Back to home
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+      setPendingMigration(pending);
+      // Leaves the app; the button stays disabled with its loader until the page unloads.
+      window.location.href = res.paymentUrl;
+    } catch (err) {
+      inFlight.current = false;
+      setProcessing(false);
+      setError(err instanceof ApiError ? err.message : 'Could not initiate payment. Please try again.');
+    }
+  };
+
+  const ctaLabel = paymentSkipped
+    ? 'Start migration – payment skipped'
+    : `Pay ${formatCurrencyCompact(plan.basePrice)} ${currency} – Complete Payment`;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
-      <Navbar variant="payment" />
+    <FlowLayout page="payment" widthClass="max-w-xl">
+      <h1 className="text-2xl font-bold tracking-tight text-text-primary">Review &amp; pay</h1>
+      <p className="mt-1 mb-5 text-sm text-text-secondary">Check your order, then complete payment to begin your migration.</p>
 
-      {/* ── Pay header ──────────────────────────────────────────────────────── */}
-      {selectedPair && (
-        <div style={{ background: '#f0f4fa', borderBottom: '1px solid #dce2ef' }}>
-          <div className="max-w-[960px] mx-auto px-4 sm:px-14 py-7">
-            <p style={{ fontSize: 11.5, color: '#9ba3b8', marginBottom: 10, fontFamily: 'monospace' }}>
-              MMC Convert
-              <span style={{ color: '#4b5568' }}> / Migration Pairs / </span>
-              {selectedPair.src} → {selectedPair.dst}
-              <span style={{ color: '#4b5568' }}> / Checkout</span>
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <PlatformMark
-                  logo={selectedPair.srcLogo}
-                  abbr={selectedPair.srcAbbr}
-                  color={selectedPair.srcColor}
-                  name={selectedPair.src}
-                  className="w-[38px] h-[38px] rounded-lg"
-                  textClassName="text-[10px] font-extrabold"
-                />
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-                <PlatformMark
-                  logo={selectedPair.dstLogo}
-                  abbr={selectedPair.dstAbbr}
-                  color={selectedPair.dstColor}
-                  name={selectedPair.dst}
-                  className="w-[38px] h-[38px] rounded-lg"
-                  textClassName="text-[10px] font-extrabold"
-                />
-              </div>
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 700, color: '#111827', letterSpacing: -0.3 }}>
-                  {selectedPair.src} → {selectedPair.dst} Migration
-                </div>
-                <div style={{ fontSize: 12.5, color: '#4b5568', marginTop: 3 }}>
-                  {pairIsFree
-                    ? 'This migration is free — select a plan to choose your data scope'
-                    : paymentSkipped
-                      ? 'Select a plan and start the migration — payment is skipped for the Operation Team'
-                      : 'Select a plan and complete payment to begin your migration'}
-                </div>
-              </div>
-            </div>
+      <SelectedPairBanner pair={selectedPair} className="mb-5" />
+
+      <OrderSummary />
+
+      {error && (
+        <div role="alert" className="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <div className="text-sm text-red-700">
+            <p>{error}</p>
+            {failurePaymentId && <p className="mt-0.5 font-mono text-xs text-red-500">Ref: {failurePaymentId}</p>}
+            {failureReason && <p className="mt-0.5 text-xs text-red-600">No payment has been taken. You can safely try again.</p>}
           </div>
         </div>
       )}
 
-      {/* ── Pay body ────────────────────────────────────────────────────────── */}
-      <div className="max-w-[960px] mx-auto px-4 sm:px-14" style={{ paddingTop: 36, paddingBottom: 64 }}>
-        <MigrationJourney current={4} className="mb-8" />
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px]" style={{ gap: 24, alignItems: 'start' }}>
-
-          {/* Left: plan list + order summary stacked */}
-          <div>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>
-              {pairIsFree ? 'Select Plan (Free)' : 'Select Migration Plan'}
-            </h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {plans.map((plan, i) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  index={i}
-                  selected={selectedPlanId === plan.id}
-                  onSelect={setSelectedPlanId}
-                  // Per-card, not page-wide: a pair can mix a $0 plan with paid
-                  // ones, and each card must show its own real price/Free tag.
-                  isFree={pairIsFree || Number(plan.basePrice) === 0}
-                />
-              ))}
-            </div>
-
-            {/* Order summary below plans */}
-            <OrderSummary />
-          </div>
-
-          {/* Right: form or placeholder */}
-          <div className="lg:sticky lg:top-6">
-            {!selectedPlanId ? (
-              <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 22px', borderBottom: '1px solid #dce2ef', background: '#f0f4fa' }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                    {pairIsFree ? 'Ready to Start' : 'Payment Details'}
-                  </h3>
-                  <p style={{ fontSize: 12, color: '#4b5568', marginTop: 2 }}>
-                    Select a plan on the left to continue
-                  </p>
-                </div>
-                <div style={{ padding: '28px 22px', textAlign: 'center' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%', background: '#f0f4fa',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
-                  }}>
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#4b5568' }}>Select a plan to continue</p>
-                  <p style={{ fontSize: 12, color: '#9ba3b8', marginTop: 5, lineHeight: 1.5 }}>
-                    Choose one of the plans on the left to{' '}
-                    {pairIsFree ? 'start your free migration.' : 'proceed to payment.'}
-                  </p>
-                </div>
-              </div>
-            ) : isFreeCheckout ? (
-              <FreeMigrationForm />
-            ) : paymentSkipped ? (
-              <FreeMigrationForm operationTeam />
-            ) : (
-              <PaymentForm />
-            )}
-          </div>
-
-        </div>
+      <div className="mt-5">
+        <Button type="button" variant="primary" size="lg" fullWidth loading={processing} onClick={handlePay} aria-busy={processing}>
+          {error && !processing && !paymentSkipped ? `Retry – ${ctaLabel}` : ctaLabel}
+        </Button>
+        {!paymentSkipped && (
+          <p className="mt-3 text-center text-[11.5px] text-text-secondary">256-bit SSL · Powered by Razorpay · No card details stored here</p>
+        )}
       </div>
-    </div>
+    </FlowLayout>
   );
 };
 

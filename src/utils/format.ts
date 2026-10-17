@@ -27,6 +27,11 @@ export function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+/** "$389" for whole amounts, "$389.50" otherwise — the compact form used on the pay button. */
+export function formatCurrencyCompact(amount: number): string {
+  return Number.isInteger(amount) ? `$${amount}` : formatCurrency(amount);
+}
+
 export function formatNumber(n: number): string {
   return n.toLocaleString();
 }

@@ -72,7 +72,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="relative z-10">
         <Link to="/" className="inline-flex items-center gap-3 mb-12">
           <LogoMark size="lg" />
-          <span className="text-xl font-bold text-white tracking-tight">MMC Convert</span>
+          <span className="text-xl font-bold text-white tracking-tight">Migration Hub</span>
         </Link>
 
         <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight tracking-tight mb-4">
@@ -113,7 +113,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-border bg-white">
         <Link to="/" className="inline-flex items-center gap-2">
           <LogoMark size="sm" />
-          <span className="font-bold text-text-primary tracking-tight">MMC Convert</span>
+          <span className="font-bold text-text-primary tracking-tight">Migration Hub</span>
         </Link>
         <Link to="/" className="text-xs text-text-tertiary hover:text-text-secondary transition-colors">
           ← Back to site

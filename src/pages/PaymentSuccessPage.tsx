@@ -1,20 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Navbar } from '@/components/layout/Navbar';
-import { MigrationJourney, SUMMARY_STEP, HANDOFF_STEP } from '@/components/migration/MigrationJourney';
+import { Link, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { FlowLayout } from '@/components/migration/FlowLayout';
+import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
+import { Button } from '@/components/common/Button';
+import { Spinner } from '@/components/common/Spinner';
+import { HANDOFF_STEP } from '@/components/migration/MigrationJourney';
 import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { formatCurrency } from '@/utils/format';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
-import { PlatformMark } from '@/components/common/PlatformMark';
-import { pairDetailsPath } from '@/utils/platformMap';
+import { findSelectedPlan, isFreeSelection, planCurrency, resolveFlowRedirect } from '@/constants/migrationFlow';
 import type { PendingMigration } from '@/types';
 import type { UserMigration } from '@/types/api';
 
 const COUNTDOWN = 5;
-type Stage = 'summary' | 'creating' | 'done' | 'error' | 'loading-existing' | 'already-created';
+/** While a payment is still settling, re-check this often and for this many attempts. */
+const VERIFY_INTERVAL_MS = 4000;
+const VERIFY_MAX_ATTEMPTS = 8;
+
+type Stage = 'verifying' | 'summary' | 'creating' | 'done' | 'error' | 'loading-existing' | 'already-created';
 
 function readPendingMigration(): PendingMigration | null {
   try {
@@ -38,19 +44,40 @@ function buildToolRedirectUrl(migrationId: string, serviceUrl?: string | null): 
 }
 
 const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div style={{
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '11px 20px', borderBottom: '1px solid #dce2ef', fontSize: 13,
-  }}>
-    <span style={{ color: '#4b5568' }}>{label}</span>
-    <span style={{ fontWeight: 600, color: '#111827' }}>{value}</span>
+  <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 text-[13px] sm:px-5">
+    <dt className="text-text-secondary">{label}</dt>
+    <dd className="text-right font-semibold text-text-primary">{value}</dd>
   </div>
+);
+
+const IconCircle: React.FC<{ tone: 'green' | 'blue' | 'red'; children: React.ReactNode }> = ({ tone, children }) => (
+  <div
+    aria-hidden="true"
+    className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${
+      tone === 'green' ? 'bg-green-100 text-green-600' : tone === 'red' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+    }`}
+  >
+    {children}
+  </div>
+);
+const CheckIcon = (
+  <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+const CrossIcon = (
+  <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
 );
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paymentId = searchParams.get('paymentId') ?? '';
+  // The callback only sends status=success once the payment is settled. Anything else
+  // with a paymentId (e.g. "paid" before settlement) is still being confirmed.
+  const paymentStatus = searchParams.get('status');
   // Stamped into the URL (replacing history) right after a successful create
   // — see triggerCreate. Lets a browser-back from the handoff redirect (or a
   // reload) show that migration's own summary instead of trying to create a
@@ -61,61 +88,47 @@ const PaymentSuccessPage: React.FC = () => {
 
   // Snapshot store at mount — resetMigration() wipes the store mid-flight so
   // we capture pair/plan once and keep them for the full page lifecycle.
-  const [pair] = useState(() => useAppStore.getState().selectedPair);
-  const [plan] = useState(() => {
+  const [snap] = useState(() => {
     const s = useAppStore.getState();
-    return s.selectedPair?.plans.find((p) => p.id === s.selectedPlanId) ?? null;
+    return {
+      pair: s.selectedPair,
+      planId: s.selectedPlanId,
+      plan: findSelectedPlan(s.selectedPair, s.selectedPlanId),
+      inquiry: s.inquiryDetails,
+    };
   });
-  // Snapshot the inquiry id for the free flow (no Razorpay redirect to wipe it);
-  // the paid flow carries it through the localStorage PendingMigration instead.
-  const [inquiryId] = useState(() => useAppStore.getState().inquiryDetails?.id ?? null);
+  const { pair, plan } = snap;
   // Financial-year-end is persisted in the store (sessionStorage) so it survives
   // the Razorpay redirect; snapshot it once for the page lifecycle.
-  const [financialYearEnd] = useState(
-    () => useAppStore.getState().inquiryDetails?.financialYearEnd ?? null,
-  );
-  // Snapshot localStorage pending-migration once too — read at the top level
-  // (rather than only inside triggerCreate) so we can tell up front whether
-  // this page has enough context to create anything at all.
+  const financialYearEnd = snap.inquiry?.financialYearEnd ?? null;
+  // Snapshot localStorage pending-migration once too — it survives the Razorpay redirect.
   const [pending] = useState(readPendingMigration);
 
   // Paid: prefer localStorage (survives the Razorpay redirect).
   // Free / $0-plan: fall back to the snapshotted pair/plan.
   const migPairId = pending?.migrationPairId ?? (pair?.id ? String(pair.id) : undefined);
   const planId = pending?.planId ?? plan?.id ?? undefined;
-  const resolvedInquiryId = pending?.inquiryId ?? inquiryId ?? undefined;
+  const resolvedInquiryId = pending?.inquiryId ?? snap.inquiry?.id ?? undefined;
 
-  // A bare/direct load — no migrationId for an already-created migration, no
-  // Razorpay paymentId in the URL, no pending migration in localStorage, no
-  // live pair/plan selection in the session store — can never produce a
-  // valid create-migration request. Fail fast client-side instead of firing
-  // a POST that's guaranteed to 400.
-  const canCreate = !existingMigrationId && (Boolean(paymentId) || Boolean(migPairId));
-
-  // A pair not globally flagged free can still carry a $0 plan — this page
-  // must read "free" for that selection too (no "Amount paid: $0.00 USD").
-  const isFree = (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
-  // Operation Team on a paid plan, arriving without a payment: nothing was paid
-  // and nothing is owed — read like a free migration, labelled as skipped.
+  const isFree = isFreeSelection(pair, plan);
+  // Operation Team on a paid plan, arriving without a payment: nothing was paid.
   const operationTeamSkip = usePaymentSkipped(pair?.isFree ?? false, plan) && !paymentId;
   const noPayment = isFree || operationTeamSkip;
+  const currency = planCurrency(plan);
 
-  // Migration period derived from the FY end + plan coverage — mirrors the
-  // checkout order summary and the range the backend stored at creation.
   const dateRange = plan
-    ? formatFinancialRange(
-        calculateMigrationPeriod(financialYearEnd, plan.years, plan.isInception),
-      )
+    ? formatFinancialRange(calculateMigrationPeriod(financialYearEnd, plan.years, plan.isInception))
     : null;
 
-  const [stage, setStage] = useState<Stage>(existingMigrationId ? 'loading-existing' : 'summary');
+  const needsVerification = !existingMigrationId && Boolean(paymentId) && paymentStatus !== 'success';
+  const [stage, setStage] = useState<Stage>(
+    existingMigrationId ? 'loading-existing' : needsVerification ? 'verifying' : 'summary',
+  );
   const [tick, setTick] = useState(COUNTDOWN);
+  const [verifyAttempts, setVerifyAttempts] = useState(0);
   const [apiError, setApiError] = useState('');
   const [existingMigration, setExistingMigration] = useState<UserMigration | null>(null);
   const calledRef = useRef(false);
-  // Gate on an explicit Confirm click rather than mount — the customer must
-  // get a chance to Edit before anything starts ticking down.
-  const [confirmed, setConfirmed] = useState(false);
 
   // ── Load an already-created migration instead of creating a new one ───────
   const loadExisting = useCallback((id: string) => {
@@ -138,15 +151,11 @@ const PaymentSuccessPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const editUrl = pair
-    ? `${pairDetailsPath(pair)}?edit=1${paymentId ? `&paymentId=${encodeURIComponent(paymentId)}` : ''}`
-    : null;
-
-  // ── Create migration (called by countdown or "Start now" button) ──────────
-  const triggerCreate = useCallback(async () => {
-    if (calledRef.current || !canCreate) return;
+  // ── Create migration (countdown, "Start migration", or a payment-verification retry) ──
+  const triggerCreate = useCallback(async (verifying = false) => {
+    if (calledRef.current) return;
     calledRef.current = true;
-    setStage('creating');
+    if (!verifying) setStage('creating');
 
     try {
       const result = await migrationsService.create({
@@ -181,19 +190,33 @@ const PaymentSuccessPage: React.FC = () => {
         setStage('done');
       }
     } catch (err) {
+      calledRef.current = false;
+      // The server refuses a payment it hasn't settled yet ("… is not confirmed"). While
+      // verifying, that just means "not yet" — keep checking instead of failing.
+      if (verifying && err instanceof ApiError && /not confirmed/i.test(err.message)) {
+        setVerifyAttempts((n) => n + 1);
+        return;
+      }
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [canCreate, paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration, navigate]);
+  }, [paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration, navigate]);
 
-  // ── Countdown — only once the customer has clicked Confirm ─────────────────
+  // ── Verifying: re-check a still-settling payment until it confirms or we give up ──
   useEffect(() => {
-    if (stage !== 'summary' || !confirmed) return;
-    if (tick <= 0) { triggerCreate(); return; }
+    if (stage !== 'verifying' || verifyAttempts >= VERIFY_MAX_ATTEMPTS) return;
+    const t = setTimeout(() => { void triggerCreate(true); }, verifyAttempts === 0 ? 0 : VERIFY_INTERVAL_MS);
+    return () => clearTimeout(t);
+  }, [stage, verifyAttempts, triggerCreate]);
+
+  // ── Visible countdown to the automatic start ──────────────────────────────
+  useEffect(() => {
+    if (stage !== 'summary') return;
+    if (tick <= 0) { void triggerCreate(); return; }
     const t = setTimeout(() => setTick((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [tick, stage, confirmed, triggerCreate]);
+  }, [tick, stage, triggerCreate]);
 
   // ── Auto-navigate after done ──────────────────────────────────────────────
   useEffect(() => {
@@ -213,339 +236,168 @@ const PaymentSuccessPage: React.FC = () => {
     setStage('summary');
   };
 
-  const accentColor = noPayment ? '#16a34a' : '#2563eb';
+  // Nothing confirmed and nothing to confirm: back to the earliest incomplete step.
+  if (!existingMigrationId && !paymentId) {
+    const redirect = resolveFlowRedirect('success', {
+      pair, planId: snap.planId, inquiry: snap.inquiry, paymentSkipped: operationTeamSkip, paymentId,
+    });
+    if (redirect) return <Navigate to={redirect} replace />;
+  }
+
+  const accentText = noPayment ? 'text-green-600' : 'text-blue-600';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fc' }}>
-      <Navbar variant="default" />
+    <FlowLayout page="success" widthClass="max-w-xl">
+      {/* ── Loading an already-created migration ─────────────────────────── */}
+      {stage === 'loading-existing' && (
+        <div role="status" className="flex items-center justify-center gap-3 py-16">
+          <Spinner size="md" />
+          <p className="text-sm text-text-secondary">Loading your migration…</p>
+        </div>
+      )}
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 24px 0' }}>
-        <MigrationJourney current={SUMMARY_STEP} />
-      </div>
+      {/* ── Already created — reached via back/reload, not a new checkout ── */}
+      {stage === 'already-created' && existingMigration && (
+        <div className="text-center">
+          <IconCircle tone="blue">{CheckIcon}</IconCircle>
+          <h1 className="mb-1.5 text-[22px] font-bold text-text-primary">This migration is already started</h1>
+          <p className="mb-7 text-sm text-text-secondary">
+            {existingMigration.migrationPair.displayName} · {existingMigration.plan.name} plan
+          </p>
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onClick={() => {
+              const url = buildToolRedirectUrl(existingMigration.id, existingMigration.migrationPair.serviceUrl);
+              if (url) { window.location.href = url; } else { navigate('/migrations'); }
+            }}
+          >
+            Continue migration →
+          </Button>
+        </div>
+      )}
 
-      <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 24px 80px' }}>
-
-        {/* ── No usable context — bare/stale load, nothing to summarize ───── */}
-        {!canCreate && !existingMigrationId && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: '50%', background: '#fee2e2',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-            }}>
-              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#dc2626" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
-              We couldn&rsquo;t find your migration details
-            </h2>
-            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
-              This page needs to be reached from checkout — please start again from the migration pair you want to set up.
+      {/* ── Payment still settling ───────────────────────────────────────── */}
+      {stage === 'verifying' && (
+        <div role="status" aria-live="polite" className="text-center">
+          <IconCircle tone="blue"><Spinner size="md" /></IconCircle>
+          <h1 className="mb-1.5 text-[22px] font-bold text-text-primary">Verifying payment…</h1>
+          {verifyAttempts < VERIFY_MAX_ATTEMPTS ? (
+            <p className="text-sm text-text-secondary">
+              We&rsquo;re confirming your payment with the bank. This usually takes a few seconds — please keep this page open.
             </p>
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                background: '#2563eb', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '11px 24px', fontSize: 14,
-                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              Back to home
-            </button>
-          </div>
-        )}
-
-        {/* ── Loading an already-created migration ─────────────────────────── */}
-        {stage === 'loading-existing' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '60px 0' }}>
-            <div className="animate-spin" style={{
-              width: 20, height: 20,
-              border: '2.5px solid #dce2ef', borderTopColor: '#2563eb',
-              borderRadius: '50%',
-            }} />
-            <p style={{ fontSize: 13, color: '#4b5568' }}>Loading your migration…</p>
-          </div>
-        )}
-
-        {/* ── Already created — reached via back/reload, not a new checkout ── */}
-        {stage === 'already-created' && existingMigration && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%', background: '#dbeafe',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
-            }}>
-              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#2563eb" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
-              This migration is already started
-            </h1>
-            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
-              {existingMigration.migrationPair.displayName} · {existingMigration.plan.name} plan
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => {
-                  const url = buildToolRedirectUrl(existingMigration.id, existingMigration.migrationPair.serviceUrl);
-                  if (url) { window.location.href = url; } else { navigate('/migrations'); }
-                }}
-                style={{
-                  background: '#2563eb', color: '#fff', border: 'none',
-                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
-                  fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Continue migration →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Summary + countdown / creating ─────────────────────────────── */}
-        {canCreate && (stage === 'summary' || stage === 'creating') && (
-          <>
-            {/* Heading */}
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: noPayment ? '#dcfce7' : '#dbeafe',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
-              }}>
-                <svg width="26" height="26" fill="none" viewBox="0 0 24 24"
-                  stroke={accentColor} strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
-                {noPayment ? 'Migration Ready' : 'Payment Confirmed'}
-              </h1>
-              <p style={{ fontSize: 14, color: '#4b5568' }}>
-                {noPayment
-                  ? 'Review your migration details below'
-                  : 'Your payment has been processed successfully'}
+          ) : (
+            <>
+              <p className="mb-5 text-sm text-text-secondary">
+                Your payment is taking longer than usual to confirm. You haven&rsquo;t been charged twice — check again in a moment, or contact us with reference {paymentId}.
               </p>
-            </div>
+              <div className="flex flex-col justify-center gap-2 sm:flex-row">
+                <Button type="button" variant="primary" onClick={() => setVerifyAttempts(0)}>Check again</Button>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-light"
+                >
+                  Contact us
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-            {/* Details card */}
-            <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-
-              {/* Migration pair */}
-              {pair && (
-                <div style={{
-                  padding: '16px 20px', borderBottom: '1px solid #dce2ef',
-                  display: 'flex', alignItems: 'center', gap: 14, background: '#f0f4fa',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <PlatformMark
-                      logo={pair.srcLogo}
-                      abbr={pair.srcAbbr}
-                      color={pair.srcColor}
-                      name={pair.src}
-                      className="w-9 h-9 rounded-lg"
-                      textClassName="text-[10px] font-extrabold"
-                    />
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9ba3b8" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    <PlatformMark
-                      logo={pair.dstLogo}
-                      abbr={pair.dstAbbr}
-                      color={pair.dstColor}
-                      name={pair.dst}
-                      className="w-9 h-9 rounded-lg"
-                      textClassName="text-[10px] font-extrabold"
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                      {pair.src} → {pair.dst}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: '#4b5568', marginTop: 2 }}>Migration pair</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Plan details */}
-              {plan ? (
-                <>
-                  <SummaryRow label="Plan" value={plan.name} />
-                  <SummaryRow label="Historical data" value={plan.history} />
-                  {financialYearEnd && <SummaryRow label="Financial year end" value={financialYearEnd} />}
-                  {dateRange && <SummaryRow label="Date range" value={dateRange} />}
-                  <SummaryRow label="Support" value={plan.support} />
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '13px 20px', background: '#f0f4fa',
-                  }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
-                      {operationTeamSkip ? 'Payment' : isFree ? 'Total' : 'Amount paid'}
-                    </span>
-                    <span style={{ fontSize: 16, fontWeight: 700, fontFamily: 'monospace', color: accentColor }}>
-                      {operationTeamSkip
-                        ? 'Skipped (Operation Team)'
-                        : isFree
-                          ? 'Free'
-                          : `${formatCurrency(plan.basePrice)} USD`}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div style={{ padding: '16px 20px', fontSize: 13, color: '#9ba3b8' }}>
-                  Plan details not available.
-                </div>
-              )}
-            </div>
-
-            {/* Edit / Confirm / countdown / spinner */}
-            <div style={{ background: '#fff', border: '1px solid #dce2ef', borderRadius: 12, padding: '18px 20px', textAlign: 'center' }}>
-              {!confirmed ? (
-                <>
-                  <p style={{ fontSize: 13, color: '#4b5568', marginBottom: 14 }}>
-                    Please review your details above. You can still edit your migration
-                    details before confirming — the plan and payment are already locked in.
-                  </p>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {editUrl && (
-                      <button
-                        onClick={() => navigate(editUrl)}
-                        style={{
-                          flex: 1, background: '#fff', color: '#4b5568',
-                          border: '1px solid #dce2ef', borderRadius: 7, padding: '11px 0',
-                          fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                        }}
-                      >
-                        Edit details
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setConfirmed(true)}
-                      style={{
-                        flex: 1, background: accentColor, color: '#fff',
-                        border: 'none', borderRadius: 7, padding: '11px 0',
-                        fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                      }}
-                    >
-                      Confirm &amp; continue
-                    </button>
-                  </div>
-                </>
-              ) : stage === 'summary' ? (
-                <>
-                  <p style={{ fontSize: 13, color: '#4b5568', marginBottom: 12 }}>
-                    Your migration will start in{' '}
-                    <strong style={{ color: accentColor, fontFamily: 'monospace', fontSize: 15 }}>
-                      {tick}
-                    </strong>{' '}
-                    seconds…
-                  </p>
-                  <div style={{ height: 5, background: '#e8edf7', borderRadius: 99, overflow: 'hidden', marginBottom: 14 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 99, background: accentColor,
-                      width: `${((COUNTDOWN - tick) / COUNTDOWN) * 100}%`,
-                      transition: 'width 1s linear',
-                    }} />
-                  </div>
-                  <button
-                    onClick={triggerCreate}
-                    style={{
-                      width: '100%', background: accentColor, color: '#fff',
-                      border: 'none', borderRadius: 7, padding: '11px 0',
-                      fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                    }}
-                  >
-                    Start migration now
-                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </button>
-                </>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <div className="animate-spin" style={{
-                    width: 20, height: 20,
-                    border: '2.5px solid #dce2ef', borderTopColor: accentColor,
-                    borderRadius: '50%',
-                  }} />
-                  <p style={{ fontSize: 13, color: '#4b5568' }}>Queuing your migration…</p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── Done ─────────────────────────────────────────────────────────── */}
-        {stage === 'done' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: '50%', background: '#dcfce7',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-            }}>
-              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Migration Queued!</h2>
-            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>
-              Your migration has been queued successfully. Redirecting to your dashboard…
+      {/* ── Confirmed: summary + countdown / creating ─────────────────────── */}
+      {(stage === 'summary' || stage === 'creating') && (
+        <>
+          <div className="mb-7 text-center">
+            <IconCircle tone={noPayment ? 'green' : 'blue'}>{CheckIcon}</IconCircle>
+            <h1 className="mb-1.5 text-[22px] font-bold text-text-primary">
+              {noPayment ? 'Migration Ready' : 'Payment Confirmed'}
+            </h1>
+            <p className="text-sm text-text-secondary">
+              {noPayment ? 'Review your migration details below' : 'Your payment has been processed successfully'}
             </p>
-            <button
-              onClick={() => navigate('/migrations')}
-              style={{
-                background: '#2563eb', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '11px 28px', fontSize: 14,
-                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              View migrations →
-            </button>
           </div>
-        )}
 
-        {/* ── Error ────────────────────────────────────────────────────────── */}
-        {stage === 'error' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: '50%', background: '#fee2e2',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-            }}>
-              <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="#dc2626" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
-              {existingMigrationId ? 'This migration could not be loaded' : 'Migration could not be started'}
-            </h2>
-            <p style={{ fontSize: 14, color: '#4b5568', marginBottom: 28 }}>{apiError}</p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button
-                onClick={retry}
-                style={{
-                  background: '#2563eb', color: '#fff', border: 'none',
-                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
-                  fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Try again
-              </button>
-              <button
-                onClick={() => navigate('/migrations')}
-                style={{
-                  background: '#fff', color: '#4b5568', border: '1px solid #dce2ef',
-                  borderRadius: 8, padding: '11px 24px', fontSize: 14,
-                  fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                View migrations
-              </button>
-            </div>
+          {pair && <SelectedPairBanner pair={pair} className="mb-4" />}
+
+          <div className="mb-4 overflow-hidden rounded-xl border border-border bg-white">
+            {plan ? (
+              <dl>
+                <SummaryRow label="Plan" value={plan.name} />
+                <SummaryRow label="Historical period" value={plan.history} />
+                {financialYearEnd && <SummaryRow label="FY end" value={financialYearEnd} />}
+                {dateRange && <SummaryRow label="Date range" value={dateRange} />}
+                <SummaryRow label="Support" value={plan.support} />
+                <div className="flex items-center justify-between gap-4 bg-bg-light px-4 py-3.5 sm:px-5">
+                  <dt className="text-[13px] font-bold text-text-primary">
+                    {operationTeamSkip ? 'Payment' : isFree ? 'Total' : 'Amount paid'}
+                  </dt>
+                  <dd className={`font-mono text-base font-bold ${accentText}`}>
+                    {operationTeamSkip
+                      ? 'Skipped (Operation Team)'
+                      : isFree
+                        ? 'Free'
+                        : `${formatCurrency(plan.basePrice)} ${currency}`}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="px-5 py-4 text-[13px] text-text-tertiary">Plan details not available.</p>
+            )}
           </div>
-        )}
 
-      </div>
-    </div>
+          <div className="rounded-xl border border-border bg-white p-4 text-center sm:p-5">
+            {stage === 'summary' ? (
+              <>
+                <p className="mb-3 text-[13px] text-text-secondary" aria-live="polite">
+                  Your migration will start in{' '}
+                  <strong className={`font-mono text-[15px] ${accentText}`}>{tick}</strong> seconds…
+                </p>
+                <div className="h-1.5 overflow-hidden rounded-full bg-bg-lighter" aria-hidden="true">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${noPayment ? 'bg-green-600' : 'bg-blue-600'}`}
+                    style={{ width: `${((COUNTDOWN - tick) / COUNTDOWN) * 100}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <div role="status" className="flex items-center justify-center gap-3">
+                <Spinner size="md" />
+                <p className="text-[13px] text-text-secondary">Queuing your migration…</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Done ─────────────────────────────────────────────────────────── */}
+      {stage === 'done' && (
+        <div className="text-center">
+          <IconCircle tone="green">{CheckIcon}</IconCircle>
+          <h1 className="mb-2 text-[22px] font-bold text-text-primary">Migration Queued!</h1>
+          <p className="mb-7 text-sm text-text-secondary">
+            Your migration has been queued successfully. Redirecting to your dashboard…
+          </p>
+          <Button type="button" variant="primary" size="lg" onClick={() => navigate('/migrations')}>View migrations →</Button>
+        </div>
+      )}
+
+      {/* ── Error ────────────────────────────────────────────────────────── */}
+      {stage === 'error' && (
+        <div role="alert" className="text-center">
+          <IconCircle tone="red">{CrossIcon}</IconCircle>
+          <h1 className="mb-2 text-xl font-bold text-text-primary">
+            {existingMigrationId ? 'This migration could not be loaded' : 'Migration could not be started'}
+          </h1>
+          <p className="mb-7 text-sm text-text-secondary">{apiError}</p>
+          <div className="flex justify-center gap-2.5">
+            <Button type="button" variant="primary" onClick={retry}>Try again</Button>
+            <Button type="button" variant="secondary" onClick={() => navigate('/migrations')}>View migrations</Button>
+          </div>
+        </div>
+      )}
+    </FlowLayout>
   );
 };
 

@@ -40,7 +40,7 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">
-      <Navbar variant="default" />
+      <Navbar />
 
       <main>
         {/* Hero */}

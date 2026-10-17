@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
+import { CompactFooter } from '@/components/layout/Footer';
 import { Spinner } from '@/components/common/Spinner';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { apiPairToUiPair, extractList, findPairBySlug, uiPairMatchesSlug } from '@/utils/platformMap';
@@ -125,8 +126,8 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
   if (status === 'ready') return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Navbar variant="migration" />
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar showBack />
       <div
         className="max-w-md mx-auto px-4 flex flex-col items-center justify-center text-center"
         style={{ minHeight: '70vh', gap: 16 }}
@@ -159,6 +160,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
           </>
         )}
       </div>
+      <CompactFooter />
     </div>
   );
 };

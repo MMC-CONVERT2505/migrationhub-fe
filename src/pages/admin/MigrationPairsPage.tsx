@@ -44,7 +44,7 @@ const Field: React.FC<{
       {label}{required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     {children}
-    {hint && <p className="text-[11px] text-text-tertiary">{hint}</p>}
+    {hint && <p className="text-[11px] text-text-secondary">{hint}</p>}
   </div>
 );
 
@@ -66,7 +66,7 @@ const Toggle: React.FC<{
     </div>
     <div>
       <p className="text-sm font-medium text-text-primary">{label}</p>
-      {description && <p className="text-xs text-text-tertiary mt-0.5">{description}</p>}
+      {description && <p className="text-xs text-text-secondary mt-0.5">{description}</p>}
     </div>
   </label>
 );
@@ -96,7 +96,7 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
     >
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light">
+        <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -202,14 +202,14 @@ const AssigneePicker: React.FC<{
           />
           <div className="max-h-44 overflow-y-auto divide-y divide-border">
             {visible.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-text-tertiary">No matching users</p>
+              <p className="px-3 py-3 text-xs text-text-secondary">No matching users</p>
             ) : (
               visible.map((o) => (
                 <label key={o.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-bg-light">
                   <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={() => toggle(o.id)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate text-text-primary">{o.name}</span>
-                    <span className="block truncate text-[11px] text-text-tertiary">{o.email}</span>
+                    <span className="block truncate text-[11px] text-text-secondary">{o.email}</span>
                   </span>
                   {o.isOpTeam && (
                     <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">Operation Team</span>
@@ -223,7 +223,7 @@ const AssigneePicker: React.FC<{
           </div>
         </div>
       )}
-      <p className="text-[11px] text-text-tertiary">{selectedIds.length} selected</p>
+      <p className="text-[11px] text-text-secondary">{selectedIds.length} selected</p>
     </Field>
   );
 };
@@ -242,7 +242,7 @@ const LogoSelect: React.FC<{
           {selected ? (
             <img src={selected.image} alt={selected.name} className="max-w-full max-h-full object-contain" />
           ) : (
-            <span className="text-text-tertiary text-[10px]">—</span>
+            <span className="text-text-secondary text-[10px]">—</span>
           )}
         </div>
         <select
@@ -316,7 +316,7 @@ const EmailListInput: React.FC<{
               type="button"
               onClick={() => remove(email)}
               aria-label={`Remove ${email}`}
-              className="text-text-tertiary hover:text-red-600 transition-colors"
+              className="text-text-secondary hover:text-red-600 transition-colors"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -556,14 +556,14 @@ const PlanManager: React.FC<{
       <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Attached plans</p>
 
       {attachedPlans.length === 0 ? (
-        <p className="text-xs text-text-tertiary italic">No plans attached yet.</p>
+        <p className="text-xs text-text-secondary italic">No plans attached yet.</p>
       ) : (
         <div className="space-y-2">
           {attachedPlans.map((p) => (
             <div key={p.id} className="flex items-center justify-between bg-bg-light rounded-lg px-3 py-2">
               <div>
                 <p className="text-xs font-medium text-text-primary">{p.name}</p>
-                <p className="text-[11px] text-text-tertiary font-mono">
+                <p className="text-[11px] text-text-secondary font-mono">
                   ${parseFloat(p.basePrice).toFixed(2)} {p.currency}
                 </p>
               </div>
@@ -844,7 +844,7 @@ const MigrationPairsPage: React.FC = () => {
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : pairs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-text-tertiary">
+          <div className="flex flex-col items-center justify-center h-48 text-text-secondary">
             <svg className="w-10 h-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
             </svg>
@@ -874,7 +874,7 @@ const MigrationPairsPage: React.FC = () => {
                           <img src={pair.sourceLogo.image} alt={pair.sourceLogo.name} title={pair.sourceLogo.name} className="w-5 h-5 object-contain rounded-sm" />
                         ) : null}
                         <span className="font-mono text-xs">{pair.source}</span>
-                        <span className="mx-0.5 text-text-tertiary">→</span>
+                        <span className="mx-0.5 text-text-secondary">→</span>
                         <span className="font-mono text-xs">{pair.destination}</span>
                         {pair.destinationLogo ? (
                           <img src={pair.destinationLogo.image} alt={pair.destinationLogo.name} title={pair.destinationLogo.name} className="w-5 h-5 object-contain rounded-sm" />
@@ -889,7 +889,7 @@ const MigrationPairsPage: React.FC = () => {
                           {pair.plans.map((pl) => (
                             <div key={pl.id} className="flex items-center gap-1.5">
                               <span className="text-xs font-medium text-text-primary">{pl.name}</span>
-                              <span className="text-[11px] text-text-tertiary font-mono">${parseFloat(pl.basePrice).toFixed(2)}</span>
+                              <span className="text-[11px] text-text-secondary font-mono">${parseFloat(pl.basePrice).toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
@@ -904,7 +904,7 @@ const MigrationPairsPage: React.FC = () => {
                       <div className="flex items-center gap-1 justify-end">
                         <button
                           onClick={() => openEdit(pair)}
-                          className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Edit"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -913,7 +913,7 @@ const MigrationPairsPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => setDeleteTarget(pair)}
-                          className="p-1.5 rounded-md text-text-tertiary hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Delete"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

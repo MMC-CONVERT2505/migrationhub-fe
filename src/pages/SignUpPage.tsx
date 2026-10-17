@@ -6,6 +6,7 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Divider } from '@/components/auth/Divider';
 import { Button } from '@/components/common/Button';
+import { safeNextPath } from '@/utils/authErrors';
 import { authService } from '@/api/auth';
 import { usersService } from '@/api/users';
 import { ApiError } from '@/api/client';
@@ -84,7 +85,7 @@ function validate(form: SignUpFormData): AuthError[] {
 const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const next = safeNextPath(searchParams.get('next'));
   const { setToken, setUser } = useAuthStore();
 
   const [form, setForm] = useState<SignUpFormData>({

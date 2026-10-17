@@ -59,7 +59,7 @@ const AdminDashboard: React.FC = () => {
           <p className="mt-1 text-sm text-text-secondary">
             Real-time overview of all migration activity
             {lastUpdated && (
-              <span className="text-text-tertiary">
+              <span className="text-text-secondary">
                 {' · '}Updated {lastUpdated.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             )}

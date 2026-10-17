@@ -3,28 +3,28 @@ import { motion } from 'framer-motion';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative pt-16 pb-24 overflow-hidden">
+    <section aria-labelledby="hero-title" className="relative overflow-hidden bg-bg-light pt-10 pb-16 sm:pt-14 lg:pt-16 lg:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-center gap-10 min-[769px]:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-14">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="max-w-3xl"
+          className="min-w-0"
         >
-          <div className="inline-flex items-center gap-2 bg-blue-light border border-blue-200 rounded-full px-3 py-1.5 mb-6">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-white border border-blue-200 rounded-full px-3 py-1.5 mb-6">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse motion-reduce:animate-none" aria-hidden="true" />
             <span className="text-xs font-medium text-blue-700">81 migrations running live right now</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary leading-tight tracking-tight">
-            Migrate your{' '}
-            <span className="text-blue-600">accounting data</span>{' '}
-            without the headache
+          <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
+            Move your accounting data{' '}
+            <span className="text-blue-600">right now</span>
+            , in minutes
           </h1>
 
-          <p className="mt-6 text-lg text-text-secondary leading-relaxed max-w-xl">
-            Enterprise-grade migration between QuickBooks, Xero, MYOB, FreshBooks, Tally, ZOHO and more.
-            Accurate, auditable, and done in under 30 minutes.
+          <p className="mt-5 text-base sm:text-lg text-text-secondary leading-relaxed max-w-[520px]">
+            No waiting for quotes, queues or uploading files. Start your data migration right now and be done in minutes.
           </p>
 
           <div className="mt-8 flex items-center gap-6">
@@ -47,10 +47,21 @@ export const Hero: React.FC = () => {
                   </svg>
                 ))}
               </div>
-              <p className="text-xs text-text-tertiary mt-0.5">Rated 4.9/5 by 600+ accountants</p>
+              <p className="text-xs text-text-secondary mt-0.5">Rated 4.9/5 by 600+ accountants</p>
             </div>
           </div>
         </motion.div>
+
+        <div className="flex justify-center min-[769px]:justify-end">
+          <img
+            src="/static/laptop-analytics.svg"
+            alt="Migration Hub analytics dashboard"
+            width={560}
+            height={370}
+            className="h-auto w-full max-w-[360px] min-[769px]:max-w-[420px] xl:max-w-[520px] motion-safe:animate-float"
+          />
+        </div>
+        </div>
       </div>
     </section>
   );

@@ -79,13 +79,13 @@ export const KarbonSyncCard: React.FC<KarbonSyncCardProps> = ({
       </div>
 
       {!workItem ? (
-        <p className="text-xs text-text-tertiary mb-3">
+        <p className="text-xs text-text-secondary mb-3">
           No Karbon work item yet for this migration.
         </p>
       ) : (
         <dl className="space-y-2.5 text-sm mb-3">
           <div className="flex items-start justify-between gap-3">
-            <dt className="text-text-tertiary flex-shrink-0">Karbon status</dt>
+            <dt className="text-text-secondary flex-shrink-0">Karbon status</dt>
             <dd className="text-right">
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-semibold ${actualMeta.className}`}
@@ -97,7 +97,7 @@ export const KarbonSyncCard: React.FC<KarbonSyncCardProps> = ({
 
           {drifted && expected && (
             <div className="flex items-start justify-between gap-3">
-              <dt className="text-text-tertiary flex-shrink-0">Should be</dt>
+              <dt className="text-text-secondary flex-shrink-0">Should be</dt>
               <dd className="text-right">
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-semibold ${expectedMeta.className}`}
@@ -116,7 +116,7 @@ export const KarbonSyncCard: React.FC<KarbonSyncCardProps> = ({
             <Row label="Failed attempts" value={String(workItem.attemptCount)} />
           )}
           <div className="flex items-start justify-between gap-3">
-            <dt className="text-text-tertiary flex-shrink-0">Work item</dt>
+            <dt className="text-text-secondary flex-shrink-0">Work item</dt>
             <dd className="text-right font-mono text-xs break-all">
               {workItem.workItemUrl && workItem.workItemKey ? (
                 <a
@@ -181,7 +181,7 @@ export const KarbonSyncCard: React.FC<KarbonSyncCardProps> = ({
                       {log.errorMessage}
                     </p>
                   )}
-                  <p className="text-[11px] text-text-tertiary">
+                  <p className="text-[11px] text-text-secondary">
                     {fmt(log.createdAt)}
                     {log.durationMs !== null ? ` · ${log.durationMs}ms` : ''}
                   </p>
@@ -197,7 +197,7 @@ export const KarbonSyncCard: React.FC<KarbonSyncCardProps> = ({
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-3">
-    <dt className="text-text-tertiary flex-shrink-0">{label}</dt>
+    <dt className="text-text-secondary flex-shrink-0">{label}</dt>
     <dd className="text-text-primary font-medium text-right break-all">
       {value}
     </dd>

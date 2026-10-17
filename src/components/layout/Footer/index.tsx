@@ -15,6 +15,15 @@ const LINK_ROUTES: Record<string, string> = {
   Migrations: '/',
 };
 
+/** Slim footer for task pages (flow, tracker, history): same copyright line as the full one. */
+export const CompactFooter: React.FC = () => (
+  <footer className="mt-auto border-t border-border bg-white">
+    <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center text-xs text-text-secondary">
+      &copy; {new Date().getFullYear()} MMC Convert. All rights reserved.
+    </p>
+  </footer>
+);
+
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-white border-t border-border mt-24">
@@ -92,7 +101,7 @@ export const Footer: React.FC = () => {
         {/* Bottom bar */}
         <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-text-tertiary">
-            &copy; {new Date().getFullYear()} MMC Convert Pty Ltd. All rights reserved.
+            &copy; {new Date().getFullYear()} MMC Convert. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-text-tertiary">
             <span className="flex items-center gap-1.5">

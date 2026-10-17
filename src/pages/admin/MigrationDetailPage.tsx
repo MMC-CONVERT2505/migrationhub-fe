@@ -12,6 +12,7 @@ import { yesNo } from '@/utils/format';
 import { statusMeta, isTerminal, isQaAllowed } from '@/constants/migrationStatus';
 import { JourneyTimeline } from '@/components/migration/JourneyTimeline';
 import { KarbonSyncCard } from '@/components/admin/KarbonSyncCard';
+import { ErrorLogBrowser } from '@/components/admin/ErrorLogBrowser';
 
 const POLL_MS = 5000;
 
@@ -128,12 +129,12 @@ const MigrationDetailPage: React.FC = () => {
             </h1>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${meta.className}`}>{meta.label}</span>
             {!isTerminal(m.status) && (
-              <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
+              <span className="flex items-center gap-1.5 text-xs text-text-secondary">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> live
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-text-tertiary font-mono">#{m.id} · {m.migrationPair.displayName}</p>
+          <p className="mt-1 text-sm text-text-secondary font-mono">#{m.id} · {m.migrationPair.displayName}</p>
         </div>
       </div>
 
@@ -191,7 +192,7 @@ const MigrationDetailPage: React.FC = () => {
                         <span className={`absolute -left-[6px] w-3 h-3 rounded-full border-2 border-white ${failed ? 'bg-red-500' : 'bg-blue-500'}`} />
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-text-primary">{EVENT_LABELS[e.eventType] ?? e.eventType}</p>
-                          <time className="text-xs text-text-tertiary whitespace-nowrap">{fmt(e.receivedAt)}</time>
+                          <time className="text-xs text-text-secondary whitespace-nowrap">{fmt(e.receivedAt)}</time>
                         </div>
                         {e.failureReason && <p className="text-xs text-red-600 mt-0.5">{e.failureReason}</p>}
                       </li>
@@ -206,10 +207,10 @@ const MigrationDetailPage: React.FC = () => {
           <section className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border bg-bg-light flex items-center justify-between">
               <h3 className="text-sm font-bold text-text-primary">Logs</h3>
-              <span className="text-xs text-text-tertiary">{m.logs.length} entries</span>
+              <span className="text-xs text-text-secondary">{m.logs.length} entries</span>
             </div>
             {m.logs.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-text-tertiary">No logs recorded yet.</p>
+              <p className="px-5 py-8 text-center text-sm text-text-secondary">No logs recorded yet.</p>
             ) : (
               <ul className="divide-y divide-border max-h-[460px] overflow-y-auto">
                 {m.logs.map((log) => (
@@ -219,7 +220,7 @@ const MigrationDetailPage: React.FC = () => {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-text-primary break-words">{log.message}</p>
-                      <p className="text-xs text-text-tertiary mt-0.5">
+                      <p className="text-xs text-text-secondary mt-0.5">
                         {[log.service, log.category].filter(Boolean).join(' · ')}
                         {(log.service || log.category) ? ' · ' : ''}
                         {fmt(log.createdAt)}
@@ -248,7 +249,7 @@ const MigrationDetailPage: React.FC = () => {
             {m.isQaPassed !== null && (
               <div className={`mb-3 px-3 py-2 rounded-lg text-xs font-semibold ${m.isQaPassed ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 {m.isQaPassed ? '✓ QA Passed' : '✕ QA Failed'}
-                {m.qaReviewedAt && <span className="block font-normal mt-0.5 text-text-tertiary">{fmt(m.qaReviewedAt)}</span>}
+                {m.qaReviewedAt && <span className="block font-normal mt-0.5 text-text-secondary">{fmt(m.qaReviewedAt)}</span>}
               </div>
             )}
 
@@ -269,7 +270,7 @@ const MigrationDetailPage: React.FC = () => {
               </button>
             </div>
             {!qaAllowed && (
-              <p className="mt-2 text-xs text-text-tertiary">Available once the migration finishes.</p>
+              <p className="mt-2 text-xs text-text-secondary">Available once the migration finishes.</p>
             )}
             {qaError && <p className="mt-2 text-xs text-red-600">{qaError}</p>}
           </section>
@@ -318,7 +319,7 @@ const MigrationDetailPage: React.FC = () => {
                 {m.payment.company && <Row label="Company" value={m.payment.company} />}
               </dl>
             ) : (
-              <p className="text-sm text-text-tertiary">
+              <p className="text-sm text-text-secondary">
                 {m.paymentWaived
                   ? `Payment skipped — this migration was started by the Operation Team${m.runner?.type === 'OP_TEAM' ? ` (${m.runner.name})` : ''}.`
                   : m.migrationPair.isFree
@@ -390,7 +391,7 @@ const MigrationDetailPage: React.FC = () => {
                   <div key={c.id} className="flex items-center justify-between text-sm">
                     <div>
                       <p className="font-medium text-text-primary">{c.side === 'SOURCE' ? 'Source' : 'Destination'}</p>
-                      <p className="text-xs text-text-tertiary">{c.tenantName ?? c.platform}</p>
+                      <p className="text-xs text-text-secondary">{c.tenantName ?? c.platform}</p>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700">{c.status}</span>
                   </div>
@@ -400,20 +401,41 @@ const MigrationDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Every error the tool reported for this migration, by module → function */}
+      <section aria-labelledby="migration-errors-title" className="mt-6 bg-white border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="px-4 sm:px-5 py-3 border-b border-border bg-bg-light flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 id="migration-errors-title" className="text-sm font-bold text-text-primary">Error logs</h3>
+            <p className="text-xs text-text-secondary mt-0.5">Reported by the migration tool for this migration, grouped by module and function</p>
+          </div>
+          <Link
+            to={`/admin/error-logs?migration=${encodeURIComponent(m.id)}&status=all`}
+            className="text-xs font-semibold text-blue-600 hover:underline"
+          >
+            Open in Error Logs →
+          </Link>
+        </div>
+        <ErrorLogBrowser
+          filters={{ migrationId: m.id }}
+          hideMigration
+          emptyMessage="No errors have been reported for this migration."
+        />
+      </section>
     </motion.div>
   );
 };
 
 const Milestone: React.FC<{ label: string; value: string; done?: boolean; danger?: boolean }> = ({ label, value, done, danger }) => (
   <div className={`rounded-lg border p-3 ${done ? (danger ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50') : 'border-border bg-bg-light'}`}>
-    <p className={`text-xs font-semibold ${done ? (danger ? 'text-red-700' : 'text-green-700') : 'text-text-tertiary'}`}>{label}</p>
+    <p className={`text-xs font-semibold ${done ? (danger ? 'text-red-700' : 'text-green-700') : 'text-text-secondary'}`}>{label}</p>
     <p className="text-xs text-text-secondary mt-1">{value}</p>
   </div>
 );
 
 const Row: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => (
   <div className="flex items-start justify-between gap-3">
-    <dt className="text-text-tertiary flex-shrink-0">{label}</dt>
+    <dt className="text-text-secondary flex-shrink-0">{label}</dt>
     <dd className={`text-text-primary font-medium text-right break-all ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
   </div>
 );

@@ -1,117 +1,73 @@
 import React from 'react';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, cn } from '@/utils/format';
+import { planCurrency } from '@/constants/migrationFlow';
 import type { Plan } from '@/types';
 
 interface PlanCardProps {
   plan: Plan;
-  index: number;
+  /** Shared radio-group name, so the cards behave as one native radio group. */
+  name: string;
   selected: boolean;
   onSelect: (planId: string) => void;
-  isFree?: boolean;
 }
 
-export const PlanCard: React.FC<PlanCardProps> = ({ plan, index: _index, selected, onSelect, isFree = false }) => (
-  <div
-    onClick={() => plan.id && onSelect(plan.id)}
-    style={{
-      background: selected ? 'rgba(37,99,235,0.05)' : '#fff',
-      border: `1.5px solid ${selected ? '#2563eb' : '#dce2ef'}`,
-      borderRadius: 12,
-      padding: '18px 20px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 14,
-      position: 'relative',
-      transition: 'border-color .15s, background .15s',
-    }}
-  >
-    {/* MOST POPULAR tag */}
-    {plan.popular && (
-      <div style={{
-        position: 'absolute',
-        top: -1,
-        right: 14,
-        background: '#2563eb',
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 700,
-        padding: '2px 10px',
-        borderRadius: '0 0 6px 6px',
-        letterSpacing: 0.3,
-        textTransform: 'uppercase',
-      }}>
-        MOST POPULAR
-      </div>
-    )}
-
-    {/* Radio indicator */}
-    <div style={{
-      width: 18,
-      height: 18,
-      borderRadius: '50%',
-      border: `2px solid ${selected ? '#2563eb' : '#c8d0e7'}`,
-      background: selected ? '#2563eb' : '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      marginTop: 2,
-      transition: 'all .15s',
-    }}>
-      {selected && (
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
+/** One selectable plan. A native radio inside a label, so selection and arrow-key
+ *  navigation come from the browser and are announced by screen readers. */
+export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSelect }) => {
+  const free = Number(plan.basePrice) === 0;
+  return (
+    <label
+      className={cn(
+        'relative flex items-start gap-3 rounded-xl border-[1.5px] bg-white p-4 sm:p-5 cursor-pointer transition-colors',
+        'focus-within:ring-2 focus-within:ring-blue-500/40',
+        selected ? 'border-blue-600 bg-blue-50/50' : 'border-border hover:border-border-medium',
       )}
-    </div>
+    >
+      <input
+        type="radio"
+        name={name}
+        value={plan.id}
+        checked={selected}
+        onChange={() => plan.id && onSelect(plan.id)}
+        className="mt-1 h-4 w-4 flex-shrink-0 accent-blue-600"
+      />
 
-    {/* Plan info */}
-    <div style={{ flex: 1 }}>
-      {/* Top row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{plan.name}</div>
-          <div style={{ fontSize: 11, color: '#4b5568', marginTop: 2, fontWeight: 500 }}>
-            {plan.history} history
+      {plan.popular && (
+        <span className="absolute -top-px right-4 rounded-b-md bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          Most popular
+        </span>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-text-primary">{plan.name}</p>
+            <p className="mt-0.5 text-[11px] font-medium text-text-secondary">{plan.history} history</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            {free ? (
+              <p className="font-mono text-lg font-bold text-green-600">Free</p>
+            ) : (
+              <>
+                <p className="font-mono text-lg font-bold text-text-primary">{formatCurrency(plan.basePrice)}</p>
+                <p className="mt-0.5 text-[10.5px] text-text-tertiary">one-time · {planCurrency(plan)}</p>
+              </>
+            )}
           </div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
-          {isFree ? (
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a', fontFamily: 'monospace' }}>Free</div>
-          ) : (
-            <>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>
-                {formatCurrency(plan.basePrice)}
-              </div>
-              <div style={{ fontSize: 10.5, color: '#9ba3b8', marginTop: 2 }}>one-time · USD</div>
-            </>
-          )}
-        </div>
+
+        {plan.support && <p className="mt-2 text-[12.5px] leading-snug text-text-secondary">{plan.support}</p>}
+
+        {plan.features.length > 0 && (
+          <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={`${plan.name} includes`}>
+            {plan.features.map((f) => (
+              <li key={f} className="rounded border border-border bg-bg-lighter px-2 py-0.5 text-[11px] text-text-secondary">
+                {f}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-
-      {/* Support description */}
-      {plan.support && (
-        <div style={{ fontSize: 12.5, color: '#4b5568', marginBottom: plan.features.length ? 8 : 0, lineHeight: 1.5 }}>
-          {plan.support}
-        </div>
-      )}
-
-      {/* Feature chips */}
-      {plan.features.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {plan.features.map((f) => (
-            <span key={f} style={{
-              fontSize: 11,
-              background: '#e8edf7',
-              border: '1px solid #dce2ef',
-              borderRadius: 4,
-              padding: '2px 7px',
-              color: '#4b5568',
-            }}>
-              {f}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-);
+    </label>
+  );
+};

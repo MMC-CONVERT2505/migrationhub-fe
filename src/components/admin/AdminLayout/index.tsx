@@ -170,7 +170,7 @@ export const AdminLayout: React.FC = () => {
     <Navbar variant="admin" />
     <div className="flex">
       {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-56 min-h-[calc(100vh-64px)] bg-white border-r border-border flex-shrink-0 sticky top-16 self-start">
+      <aside aria-label="Admin" className="hidden md:flex flex-col w-56 min-h-[calc(100vh-64px)] bg-white border-r border-border flex-shrink-0 sticky top-16 self-start">
         <nav className="p-3 space-y-0.5 flex-1">
           {visibleItems.map((item) => (
             <NavLink
@@ -194,7 +194,7 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Mobile top nav */}
-      <div className="md:hidden w-full fixed bottom-0 z-40 bg-white border-t border-border flex">
+      <nav aria-label="Admin sections" className="md:hidden w-full fixed bottom-0 z-40 bg-white border-t border-border flex overflow-x-auto">
         {visibleItems.map((item) => (
           <NavLink
             key={item.to}
@@ -202,8 +202,8 @@ export const AdminLayout: React.FC = () => {
             end={item.end}
             className={({ isActive }) =>
               cn(
-                'flex-1 flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
-                isActive ? 'text-blue-700' : 'text-text-tertiary'
+                'flex-shrink-0 min-w-[76px] px-2 flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
+                isActive ? 'text-blue-700' : 'text-text-secondary'
               )
             }
           >
@@ -211,7 +211,7 @@ export const AdminLayout: React.FC = () => {
             <span className="truncate">{item.label.split(' ')[0]}</span>
           </NavLink>
         ))}
-      </div>
+      </nav>
 
       {/* Page content */}
       <main className="flex-1 p-6 pb-20 md:pb-6 min-w-0">

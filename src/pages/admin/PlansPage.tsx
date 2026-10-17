@@ -21,7 +21,7 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
     >
       <div className="flex items-center justify-between p-5 border-b border-border">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-colors">
+        <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -237,7 +237,7 @@ const PlansPage: React.FC = () => {
       <div className="grid grid-cols-2 gap-3">
         <Field label="Base Price" required>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
             <input
               className={`${inputCls} pl-6`}
               type="number"
@@ -316,7 +316,7 @@ const PlansPage: React.FC = () => {
           placeholder={'All data categories\nEmail support\n2 revisions\nReconciliation report'}
           required
         />
-        <p className="text-xs text-text-tertiary mt-0.5">
+        <p className="text-xs text-text-secondary mt-0.5">
           {featuresText.split('\n').filter((s) => s.trim()).length} feature(s)
         </p>
       </Field>
@@ -383,7 +383,7 @@ const PlansPage: React.FC = () => {
           <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : plans.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 text-text-tertiary bg-white border border-border rounded-xl">
+        <div className="flex flex-col items-center justify-center h-48 text-text-secondary bg-white border border-border rounded-xl">
           <svg className="w-10 h-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
@@ -416,7 +416,7 @@ const PlansPage: React.FC = () => {
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEdit(plan)}
-                    className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                    className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
                     title="Edit"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -425,7 +425,7 @@ const PlansPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(plan)}
-                    className="p-1.5 rounded-md text-text-tertiary hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-md text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Delete"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

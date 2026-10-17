@@ -3,22 +3,26 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { useAuthStore, useSession } from '@/store/authStore';
 import { useAuthScope } from '@/hooks/useAuthScope';
 import { authService } from '@/api/auth';
 import { OperationTeamBadge } from '@/components/auth/OperationTeamBadge';
 
 interface NavbarProps {
-  variant?: 'default' | 'payment' | 'migration' | 'admin';
+  variant?: 'default' | 'admin';
+  /** Default variant only: show a Back button before the logo (used by the flow, tracker and history pages). */
+  showBack?: boolean;
 }
 
+/** Header links. Section links scroll on the home page; Contact Us is a route. */
 const NAV_LINKS = [
-  { label: 'Migrations', href: '#pairs' },
+  { label: 'What we convert', href: '#pairs' },
+  { label: 'How it works', href: '#why' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Why MMC', href: '#why' },
-  { label: 'Reviews', href: '#reviews' },
-];
+  { label: 'Resources', href: '#reviews' },
+  { label: 'Contact Us', to: '/contact' },
+] as const;
+
 
 // ─── Profile dropdown (desktop) ───────────────────────────────────────────────
 const UserMenu: React.FC = () => {
@@ -122,7 +126,7 @@ const UserMenu: React.FC = () => {
 };
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -152,8 +156,32 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
     }
   };
 
-  const handleGetStarted = () => navigate('/payment');
-  const handleBack = () => navigate(-1);
+  // Real anchors: section links smooth-scroll on the home page (and fall back to the
+  // hash URL if JS is off); Contact Us is a normal route link.
+  const navLinks = (mobile: boolean) =>
+    NAV_LINKS.map((link) => {
+      const cls = mobile
+        ? 'px-3 py-2.5 text-sm font-semibold text-blue-700 rounded-md hover:bg-bg-light hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600'
+        : 'px-3 py-2 text-sm font-semibold text-blue-700 rounded-md hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600';
+      return 'to' in link ? (
+        <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)} className={cls}>{link.label}</Link>
+      ) : (
+        <a
+          key={link.label}
+          href={`/${link.href}`}
+          onClick={(e) => { e.preventDefault(); handleNavLink(link.href); }}
+          className={cls}
+        >
+          {link.label}
+        </a>
+      );
+    });
+
+  // Starting a migration means picking a pair first, so "Get started" goes to the pair list.
+  const handleGetStarted = () => { setMobileOpen(false); handleNavLink('#pairs'); };
+  // react-router stamps each entry with its position; idx 0 means this page was opened
+  // directly (new tab, bookmark, refresh-in-place), where -1 would leave the app.
+  const handleBack = () => (typeof window.history.state?.idx === 'number' && window.history.state.idx > 0 ? navigate(-1) : navigate('/'));
   const handleAdminBack = () => navigate('/');
 
   const handleMobileLogout = async () => {
@@ -163,101 +191,25 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
     navigate(scope === 'admin' ? '/admin/login' : '/sign-in');
   };
 
-  if (variant === 'payment') {
-    return (
-      <header
-        className={cn(
-          'sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b transition-shadow duration-200',
-          scrolled ? 'border-border shadow-card' : 'border-transparent'
-        )}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBack}
-                className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </button>
-              <div className="w-px h-5 bg-border" />
-              <Link to="/" className="flex items-center gap-2">
-                <LogoMark />
-                <span className="font-bold text-text-primary text-lg tracking-tight">MMC Convert</span>
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <OperationTeamBadge variant="pill" />
-              <Badge variant="success">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Secure Checkout
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  if (variant === 'migration') {
-    return (
-      <header className="bg-white border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <LogoMark />
-              <span className="font-bold text-text-primary text-lg tracking-tight">MMC Convert</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <OperationTeamBadge variant="pill" />
-              <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-                Save &amp; Exit
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
   if (variant === 'admin') {
     return (
       <header className="bg-white border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Link to="/" className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3 h-16">
+            <div className="flex items-center gap-3 min-w-0">
+              <Link to="/admin" className="flex items-center gap-2.5 flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
                 <LogoMark />
-                <span className="font-bold text-text-primary text-lg tracking-tight">MMC Convert</span>
+                <span className="flex flex-col leading-tight">
+                  <span className="font-bold text-blue-700 text-lg tracking-tight">Migration Hub</span>
+                  <span className="text-[11px] text-text-primary">Powered by MMC Convert</span>
+                </span>
               </Link>
-              <div className="w-px h-5 bg-border" />
-              <span className="text-text-secondary text-sm font-medium">Admin Dashboard</span>
-              <Badge variant="error" className="animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
-                Live
-              </Badge>
+              <div className="hidden sm:block w-px h-5 bg-border" aria-hidden="true" />
+              <span className="hidden sm:inline text-text-secondary text-sm font-medium truncate">Admin Dashboard</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                }
-              >
-                Export CSV
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleAdminBack}>
-                Back to Site
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={handleAdminBack} className="flex-shrink-0">
+              Back to Site
+            </Button>
           </div>
         </div>
       </header>
@@ -269,37 +221,45 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
     <header
       className={cn(
         'sticky top-0 z-50 transition-all duration-200',
-        scrolled
-          ? 'bg-white/95 backdrop-blur-sm border-b border-border shadow-card'
-          : 'bg-transparent'
+        'bg-white', scrolled && 'shadow-card'
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <LogoMark />
-            <span className="font-bold text-text-primary text-lg tracking-tight">
-              MMC Convert
-            </span>
-          </Link>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {showBack && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors text-sm rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+                <div className="w-px h-5 bg-border" aria-hidden="true" />
+              </>
+            )}
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+              <LogoMark />
+              <span className="flex flex-col leading-tight">
+                  <span className="font-bold text-blue-700 text-lg tracking-tight">Migration Hub</span>
+                  <span className="text-[11px] text-text-primary">Powered by MMC Convert</span>
+                </span>
+            </Link>
+          </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleNavLink(link.href)}
-                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
+          <nav aria-label="Main" className={'hidden lg:flex items-center gap-1'}>
+            {navLinks(false)}
           </nav>
 
           {/* CTA */}
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-tertiary">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-secondary">
               <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
@@ -307,7 +267,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
             </div>
 
             {/* Auth area (desktop) */}
-            <div className="hidden md:flex items-center gap-1.5">
+            <div className={'hidden lg:flex items-center gap-1.5'}>
               {isLoggedIn ? (
                 <UserMenu />
               ) : (
@@ -336,7 +296,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors"
+              className={cn('p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors', 'lg:hidden')}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -360,18 +320,10 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default' }) => {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          className="md:hidden bg-white border-t border-border shadow-elevated"
+          className={cn('bg-white border-t border-border shadow-elevated', 'lg:hidden')}
         >
-          <nav className="flex flex-col p-4 gap-1">
-            {NAV_LINKS.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleNavLink(link.href)}
-                className="px-3 py-2.5 text-sm text-left text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
+          <nav aria-label="Mobile" className="flex flex-col p-4 gap-1">
+            {navLinks(true)}
 
             <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
               {isLoggedIn ? (

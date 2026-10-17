@@ -54,7 +54,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ items, loading }) =>
           </div>
         ))
       ) : items.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-text-tertiary">No activity yet</div>
+        <div className="px-5 py-8 text-center text-sm text-text-secondary">No activity yet</div>
       ) : (
         items.map((item) => {
           const type = kindToType(item.kind);
@@ -75,16 +75,16 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ items, loading }) =>
                 <p className="text-xs text-text-primary leading-relaxed">{item.displayText}</p>
                 {account && (
                   <p className="text-[11px] text-text-secondary truncate mt-0.5" title={account.email ?? account.name}>
-                    <span className="text-text-tertiary">User:</span>{' '}
+                    <span className="text-text-secondary">User:</span>{' '}
                     <span className="font-medium">{principalLabel(account)}</span>
                     {performer ? (
-                      <span className="text-text-tertiary"> · by {performer}</span>
+                      <span className="text-text-secondary"> · by {performer}</span>
                     ) : systemDriven ? (
-                      <span className="text-text-tertiary"> · automated</span>
+                      <span className="text-text-secondary"> · automated</span>
                     ) : null}
                   </p>
                 )}
-                <p className="text-[10px] text-text-tertiary font-mono mt-0.5">{relativeTime(item.createdAt)}</p>
+                <p className="text-[10px] text-text-secondary font-mono mt-0.5">{relativeTime(item.createdAt)}</p>
               </div>
             </div>
           );

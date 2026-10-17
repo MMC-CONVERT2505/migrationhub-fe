@@ -26,10 +26,12 @@ export class ApiError extends Error {
 function clearAuthAndRedirect(): void {
   const path = window.location.pathname;
   useAuthStore.getState().logout(currentScope());
+  // Remember where the person was, so signing back in returns them there instead of home.
+  const here = encodeURIComponent(`${path}${window.location.search}`);
   if (path.startsWith('/admin') && path !== '/admin/login') {
     window.location.replace('/admin/login');
-  } else if (!path.startsWith('/admin') && path !== '/sign-in') {
-    window.location.replace('/sign-in');
+  } else if (!path.startsWith('/admin') && path !== '/sign-in' && path !== '/sign-up') {
+    window.location.replace(`/sign-in?next=${here}&expired=1`);
   }
 }
 
@@ -62,9 +64,16 @@ apiClient.interceptors.response.use(
       }
 
       // NestJS sometimes returns message as an array of validation strings
-      const message = Array.isArray(data?.message)
+      let message = Array.isArray(data?.message)
         ? data.message[0]
         : (data?.message ?? 'Request failed');
+
+      // Rate limiting and bare server errors carry framework text ("ThrottlerException",
+      // "Internal server error") that means nothing to the person looking at it.
+      if (status === 429) message = 'Too many requests. Please wait a moment and try again.';
+      else if (status >= 500 && (!data?.message || /^internal server error$/i.test(String(message)))) {
+        message = 'Something went wrong on our side. Please try again shortly.';
+      }
 
       throw new ApiError(
         data?.statusCode ?? status,

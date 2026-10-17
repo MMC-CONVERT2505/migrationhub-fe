@@ -1,12 +1,11 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@/components/common/Spinner';
+import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { useAppStore } from '@/store/appStore';
 import { pairDetailsPath } from '@/utils/platformMap';
-import { XERO_MYOB_DETAILS_PATH } from '@/constants/xeroMyob';
-import { XERO_RECKON_DETAILS_PATH } from '@/constants/xeroReckon';
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage            = React.lazy(() => import('@/pages/HomePage'));
@@ -16,11 +15,9 @@ const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
+const MigrationPlanPage     = React.lazy(() => import('@/pages/MigrationPlanPage'));
 const MigrationDetailsPage  = React.lazy(() => import('@/pages/MigrationDetailsPage'));
 const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDetailsEntryPage'));
-const XeroToMyobDetailsPage = React.lazy(() => import('@/pages/XeroToMyobDetailsPage'));
-const XeroToReckonDetailsPage = React.lazy(() => import('@/pages/XeroToReckonDetailsPage'));
-const FaqPage               = React.lazy(() => import('@/pages/FaqPage'));
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
@@ -49,9 +46,10 @@ const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPa
 const FaqsPage            = React.lazy(() => import('@/pages/admin/FaqsPage'));
 const FaqFormPage         = React.lazy(() => import('@/pages/admin/FaqFormPage'));
 
-/** Legacy step-2 URL: send it to the pair-scoped one so old links and bookmarks
- *  keep working, and so an unresolvable visit still leaves via the homepage. */
-const LegacyMigrationDetailsRedirect: React.FC = () => {
+/** Legacy flow URLs (the old step-2 and FAQ pages, plus the Xero → MYOB / Reckon One
+ *  dedicated routes that shared them): send them to the start of the flow so old links and
+ *  bookmarks keep working, and so an unresolvable visit still leaves via the homepage. */
+const LegacyFlowRedirect: React.FC = () => {
   const selectedPair = useAppStore((s) => s.selectedPair);
   return <Navigate to={selectedPair ? pairDetailsPath(selectedPair) : '/'} replace />;
 };
@@ -76,17 +74,15 @@ const App: React.FC = () => (
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />
-      {/* Step 2 (Migration Details) for Xero → MYOB — a dedicated route with the pair
-          pinned to the path, matched ahead of the generic pair-scoped one below */}
-      <Route path={XERO_MYOB_DETAILS_PATH} element={<XeroToMyobDetailsPage />} />
-      {/* Step 2 (Migration Details) for Xero → Reckon One — likewise pinned to the path */}
-      <Route path={XERO_RECKON_DETAILS_PATH} element={<XeroToReckonDetailsPage />} />
-      {/* Step 2 (Migration Details), scoped to the pair so the URL is directly shareable */}
-      <Route path="/migration/:pairSlug/details" element={<MigrationDetailsPage />} />
-      <Route path="/migration/details" element={<LegacyMigrationDetailsRedirect />} />
-      {/* Deep-link entry from an external destination platform — resolves the pair, locks the flow */}
+      {/* Flow: Plan → Customer Details → Payment → Success, all scoped to the pair in the URL */}
+      <Route path="/migration/:pairSlug/plan" element={<PairSlugGate><MigrationPlanPage /></PairSlugGate>} />
+      <Route path="/migration/:pairSlug/customer-details" element={<MigrationDetailsPage />} />
+      <Route path="/migration/:pairSlug/details" element={<LegacyFlowRedirect />} />
+      <Route path="/migration/details" element={<LegacyFlowRedirect />} />
+      {/* Deep-link entry from an external destination platform — resolves the pair, locks the flow;
+          lands on the Plan page, where a plan passed as ?plan= is pre-selected */}
       <Route path="/migration/details/:pairSlug/:isFree" element={<MigrationDetailsEntryPage />} />
-      <Route path="/migration/faq"     element={<FaqPage />} />
+      <Route path="/migration/faq"     element={<LegacyFlowRedirect />} />
       <Route path="/migration"         element={<MigrationPage />} />
       <Route path="/migrations"       element={<MigrationHistoryPage />} />
       <Route path="/migrations/:id"   element={<MigrationTrackPage />} />

@@ -285,7 +285,7 @@ const Section: React.FC<SectionProps> = ({
       </div>
 
       {pairs.length === 0 ? (
-        <div className="text-center py-12 text-sm text-text-tertiary">No tools in this category.</div>
+        <div className="text-center py-12 text-sm text-text-secondary">No tools in this category.</div>
       ) : (
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {pairs.map((pair, i) => (
@@ -425,7 +425,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
         />
 
         <svg
-          className="w-5 h-5 flex-shrink-0 text-text-tertiary"
+          className="w-5 h-5 flex-shrink-0 text-text-secondary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -456,7 +456,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
       {/* Metrics */}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className={cn('rounded-lg border px-3 py-2', toneBox)}>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
             Average timeline
           </p>
 
@@ -479,7 +479,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
         </div>
 
         <div className="rounded-lg border border-border bg-bg-light px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
             Files completed
           </p>
 
@@ -494,7 +494,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
           {isOpen ? 'Hide report ▲' : 'View report ▼'}
         </p>
       ) : (
-        <p className="mt-3 text-center text-[11px] font-medium text-text-tertiary">
+        <p className="mt-3 text-center text-[11px] font-medium text-text-secondary">
           No report data yet
         </p>
       )}

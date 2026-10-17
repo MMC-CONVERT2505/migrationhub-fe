@@ -71,13 +71,23 @@ export function pairSlug(source: string, destination: string): string {
   return `${slugToken(source)}-to-${slugToken(destination)}`;
 }
 
+/** Pair-scoped Migration Plan page (flow step 1), e.g. "/migration/qbo-to-myob/plan". */
+export function pairPlanPath(pair: Pair): string {
+  return `/migration/${pairSlug(pair.src, pair.dst)}/plan`;
+}
+
+/** Pair-scoped Customer Details page (flow step 2), e.g. "/migration/qbo-to-myob/customer-details". */
+export function pairCustomerPath(pair: Pair): string {
+  return `/migration/${pairSlug(pair.src, pair.dst)}/customer-details`;
+}
+
 /**
- * Pair-scoped Migration Details (journey step 2) path, e.g. "/migration/qbo-to-myob/details".
- * Every navigation into step 2 goes through here so the URL always names the pair and
- * stays directly shareable — a bare "/migration/details" has no pair to render.
+ * Entry into the post-pair-selection flow. Callers that only know "the pair is chosen,
+ * continue" (the home page's pair cards, the deep-link lock) go through here, so the
+ * first screen after a pair is picked lives in one place: the Migration Plan page.
  */
 export function pairDetailsPath(pair: Pair): string {
-  return `/migration/${pairSlug(pair.src, pair.dst)}/details`;
+  return pairPlanPath(pair);
 }
 
 /**
@@ -132,6 +142,7 @@ export function apiPlanToUiPlan(plan: ApiPlan): Plan {
     isInception: plan.isInception,
     support:   plan.support,
     basePrice: Number(plan.basePrice),
+    currency:  plan.currency || undefined,
     features:  plan.features,
     popular:   plan.popular,
   };

@@ -33,7 +33,7 @@ const Modal: React.FC<{
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <button
           onClick={onClose}
-          className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
+          className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -130,7 +130,7 @@ const FaqsPage: React.FC = () => {
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : faqs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-text-tertiary">
+          <div className="flex flex-col items-center justify-center h-48 text-text-secondary">
             <svg className="w-10 h-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -163,7 +163,7 @@ const FaqsPage: React.FC = () => {
                       </Link>
                       {faq.description && plainText(faq.description) && (
                         <p
-                          className="text-xs text-text-tertiary truncate max-w-xs"
+                          className="text-xs text-text-secondary truncate max-w-xs"
                           title={plainText(faq.description)}
                         >
                           {plainText(faq.description)}
@@ -172,14 +172,14 @@ const FaqsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-text-secondary">{faq.items.length}</td>
                     <td className="px-4 py-3"><StatusBadge status={faq.status} /></td>
-                    <td className="px-4 py-3 text-text-tertiary text-xs">
+                    <td className="px-4 py-3 text-text-secondary text-xs">
                       {new Date(faq.updatedAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <Link
                           to={`/admin/faqs/${faq.id}`}
-                          className="p-1.5 rounded-md text-text-tertiary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Edit"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -188,7 +188,7 @@ const FaqsPage: React.FC = () => {
                         </Link>
                         <button
                           onClick={() => setDeleteTarget(faq)}
-                          className="p-1.5 rounded-md text-text-tertiary hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Delete"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

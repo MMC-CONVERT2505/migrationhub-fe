@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { usersService } from '@/api/users';
@@ -6,6 +6,8 @@ import { rolesService } from '@/api/roles';
 import { userRolesService } from '@/api/userRoles';
 import { ApiError } from '@/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Pagination } from '@/components/admin/Pagination';
+import { clampSkip, parseListResponse } from '@/utils/pagination';
 import type { Role, UserWithRoles } from '@/types/api';
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
@@ -45,8 +47,10 @@ const UsersPage: React.FC = () => {
   const [users, setUsers]     = useState<UserWithRoles[]>([]);
   const [total, setTotal]     = useState(0);
   const [skip, setSkip]       = useState(0);
-  const take = 20;
+  const [take, setTake]     = useState(20);
   const [search, setSearch]   = useState('');
+  const [query, setQuery]     = useState('');   // `search` after a short pause, so typing isn't a request per key
+  const reqId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
@@ -57,19 +61,34 @@ const UsersPage: React.FC = () => {
   const [saving, setSaving]               = useState(false);
   const [roleError, setRoleError]         = useState('');
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const q = search.trim();
+      setQuery((prev) => { if (prev !== q) setSkip(0); return q; });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const load = useCallback(async () => {
+    // Only the latest request may update the page — a slow earlier one must not overwrite it.
+    const id = ++reqId.current;
     setLoading(true); setError('');
     try {
-      const res = await usersService.listUsers({ skip, take: take, search: search || undefined } as any);
-      const data = (res as any).data ?? res;
-      setUsers(Array.isArray(data) ? data : (data as any).data ?? []);
-      setTotal((data as any).total ?? 0);
+      const res = await usersService.listUsers({ skip, take, search: query || undefined } as any);
+      if (id !== reqId.current) return;
+      const { rows, total: count } = parseListResponse<UserWithRoles>(res);
+      setUsers(rows);
+      setTotal(count);
+      // The list can shrink under us (a user removed, a search narrowed): never sit past the end.
+      const safe = clampSkip(skip, count, take);
+      if (safe !== skip) setSkip(safe);
     } catch (e) {
+      if (id !== reqId.current) return;
       setError(e instanceof ApiError ? e.message : 'Failed to load users.');
     } finally {
-      setLoading(false);
+      if (id === reqId.current) setLoading(false);
     }
-  }, [skip, search]);
+  }, [skip, take, query]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -109,9 +128,6 @@ const UsersPage: React.FC = () => {
   const toggleRole = (id: number) =>
     setRoleSelection((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
-  const totalPages = Math.ceil(total / take);
-  const currentPage = Math.floor(skip / take) + 1;
-
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
       {/* Header */}
@@ -119,7 +135,7 @@ const UsersPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Users</h1>
           <p className="mt-1 text-sm text-text-secondary">
-            {total > 0 ? `${total} total users` : 'Manage platform users'}
+            {total > 0 ? `${total.toLocaleString()} total users` : 'Manage platform users'}
           </p>
         </div>
         {can('users.write') && (
@@ -141,13 +157,13 @@ const UsersPage: React.FC = () => {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setSkip(0); }}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, email or username…"
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
         />
       </div>
 
-      {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+      {error && <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       {/* Table */}
       <div className="bg-white border border-border rounded-xl overflow-hidden shadow-card">
@@ -236,33 +252,15 @@ const UsersPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-secondary">
-              Showing {skip + 1}–{Math.min(skip + take, total)} of {total}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setSkip((p) => Math.max(0, p - take))}
-                disabled={skip === 0}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1 text-xs text-text-secondary">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setSkip((p) => p + take)}
-                disabled={skip + take >= total}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          skip={skip}
+          size={take}
+          total={total}
+          noun="users"
+          disabled={loading}
+          onSkipChange={setSkip}
+          onSizeChange={(n) => { setTake(n); setSkip(0); }}
+        />
       </div>
 
       {/* Role assignment modal */}

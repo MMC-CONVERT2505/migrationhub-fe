@@ -209,6 +209,9 @@ export interface UserWithRoles {
   lastname: string;
   email: string;
   username: string;
+  mobile?: string | null;
+  dialCode?: string | null;
+  country?: string | null;
   status: UserStatus;
   roles: Array<{ role: { id: number; name: string } }>;
 }

@@ -7,30 +7,11 @@ import { userRolesService } from '@/api/userRoles';
 import { ApiError } from '@/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Pagination } from '@/components/admin/Pagination';
+import { Modal } from '@/components/admin/Modal';
+import { EditUserModal } from '@/components/admin/UserModals/EditUserModal';
+import { DeleteUserModal } from '@/components/admin/UserModals/DeleteUserModal';
 import { clampSkip, parseListResponse } from '@/utils/pagination';
 import type { Role, UserWithRoles } from '@/types/api';
-
-const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
-  title, onClose, children,
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-    >
-      <div className="flex items-center justify-between p-5 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  </div>
-);
 
 const STATUS_STYLES = {
   Active:    'bg-green-50 text-green-700',
@@ -60,6 +41,11 @@ const UsersPage: React.FC = () => {
   const [roleSelection, setRoleSelection] = useState<number[]>([]);
   const [saving, setSaving]               = useState(false);
   const [roleError, setRoleError]         = useState('');
+
+  // Edit / delete
+  const [editTarget, setEditTarget]     = useState<UserWithRoles | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserWithRoles | null>(null);
+  const [notice, setNotice]             = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -104,6 +90,15 @@ const UsersPage: React.FC = () => {
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to update user status.');
     }
+  };
+
+  // After an edit or delete: close the dialog, say what happened, and refresh. Deleting the last
+  // row of a page leaves `skip` past the end — load() clamps it back to the last real page.
+  const afterChange = (message: string) => {
+    setEditTarget(null);
+    setDeleteTarget(null);
+    setNotice(message);
+    load();
   };
 
   const openRoleModal = (user: UserWithRoles) => {
@@ -162,6 +157,13 @@ const UsersPage: React.FC = () => {
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
         />
       </div>
+
+      {notice && (
+        <div role="status" className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-start justify-between gap-3">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice('')} aria-label="Dismiss" className="text-green-800 hover:text-green-900">✕</button>
+        </div>
+      )}
 
       {error && <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
@@ -230,6 +232,17 @@ const UsersPage: React.FC = () => {
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                           </button>
                         )}
+                        {can('users.write') && (
+                          <button
+                            type="button"
+                            onClick={() => { setNotice(''); setEditTarget(user); }}
+                            className="p-1.5 rounded-md text-text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Edit user"
+                            aria-label={`Edit ${user.firstname} ${user.lastname}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                        )}
                         {can('users.ban') && (
                           <button
                             onClick={() => handleBanToggle(user)}
@@ -241,6 +254,17 @@ const UsersPage: React.FC = () => {
                             ) : (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             )}
+                          </button>
+                        )}
+                        {can('users.delete') && (
+                          <button
+                            type="button"
+                            onClick={() => { setNotice(''); setDeleteTarget(user); }}
+                            className="p-1.5 rounded-md text-text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete user"
+                            aria-label={`Delete ${user.firstname} ${user.lastname}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
                         )}
                       </div>
@@ -262,6 +286,27 @@ const UsersPage: React.FC = () => {
           onSizeChange={(n) => { setTake(n); setSkip(0); }}
         />
       </div>
+
+      {editTarget && (
+        <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onSaved={afterChange} />
+      )}
+
+      {deleteTarget && (
+        <DeleteUserModal
+          user={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={afterChange}
+          onBlock={can('users.ban') ? async (u) => {
+            try {
+              await usersService.setUserStatus(u.id, { status: 'Blocked' });
+              afterChange(`Blocked ${u.firstname} ${u.lastname}.`);
+            } catch (e) {
+              setDeleteTarget(null);
+              setError(e instanceof ApiError ? e.message : 'Failed to block the user.');
+            }
+          } : undefined}
+        />
+      )}
 
       {/* Role assignment modal */}
       {roleTarget && (

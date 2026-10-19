@@ -70,6 +70,12 @@ export const usersService = {
       .patch<ApiResponse<UserProfile>>(`/users/${userId}`, data)
       .then((r) => r.data),
 
+  /** Permanently delete a user. Refused (409) while the user has payments, migrations or other records. Requires users.delete. */
+  deleteUser: (userId: number) =>
+    apiClient
+      .delete<{ status: true; message: string; deleted: { id: number; email: string | null; name: string } }>(`/users/${userId}`)
+      .then((r) => r.data),
+
   /** Force-reset a user's password. Requires admin permission. */
   resetUserPassword: (userId: number, data: ResetUserPasswordRequest) =>
     apiClient

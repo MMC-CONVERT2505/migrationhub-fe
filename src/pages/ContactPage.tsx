@@ -24,6 +24,20 @@ const DIAL_CODES: { label: string; value: string }[] = [
   { label: '+27', value: '+27' },   // ZA
 ];
 
+// Dial code to preselect per country. "Other" is absent on purpose: it leaves the code as-is.
+// Every value must exist in DIAL_CODES. Canada shares +1 with the US.
+const COUNTRY_DIAL_CODE: Record<string, string> = {
+  'Australia': '+61',
+  'New Zealand': '+64',
+  'United Kingdom': '+44',
+  'United States': '+1',
+  'Canada': '+1',
+  'Singapore': '+65',
+  'India': '+91',
+  'UAE': '+971',
+  'South Africa': '+27',
+};
+
 interface ContactFormData {
   email: string;
   dialCode: string;
@@ -105,6 +119,13 @@ const ContactPage: React.FC = () => {
   const fieldError = (field: string) => errors.find((e) => e.field === field)?.message;
   const set = <K extends keyof ContactFormData>(key: K, value: ContactFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleCountryChange = (country: string) =>
+    setForm((prev) => ({
+      ...prev,
+      country,
+      dialCode: COUNTRY_DIAL_CODE[country] ?? prev.dialCode,
+    }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +261,7 @@ const ContactPage: React.FC = () => {
                         <select
                           id="country"
                           value={form.country}
-                          onChange={(e) => set('country', e.target.value)}
+                          onChange={(e) => handleCountryChange(e.target.value)}
                           className={`w-full px-3 py-2.5 text-sm bg-white border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors ${
                             fieldError('country') ? 'border-red-400 bg-red-50' : 'border-border hover:border-border-medium'
                           }`}

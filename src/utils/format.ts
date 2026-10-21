@@ -23,14 +23,13 @@ export function yesNo(value: boolean | null | undefined, unanswered = '—'): st
   return value == null ? unanswered : value ? 'Yes' : 'No';
 }
 
+/** Whole-dollar price, e.g. "$389". Prices are never shown with decimals. */
 export function formatCurrency(amount: number): string {
-  return `$${amount.toFixed(2)}`;
+  return `$${Math.round(amount)}`;
 }
 
-/** "$389" for whole amounts, "$389.50" otherwise — the compact form used on the pay button. */
-export function formatCurrencyCompact(amount: number): string {
-  return Number.isInteger(amount) ? `$${amount}` : formatCurrency(amount);
-}
+/** Kept for the pay button; identical to formatCurrency now that decimals are gone. */
+export const formatCurrencyCompact = formatCurrency;
 
 export function formatNumber(n: number): string {
   return n.toLocaleString();

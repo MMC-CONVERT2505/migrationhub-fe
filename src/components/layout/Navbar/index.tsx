@@ -6,6 +6,7 @@ import { Button } from '@/components/common/Button';
 import { useAuthStore, useSession } from '@/store/authStore';
 import { useAuthScope } from '@/hooks/useAuthScope';
 import { authService } from '@/api/auth';
+import { goToSection } from '@/utils/scroll';
 import { OperationTeamBadge } from '@/components/auth/OperationTeamBadge';
 
 interface NavbarProps {
@@ -19,7 +20,7 @@ const NAV_LINKS = [
   { label: 'What we convert', href: '#pairs' },
   { label: 'How it works', href: '#why' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Resources', href: '#reviews' },
+  { label: 'Reviews', href: '#reviews' },
   { label: 'Contact Us', to: '/contact' },
 ] as const;
 
@@ -144,16 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
 
   const handleNavLink = (href: string) => {
     setMobileOpen(false);
-    if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        const el = document.getElementById(href.replace('#', ''));
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    } else {
-      const el = document.getElementById(href.replace('#', ''));
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    goToSection(href.replace('#', ''), location.pathname, navigate);
   };
 
   // Real anchors: section links smooth-scroll on the home page (and fall back to the
@@ -385,7 +377,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
 };
 
 // ─── Logo Mark ────────────────────────────────────────────────────────────────
-const LogoMark: React.FC = () => (
+export const LogoMark: React.FC = () => (
   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
     <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />

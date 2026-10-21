@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { EXTERNAL_LINKS } from '@/constants/links';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { InputField } from '@/components/auth/InputField';
 import { PasswordField } from '@/components/auth/PasswordField';
@@ -434,9 +435,9 @@ const SignUpPage: React.FC = () => {
             </div>
             <span className="text-sm text-text-secondary leading-relaxed">
               I agree to the{' '}
-              <a href="#" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
+              <a href={EXTERNAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
               {' '}and{' '}
-              <a href="#" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
+              <a href={EXTERNAL_LINKS.privacy} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
             </span>
           </label>
           {fieldError('agreedToTerms') && (

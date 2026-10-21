@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { EXTERNAL_LINKS, TRUSTPILOT_REVIEW_COUNT } from '@/constants/links';
 
 const TRUSTPILOT_GREEN = '#00B67A';
 const STAR_PATH =
@@ -88,7 +89,7 @@ export const TrustpilotSection: React.FC = () => {
             <span className="font-bold text-text-primary">4.8 / 5</span>
             <span className="text-border">|</span>
             <span>
-              Based on <span className="font-semibold text-text-primary">1,000+ reviews</span>
+              Based on <span className="font-semibold text-text-primary">{TRUSTPILOT_REVIEW_COUNT}+ reviews</span>
             </span>
             <span className="text-border">|</span>
             <span className="inline-flex items-center gap-1.5">
@@ -160,12 +161,12 @@ export const TrustpilotSection: React.FC = () => {
         {/* CTA */}
         <div className="mt-8 text-center">
           <a
-            href="https://www.trustpilot.com"
+            href={EXTERNAL_LINKS.trustpilot}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-5 py-3 bg-white border border-border rounded-lg text-sm font-semibold text-text-primary hover:border-border-medium hover:shadow-card transition-all duration-150"
           >
-            Read all 1,000+ reviews on Trustpilot
+            Read all {TRUSTPILOT_REVIEW_COUNT} reviews on Trustpilot
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
             </svg>

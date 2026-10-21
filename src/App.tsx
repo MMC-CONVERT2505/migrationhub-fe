@@ -14,6 +14,8 @@ const ContactPage         = React.lazy(() => import('@/pages/ContactPage'));
 const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
+const ForgotPasswordPage  = React.lazy(() => import('@/pages/ForgotPasswordPage'));
+const ResetPasswordPage   = React.lazy(() => import('@/pages/ResetPasswordPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
 const MigrationPlanPage     = React.lazy(() => import('@/pages/MigrationPlanPage'));
 const MigrationDetailsPage  = React.lazy(() => import('@/pages/MigrationDetailsPage'));
@@ -88,6 +90,8 @@ const App: React.FC = () => (
       <Route path="/migrations/:id"   element={<MigrationTrackPage />} />
       <Route path="/sign-in"   element={<SignInPage />} />
       <Route path="/sign-up"   element={<SignUpPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
 
       {/* Admin login — public, no guard */}

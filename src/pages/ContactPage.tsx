@@ -181,8 +181,8 @@ const ContactPage: React.FC = () => {
                 <p className="mt-6 text-lg text-text-secondary leading-relaxed">
                   Tell us a little about your company and we&apos;ll get back to you within one
                   business day. Prefer email? Reach us directly at{' '}
-                  <a href="mailto:support@mmcconvert.com" className="text-blue-600 hover:underline">
-                    support@mmcconvert.com
+                  <a href="mailto:info@mmcconvert.com" className="text-blue-600 hover:underline">
+                    info@mmcconvert.com
                   </a>.
                 </p>
               </div>

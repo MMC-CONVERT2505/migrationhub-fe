@@ -437,7 +437,7 @@ const SignUpPage: React.FC = () => {
               I agree to the{' '}
               <a href={EXTERNAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
               {' '}and{' '}
-              <a href={EXTERNAL_LINKS.privacy} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
             </span>
           </label>
           {fieldError('agreedToTerms') && (

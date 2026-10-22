@@ -137,7 +137,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="px-5 py-4 border-t border-border text-center">
         <p className="text-xs text-text-tertiary">
           © {new Date().getFullYear()} MMC Convert ·{' '}
-          <a href={EXTERNAL_LINKS.privacy} target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Privacy</a>
+          <Link to="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
           {' · '}
           <a href={EXTERNAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Terms</a>
           {' · '}

@@ -26,7 +26,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
     { label: 'Contact', to: '/contact' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: EXTERNAL_LINKS.privacy },
+    { label: 'Privacy Policy', to: '/privacy' },
     { label: 'Terms of Service', href: EXTERNAL_LINKS.terms },
   ],
 };

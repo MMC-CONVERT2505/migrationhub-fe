@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { Button } from '@/components/common/Button';
+import { platformDisplayName } from '@/utils/platformName';
 import { PlatformMark } from '@/components/common/PlatformMark';
 import { useAppStore } from '@/store/appStore';
 import type { Pair } from '@/types';
@@ -28,7 +29,7 @@ const READONLY = cn('w-full px-3 py-2.5 text-sm bg-bg-light border border-border
 
 export const ConnectStep: React.FC<ConnectStepProps> = ({ role, pair, onNext, onBack }) => {
   const isSource = role === 'source';
-  const platform = isSource ? pair.src : pair.dst;
+  const platform = platformDisplayName(isSource ? pair.src : pair.dst);
   const color    = isSource ? pair.srcColor : pair.dstColor;
   const abbr     = isSource ? pair.srcAbbr  : pair.dstAbbr;
   const logo     = isSource ? pair.srcLogo  : pair.dstLogo;

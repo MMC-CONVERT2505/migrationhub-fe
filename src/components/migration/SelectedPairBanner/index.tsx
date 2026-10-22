@@ -1,4 +1,5 @@
 import React from 'react';
+import { platformDisplayName } from '@/utils/platformName';
 import type { Pair } from '@/types';
 
 interface SelectedPairBannerProps {
@@ -12,7 +13,7 @@ export const SelectedPairBanner: React.FC<SelectedPairBannerProps> = ({ pair, cl
     <div className="min-w-0">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600">Selected migration</p>
       <p className="text-sm font-bold text-text-primary truncate">
-        {pair.src} <span className="text-text-tertiary">→</span> {pair.dst}
+        {platformDisplayName(pair.src)} <span className="text-text-tertiary">→</span> {platformDisplayName(pair.dst)}
       </p>
     </div>
     <span

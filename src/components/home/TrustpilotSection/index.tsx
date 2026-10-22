@@ -17,7 +17,7 @@ const REVIEWS = [
   {
     initial: 'S',
     name: 'Sarah M.',
-    path: 'QuickBooks Desktop → QBO',
+    path: 'QuickBooks Desktop → QuickBooks Online',
     timeAgo: '2 weeks ago',
     text: 'Daily updates kept us informed at every step. The transition was smooth, stress-free, and every query got a fast, personal response.',
   },

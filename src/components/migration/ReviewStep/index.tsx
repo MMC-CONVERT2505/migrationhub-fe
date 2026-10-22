@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/common/Button';
 import { DATA_CATEGORIES } from '@/constants/pairs';
 import { useAppStore } from '@/store/appStore';
+import { platformDisplayName } from '@/utils/platformName';
 import { formatCurrency } from '@/utils/format';
 import type { Pair } from '@/types';
 
@@ -62,7 +63,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack })
         <SummaryCard
           title="Source"
           rows={[
-            { label: 'Platform',     value: pair.src },
+            { label: 'Platform',     value: platformDisplayName(pair.src) },
             { label: 'Organisation', value: 'Acme Accounting Pty Ltd' },
             { label: 'Region',       value: 'Australia' },
             {
@@ -78,7 +79,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack })
         <SummaryCard
           title="Destination"
           rows={[
-            { label: 'Platform',     value: pair.dst },
+            { label: 'Platform',     value: platformDisplayName(pair.dst) },
             { label: 'Organisation', value: 'Acme Accounting Pty Ltd' },
             { label: 'Region',       value: 'Australia' },
             {

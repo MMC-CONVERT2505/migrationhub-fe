@@ -4,7 +4,8 @@ import type { TransactionPlan } from '@/constants/transactionPlans';
 export interface CreateInquiryRequest {
   name: string;
   email: string;
-  phone: string;
+  /** Optional for Operation Team members, who have no phone field. */
+  phone?: string;
   country: string;
   entityName: string;
   financialYearEnd: string;

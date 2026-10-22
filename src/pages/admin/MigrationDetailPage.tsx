@@ -372,7 +372,7 @@ const MigrationDetailPage: React.FC = () => {
               <dl className="space-y-2.5 text-sm">
                 <Row label="Name" value={m.inquiry.name} />
                 <Row label="Email" value={m.inquiry.email} />
-                <Row label="Phone" value={m.inquiry.phone} />
+                <Row label="Phone" value={m.inquiry.phone?.trim() || '—'} />
                 <Row label="Country" value={m.inquiry.country} />
                 <Row label="Entity" value={m.inquiry.entityName} />
                 <Row label="FY end" value={m.inquiry.financialYearEnd} />

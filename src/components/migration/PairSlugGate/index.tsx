@@ -127,7 +127,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Navbar showBack />
+      <Navbar showBack hideAuthCta />
       <div
         className="max-w-md mx-auto px-4 flex flex-col items-center justify-center text-center"
         style={{ minHeight: '70vh', gap: 16 }}

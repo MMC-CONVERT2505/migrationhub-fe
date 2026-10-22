@@ -16,6 +16,9 @@ import {
 import { pairPlanPath } from '@/utils/platformMap';
 import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
+import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit } from '@/utils/inquiryContact';
+import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
+import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 
 // Declared once and reused in the restricted list below, so the two lists can never
 // spell the same country differently — the label is what gets stored on the inquiry.
@@ -117,6 +120,9 @@ const inputCls =
   'w-full px-3 py-2.5 text-sm bg-white border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors';
 
 // Error treatment for a bare input, matching InputField's.
+// Locked fields (Operation Team email / phone).
+const greyedCls = 'bg-gray-100 text-text-tertiary cursor-not-allowed';
+
 const inputErrCls = 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20';
 
 /**
@@ -293,7 +299,11 @@ const MigrationInfoPage: React.FC = () => {
   const plan = findSelectedPlan(selectedPair, selectedPlanId);
   // A free selection skips the Payment page and goes straight to Start Migration.
   const isFree = isFreeSelection(selectedPair, plan);
-  const nextPath = isFree ? SUCCESS_PATH : PAYMENT_PATH;
+  // Operation Team: email is the shared team inbox (locked) and phone is not collected.
+  const { isOperationTeam } = useOperationTeamMember();
+  // Free selections and Operation Team orders have nothing to pay, so they skip the Payment page.
+  const skipsPayment = isFree || usePaymentSkipped(selectedPair?.isFree ?? false, plan);
+  const nextPath = skipsPayment ? SUCCESS_PATH : PAYMENT_PATH;
 
   if (editBlocked) {
     return (
@@ -348,10 +358,7 @@ const MigrationInfoPage: React.FC = () => {
   const validate = (): FieldErr[] => {
     const e: FieldErr[] = [];
     if (!form.name.trim()) e.push({ field: 'name', message: 'Name is required.' });
-    if (!form.email.trim()) e.push({ field: 'email', message: 'Email is required.' });
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.push({ field: 'email', message: 'Enter a valid email address.' });
-    if (!form.phone.trim()) e.push({ field: 'phone', message: 'Phone number is required.' });
-    else if (!/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) e.push({ field: 'phone', message: 'Enter a valid phone number.' });
+    e.push(...contactErrors({ isOperator: isOperationTeam, email: form.email, phone: form.phone }));
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
     // Add-ons are quoted on top of a paid plan; a free migration has nothing to quote, so it isn't asked.
     if (!isFree && form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
@@ -378,7 +385,10 @@ const MigrationInfoPage: React.FC = () => {
     setErrors([]);
     setSubmitting(true);
     // Dial code + national number, still one `phone` string on the wire.
-    const phone = `${form.dialCode}${toNationalNumber(form.phone)}`;
+    const contact = contactForSubmit(
+      { isOperator: isOperationTeam, email: form.email, phone: form.phone, dialCode: form.dialCode },
+      toNationalNumber,
+    );
     const addOnsConfirmed = isFree ? undefined : (form.addOnsConfirmed ?? undefined);
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
 
@@ -386,8 +396,7 @@ const MigrationInfoPage: React.FC = () => {
       try {
         await inquiryMigrationsService.update(existing.id, existing.editToken, {
           name: form.name.trim(),
-          email: form.email.trim(),
-          phone,
+          ...contact,
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
@@ -398,8 +407,8 @@ const MigrationInfoPage: React.FC = () => {
         setInquiryDetails({
           ...existing,
           name: form.name.trim(),
-          email: form.email.trim(),
-          phone,
+          ...contact,
+          phone: contact.phone ?? '',
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
@@ -423,8 +432,7 @@ const MigrationInfoPage: React.FC = () => {
     try {
       const created = await inquiryMigrationsService.create({
         name: form.name.trim(),
-        email: form.email.trim(),
-        phone,
+        ...contact,
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
@@ -436,8 +444,8 @@ const MigrationInfoPage: React.FC = () => {
       setInquiryDetails({
         id: created.id,
         name: form.name.trim(),
-        email: form.email.trim(),
-        phone,
+        ...contact,
+        phone: contact.phone ?? '',
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
@@ -481,8 +489,11 @@ const MigrationInfoPage: React.FC = () => {
               />
               <InputField
                 label="Email" id="email" type="email" required
-                value={form.email} onChange={(e) => set('email', e.target.value)} onBlur={() => validateOnBlur('email')}
+                value={isOperationTeam ? OP_TEAM_INQUIRY_EMAIL : form.email}
+                onChange={(e) => set('email', e.target.value)} onBlur={() => validateOnBlur('email')}
                 placeholder="john.doe@example.com" error={fieldError('email')}
+                readOnly={isOperationTeam} disabled={isOperationTeam}
+                hint={isOperationTeam ? 'Operation Team orders always use the shared team inbox.' : undefined}
               />
             </div>
 
@@ -492,24 +503,26 @@ const MigrationInfoPage: React.FC = () => {
                   controls rather than InputField so both sit on the same baseline as
                   the Country select beside them. */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="phone" className="text-xs font-medium text-text-secondary">Phone Number <span className="text-red-500">*</span></label>
+                <label htmlFor="phone" className="text-xs font-medium text-text-secondary">Phone Number {!isOperationTeam && <span className="text-red-500">*</span>}</label>
                 <div className="flex items-start gap-2">
                   <select
                     id="dialCode"
                     value={form.dialCode}
                     onChange={(e) => setDialCode(e.target.value)}
                     aria-label="Dial code"
-                    className={cn(inputCls, 'w-24 flex-shrink-0 px-2')}
+                    disabled={isOperationTeam}
+                    className={cn(inputCls, 'w-24 flex-shrink-0 px-2', isOperationTeam && greyedCls)}
                   >
                     {DIAL_CODES.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                   <input
-                    id="phone" type="tel" inputMode="tel" aria-required="true"
-                    value={form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => validateOnBlur('phone')}
-                    placeholder="412 345 678" autoComplete="tel-national" maxLength={20}
+                    id="phone" type="tel" inputMode="tel" aria-required={!isOperationTeam}
+                    disabled={isOperationTeam}
+                    value={isOperationTeam ? '' : form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => validateOnBlur('phone')}
+                    placeholder={isOperationTeam ? 'Not required' : '412 345 678'} autoComplete="tel-national" maxLength={20}
                     aria-invalid={!!fieldError('phone')}
                     aria-describedby={fieldError('phone') ? 'phone-error' : undefined}
-                    className={cn(inputCls, 'placeholder:text-text-tertiary', fieldError('phone') && inputErrCls)}
+                    className={cn(inputCls, 'placeholder:text-text-tertiary', fieldError('phone') && inputErrCls, isOperationTeam && greyedCls)}
                   />
                 </div>
                 {fieldError('phone') && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/utils/format';
 import { flowSteps, flowStepNumber, findSelectedPlan, isFreeSelection, type FlowPage } from '@/constants/migrationFlow';
+import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 import { useAppStore } from '@/store/appStore';
 
 interface FlowStepperProps {
@@ -15,7 +16,10 @@ interface FlowStepperProps {
 export const FlowStepper: React.FC<FlowStepperProps> = ({ page, className, free }) => {
   const selectedPair = useAppStore((s) => s.selectedPair);
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
-  const isFree = free ?? isFreeSelection(selectedPair, findSelectedPlan(selectedPair, selectedPlanId));
+  const plan = findSelectedPlan(selectedPair, selectedPlanId);
+  // Operation Team members are not charged either, so their stepper has no Pay stage.
+  const { isOperationTeam } = useOperationTeamMember();
+  const isFree = free ?? (isFreeSelection(selectedPair, plan) || isOperationTeam);
   const steps = flowSteps(isFree);
   const current = flowStepNumber(page, isFree);
 

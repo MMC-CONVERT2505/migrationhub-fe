@@ -5,7 +5,7 @@ const WHY_CARDS = [
   {
     icon: '🔒',
     title: 'Enterprise security',
-    description: 'SOC 2 Type II certified, 256-bit SSL encryption, and GDPR compliant. Your financial data never leaves our secure infrastructure.',
+    description: '256-bit SSL encryption in transit, and your data is deleted after your support window. See our Privacy Policy for the detail.',
   },
   {
     icon: '⚡',

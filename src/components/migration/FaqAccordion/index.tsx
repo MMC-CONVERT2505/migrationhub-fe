@@ -24,7 +24,7 @@ const DEFAULT_FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is my data safe during the migration?',
-    a: 'Yes. We connect to your source in read-only mode, encrypt all data in transit with 256-bit SSL, and never store your accounting credentials. We are SOC 2 aligned and GDPR ready.',
+    a: 'Yes. We connect to your source in read-only mode, encrypt all data in transit with 256-bit SSL, and never store your accounting credentials. We handle your data as described in our Privacy Policy.',
   },
   {
     q: 'What data gets migrated?',

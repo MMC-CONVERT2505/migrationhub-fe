@@ -3,15 +3,15 @@ import React from 'react';
 /** Privacy policy text, kept as data so the page stays presentational and the structure is testable. */
 
 export const PRIVACY_EMAIL = 'migrations@mmcconvert.com';
-export const PRIVACY_EFFECTIVE = '[1st Jan 2026]';
-export const PRIVACY_UPDATED = '[22nd October 2026]';
+export const PRIVACY_EFFECTIVE = '1st Jan 2026';
+export const PRIVACY_UPDATED = '22nd October 2026';
 
 const Mail: React.FC = () => (
   <a href={`mailto:${PRIVACY_EMAIL}`} className="text-blue-600 hover:underline break-all">{PRIVACY_EMAIL}</a>
 );
 
 export type Block =
-  | { type: 'p'; content: React.ReactNode; lead?: string }
+  | { type: 'p'; content: React.ReactNode; lead?: string; /** Clause number, e.g. "3.4" — shown in its own column. */ num?: string }
   | { type: 'list'; items: React.ReactNode[] }
   | { type: 'table'; caption: string; head: string[]; rows: React.ReactNode[][] };
 

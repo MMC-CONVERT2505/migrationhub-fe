@@ -50,7 +50,8 @@ const DEFAULT_ENTRIES: FaqEntry[] = DEFAULT_FAQS.map((item, index) => ({
   answerHtml: `<p>${escapeHtml(item.a)}</p>`,
 }));
 
-const DEFAULT_DESCRIPTION_HTML = `<p>${escapeHtml('A few things worth knowing before you continue to payment.')}</p>`;
+const defaultDescriptionHtml = (free: boolean) =>
+  `<p>${escapeHtml(free ? 'A few things worth knowing before you continue.' : 'A few things worth knowing before you continue to payment.')}</p>`;
 
 const FaqItem: React.FC<{ item: FaqEntry; open: boolean; onToggle: () => void; baseId: string; index: number }> = ({
   item, open, onToggle, baseId, index,
@@ -94,11 +95,11 @@ const FaqItem: React.FC<{ item: FaqEntry; open: boolean; onToggle: () => void; b
 
 /** Per-pair FAQ as an accordion. Loads the pair's admin-authored FAQ and falls back to the
  *  built-in list, so it always has something to show. */
-export const FaqAccordion: React.FC<{ pairId?: number | string | null }> = ({ pairId }) => {
+export const FaqAccordion: React.FC<{ pairId?: number | string | null; /** Free migrations have no payment step. */ free?: boolean }> = ({ pairId, free = false }) => {
   const baseId = useId();
   const [openIdx, setOpenIdx] = useState<number | null>(0);
   const [entries, setEntries] = useState<FaqEntry[]>(DEFAULT_ENTRIES);
-  const [descriptionHtml, setDescriptionHtml] = useState<string>(DEFAULT_DESCRIPTION_HTML);
+  const [descriptionHtml, setDescriptionHtml] = useState<string>(defaultDescriptionHtml(free));
   const [loading, setLoading] = useState(pairId != null);
 
   useEffect(() => {

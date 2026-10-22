@@ -96,7 +96,11 @@ const MigrationTrackPage: React.FC = () => {
       <Navbar showBack />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <FlowStepper page="track" className="max-w-xl mx-auto mb-8" />
+        <FlowStepper
+          page="track"
+          free={m ? m.migrationPair.isFree || Number(m.plan.basePrice) === 0 : undefined}
+          className="max-w-xl mx-auto mb-8"
+        />
         <Link to="/migrations" className="text-sm text-blue-600 hover:underline">← Back to my migrations</Link>
 
         {loading && (

@@ -138,7 +138,7 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
           <div>
             <p className="text-xs text-text-tertiary">Total paid</p>
             <p className="text-sm font-semibold text-text-primary font-mono">
-              {migration.plan.currency} {total.toFixed(2)}
+              {migration.plan.currency} {Math.round(total)}
             </p>
           </div>
         </div>

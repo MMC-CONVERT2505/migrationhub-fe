@@ -7,7 +7,7 @@ import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { apiPairToUiPair, extractList, findPairBySlug, pairCustomerPath, pairSlug } from '@/utils/platformMap';
-import { findSelectedPlan, planRequired } from '@/constants/migrationFlow';
+import { findSelectedPlan, planRequired, usesFreePairBenefits } from '@/constants/migrationFlow';
 import type { MigrationPairEntity } from '@/types/api';
 
 // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
@@ -46,6 +46,14 @@ const MigrationPlanPage: React.FC = () => {
     // Consumed: drop it from the URL so coming back here later doesn't override a changed choice.
     setSearchParams((p) => { p.delete('plan'); return p; }, { replace: true });
   }, [planParam, pairId, plans, setSelectedPlanId, setSearchParams]);
+
+  // A free pair with a single plan has nothing to choose between, and its card no longer
+  // names the plan — so pick it for the customer rather than leave an unlabelled radio to find.
+  const soleFreePlanId =
+    selectedPair?.isFree && plans.length === 1 && Number(plans[0].basePrice) === 0 ? plans[0].id : undefined;
+  useEffect(() => {
+    if (soleFreePlanId && selectedPlanId !== soleFreePlanId) setSelectedPlanId(soleFreePlanId);
+  }, [soleFreePlanId, selectedPlanId, setSelectedPlanId]);
 
   if (!selectedPair) return <Navigate to="/" replace />;
 
@@ -113,6 +121,7 @@ const MigrationPlanPage: React.FC = () => {
                 name="migration-plan"
                 selected={selectedPlan?.id === plan.id}
                 onSelect={setSelectedPlanId}
+                freePairBenefits={usesFreePairBenefits(selectedPair, plan)}
               />
             ))}
           </fieldset>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { EXTERNAL_LINKS } from '@/constants/links';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -136,11 +137,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="px-5 py-4 border-t border-border text-center">
         <p className="text-xs text-text-tertiary">
           © {new Date().getFullYear()} MMC Convert ·{' '}
-          <a href="#" className="hover:text-text-secondary transition-colors">Privacy</a>
+          <Link to="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
           {' · '}
-          <a href="#" className="hover:text-text-secondary transition-colors">Terms</a>
+          <a href={EXTERNAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Terms</a>
           {' · '}
-          <a href="#" className="hover:text-text-secondary transition-colors">Support</a>
+          <Link to="/contact" className="hover:text-text-secondary transition-colors">Support</Link>
         </p>
       </div>
     </div>

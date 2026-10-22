@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   FLOW_STEPS,
+  flowSteps,
+  usesFreePairBenefits,
+  FREE_PAIR_BENEFITS,
   FLOW_PAGE_STEP,
   flowStepNumber,
   resolveFlowRedirect,
@@ -35,6 +38,28 @@ describe('stepper mapping', () => {
     });
     expect(['plan', 'details', 'payment', 'success', 'connect', 'track'].map((p) => flowStepNumber(p as never)))
       .toEqual([1, 1, 2, 2, 3, 4]);
+  });
+});
+
+describe('free flow stepper', () => {
+  it('drops the Pay stage: Prepare, Connect, Migrate', () => {
+    expect(flowSteps(true).map((s) => s.label)).toEqual(['Prepare', 'Connect', 'Migrate']);
+    expect(flowSteps(false).map((s) => s.label)).toEqual(['Prepare', 'Pay', 'Connect', 'Migrate']);
+  });
+  it('numbers pages against the three-step list; the success hand-off counts as Connect', () => {
+    expect(['plan', 'details', 'success', 'connect', 'track'].map((p) => flowStepNumber(p as never, true))).toEqual([1, 1, 2, 2, 3]);
+  });
+});
+
+describe('free pair plan presentation', () => {
+  it('applies only to a zero-cost plan on a free pair', () => {
+    expect(usesFreePairBenefits(pair({ isFree: true }), plan({ basePrice: 0 }))).toBe(true);
+    expect(usesFreePairBenefits(pair({ isFree: true }), plan({ basePrice: 389 }))).toBe(false);
+    expect(usesFreePairBenefits(pair({ isFree: false }), plan({ basePrice: 0 }))).toBe(false);
+    expect(usesFreePairBenefits(null, plan({ basePrice: 0 }))).toBe(false);
+  });
+  it('lists exactly the three agreed benefits', () => {
+    expect([...FREE_PAIR_BENEFITS]).toEqual(['All data categories', 'Email + Phone support', 'Quality Analysis Report']);
   });
 });
 

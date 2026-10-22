@@ -9,6 +9,10 @@ export const FLOW_STEPS = [
   { key: 'migrate', label: 'Migrate' },
 ] as const;
 
+/** A free selection never reaches the Payment page, so its stepper has no "Pay" stage. */
+export const flowSteps = (free: boolean): readonly (typeof FLOW_STEPS)[number][] =>
+  free ? FLOW_STEPS.filter((s) => s.key !== 'pay') : FLOW_STEPS;
+
 export type FlowStepKey = (typeof FLOW_STEPS)[number]['key'];
 
 /** Pages that take part in the flow. `connect` and `track` live outside the checkout pages
@@ -25,9 +29,14 @@ export const FLOW_PAGE_STEP: Record<FlowPage, FlowStepKey> = {
   track: 'migrate',
 };
 
-/** 1-based stepper position of a page. */
-export const flowStepNumber = (page: FlowPage): number =>
-  FLOW_STEPS.findIndex((s) => s.key === FLOW_PAGE_STEP[page]) + 1;
+/**
+ * 1-based stepper position of a page. In a free flow the "Pay" stage does not exist, so the
+ * success page (the hand-off into connecting the accounts) counts as Connect.
+ */
+export const flowStepNumber = (page: FlowPage, free = false): number => {
+  const key = free && FLOW_PAGE_STEP[page] === 'pay' ? 'connect' : FLOW_PAGE_STEP[page];
+  return flowSteps(free).findIndex((s) => s.key === key) + 1;
+};
 
 export const DEFAULT_CURRENCY = 'USD';
 export const PAYMENT_PATH = '/payment';
@@ -39,6 +48,13 @@ export const planCurrency = (plan: Pick<Plan, 'currency'> | null | undefined): s
 /** Free when the pair is marketed free or the chosen plan costs nothing. */
 export const isFreeSelection = (pair: Pair | null, plan: Plan | null): boolean =>
   (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
+
+/** What a free pair's plan includes — shown instead of the plan's own name, price and feature list. */
+export const FREE_PAIR_BENEFITS = ['All data categories', 'Email + Phone support', 'Quality Analysis Report'] as const;
+
+/** True for the zero-cost plan of a free pair, which is presented as just its history + FREE_PAIR_BENEFITS. */
+export const usesFreePairBenefits = (pair: Pair | null, plan: Pick<Plan, 'basePrice'>): boolean =>
+  (pair?.isFree ?? false) && Number(plan.basePrice) === 0;
 
 /** A pair with attached plans needs one chosen. A free pair with none can proceed without. */
 export const planRequired = (pair: Pair): boolean => pair.plans.length > 0 || !pair.isFree;

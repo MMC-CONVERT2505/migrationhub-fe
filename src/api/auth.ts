@@ -64,4 +64,16 @@ export const authService = {
     apiClient
       .post<ApiResponse>('/auth/reset-password', data)
       .then((r) => r.data),
+
+  /** Email a single-use reset link. Always succeeds the same way, whether or not the account exists. */
+  requestPasswordReset: (email: string) =>
+    apiClient
+      .post<{ status: string; message: string }>('/auth/password-reset/request', { email })
+      .then((r) => r.data),
+
+  /** Set a new password from the token in the emailed link. */
+  confirmPasswordReset: (token: string, newPassword: string) =>
+    apiClient
+      .post<{ status: string }>('/auth/password-reset/confirm', { token, newPassword })
+      .then((r) => r.data),
 };

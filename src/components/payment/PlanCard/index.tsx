@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency, cn } from '@/utils/format';
-import { planCurrency } from '@/constants/migrationFlow';
+import { FREE_PAIR_BENEFITS, planCurrency } from '@/constants/migrationFlow';
 import type { Plan } from '@/types';
 
 interface PlanCardProps {
@@ -9,11 +9,13 @@ interface PlanCardProps {
   name: string;
   selected: boolean;
   onSelect: (planId: string) => void;
+  /** A free pair's plan: only the history and what's included — no plan name, price or support line. */
+  freePairBenefits?: boolean;
 }
 
 /** One selectable plan. A native radio inside a label, so selection and arrow-key
  *  navigation come from the browser and are announced by screen readers. */
-export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSelect }) => {
+export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSelect, freePairBenefits = false }) => {
   const free = Number(plan.basePrice) === 0;
   return (
     <label
@@ -39,6 +41,19 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSele
       )}
 
       <div className="min-w-0 flex-1">
+        {freePairBenefits ? (
+          <>
+            {/* The plan name stays available to assistive tech even though it isn't shown. */}
+            <span className="sr-only">{plan.name} plan</span>
+            <p className="text-sm font-bold text-text-primary">{plan.history} history</p>
+            <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Included">
+              {FREE_PAIR_BENEFITS.map((f) => (
+                <li key={f} className="rounded border border-border bg-bg-lighter px-2 py-0.5 text-[11px] text-text-secondary">{f}</li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-bold text-text-primary">{plan.name}</p>
@@ -66,6 +81,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSele
               </li>
             ))}
           </ul>
+        )}
+          </>
         )}
       </div>
     </label>

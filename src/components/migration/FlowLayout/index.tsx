@@ -16,7 +16,7 @@ interface FlowLayoutProps {
  *  Back button, the 4-step stepper, and the copyright footer. */
 export const FlowLayout: React.FC<FlowLayoutProps> = ({ page, widthClass = 'max-w-3xl', children }) => (
   <div className="min-h-screen bg-bg flex flex-col overflow-x-clip">
-    <Navbar showBack />
+    <Navbar showBack hideAuthCta />
     <main className={cn('flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8', widthClass)}>
       <FlowStepper page={page} className="max-w-xl mx-auto mb-8" />
       {children}

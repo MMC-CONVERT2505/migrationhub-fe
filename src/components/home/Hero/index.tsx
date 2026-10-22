@@ -12,11 +12,6 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="min-w-0"
         >
-          <div className="inline-flex items-center gap-2 bg-white border border-blue-200 rounded-full px-3 py-1.5 mb-6">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse motion-reduce:animate-none" aria-hidden="true" />
-            <span className="text-xs font-medium text-blue-700">81 migrations running live right now</span>
-          </div>
-
           <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
             Move your accounting data{' '}
             <span className="text-blue-600">right now</span>

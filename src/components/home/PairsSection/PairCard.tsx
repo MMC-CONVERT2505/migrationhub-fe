@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { platformDisplayName, pairDisplayName } from '@/utils/platformName';
 import { cn } from '@/utils/format';
 import { pairDetailsPath } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
@@ -96,12 +97,14 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
     >
       {/* Platforms */}
       <div className="flex items-center gap-2">
-        <PairLogoBox logo={pair.srcLogo} abbr={pair.srcAbbr} name={pair.src} color={pair.srcColor} />
+        <PairLogoBox logo={pair.srcLogo} abbr={pair.srcAbbr} name={platformDisplayName(pair.src)} color={pair.srcColor} />
         <svg className="w-4 h-4 text-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
-        <PairLogoBox logo={pair.dstLogo} abbr={pair.dstAbbr} name={pair.dst} color={pair.dstColor} />
+        <PairLogoBox logo={pair.dstLogo} abbr={pair.dstAbbr} name={platformDisplayName(pair.dst)} color={pair.dstColor} />
       </div>
+
+      <p className="mt-3 text-sm font-semibold text-text-primary">{pairDisplayName(pair)}</p>
 
       {/* MYOB Business note */}
       {pair.myobBusiness && (

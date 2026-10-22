@@ -98,7 +98,8 @@ const MigrationTrackPage: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <FlowStepper
           page="track"
-          free={m ? m.migrationPair.isFree || Number(m.plan.basePrice) === 0 : undefined}
+          // No payment on record (free pair, $0 plan, or Operation Team waiver) means no Pay stage.
+          free={m ? m.migrationPair.isFree || Number(m.plan.basePrice) === 0 || m.paymentId == null : undefined}
           className="max-w-xl mx-auto mb-8"
         />
         <Link to="/migrations" className="text-sm text-blue-600 hover:underline">← Back to my migrations</Link>

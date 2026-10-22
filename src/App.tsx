@@ -15,6 +15,7 @@ const PaymentPage         = React.lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccessPage  = React.lazy(() => import('@/pages/PaymentSuccessPage'));
 const PaymentFailedPage   = React.lazy(() => import('@/pages/PaymentFailedPage'));
 const PrivacyPage         = React.lazy(() => import('@/pages/PrivacyPage'));
+const TermsPage           = React.lazy(() => import('@/pages/TermsPage'));
 const ForgotPasswordPage  = React.lazy(() => import('@/pages/ForgotPasswordPage'));
 const ResetPasswordPage   = React.lazy(() => import('@/pages/ResetPasswordPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
@@ -75,6 +76,7 @@ const App: React.FC = () => (
       <Route path="/about"     element={<AboutPage />} />
       <Route path="/contact"   element={<ContactPage />} />
       <Route path="/privacy"   element={<PrivacyPage />} />
+      <Route path="/termsofuse" element={<TermsPage />} />
       <Route path="/payment"         element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/failed"  element={<PaymentFailedPage />} />

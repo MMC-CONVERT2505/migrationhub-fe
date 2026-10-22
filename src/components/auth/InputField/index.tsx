@@ -38,6 +38,7 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
               'placeholder:text-text-tertiary',
               'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500',
               'transition-colors duration-150',
+              'disabled:bg-gray-100 disabled:text-text-tertiary disabled:cursor-not-allowed disabled:hover:border-border',
               iconLeft  ? 'pl-9 pr-3' : 'px-3',
               suffix    ? 'pr-10' : '',
               error

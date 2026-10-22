@@ -101,7 +101,9 @@ const InquiriesPage: React.FC = () => {
                   <tr key={r.id} className="hover:bg-bg-light/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-text-primary max-w-[180px] truncate" title={r.entityName}>{r.entityName}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">
-                      <a href={`tel:${r.phone}`} className="hover:text-blue-600 hover:underline">{r.phone}</a>
+                      {r.phone?.trim() ? (
+                        <a href={`tel:${r.phone}`} className="hover:text-blue-600 hover:underline">{r.phone}</a>
+                      ) : '—'}
                     </td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.country}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{r.financialYearEnd}</td>

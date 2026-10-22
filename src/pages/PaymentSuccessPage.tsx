@@ -10,6 +10,7 @@ import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { formatCurrency } from '@/utils/format';
+import { readySummaryRows } from '@/utils/readySummary';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { findSelectedPlan, isFreeSelection, planCurrency, resolveFlowRedirect } from '@/constants/migrationFlow';
 import type { PendingMigration } from '@/types';
@@ -322,13 +323,16 @@ const PaymentSuccessPage: React.FC = () => {
           {pair && <SelectedPairBanner pair={pair} className="mb-4" />}
 
           <div className="mb-4 overflow-hidden rounded-xl border border-border bg-white">
-            {plan ? (
-              <dl>
-                <SummaryRow label="Plan" value={plan.name} />
-                <SummaryRow label="Historical period" value={plan.history} />
-                {financialYearEnd && <SummaryRow label="FY end" value={financialYearEnd} />}
-                {dateRange && <SummaryRow label="Date range" value={dateRange} />}
-                <SummaryRow label="Support" value={plan.support} />
+            <dl>
+              {readySummaryRows({
+                inquiry: snap.inquiry,
+                history: plan?.history,
+                financialYearEnd,
+                dateRange,
+              }).map((r) => (
+                <SummaryRow key={r.label} label={r.label} value={r.value} />
+              ))}
+              {plan && (
                 <div className="flex items-center justify-between gap-4 bg-bg-light px-4 py-3.5 sm:px-5">
                   <dt className="text-[13px] font-bold text-text-primary">
                     {operationTeamSkip ? 'Payment' : isFree ? 'Total' : 'Amount paid'}
@@ -341,10 +345,8 @@ const PaymentSuccessPage: React.FC = () => {
                         : `${formatCurrency(plan.basePrice)} ${currency}`}
                   </dd>
                 </div>
-              </dl>
-            ) : (
-              <p className="px-5 py-4 text-[13px] text-text-tertiary">Plan details not available.</p>
-            )}
+              )}
+            </dl>
           </div>
 
           <div className="rounded-xl border border-border bg-white p-4 text-center sm:p-5">

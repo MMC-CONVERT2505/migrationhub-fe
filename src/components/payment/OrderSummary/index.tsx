@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { pairDisplayName } from '@/utils/platformName';
 import { formatCurrency, yesNo } from '@/utils/format';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
@@ -48,7 +49,7 @@ export const OrderSummary: React.FC = () => {
       </div>
 
       <dl>
-        <Row label="Migration pair" value={pair ? `${pair.src} → ${pair.dst}` : '—'} />
+        <Row label="Migration pair" value={pair ? pairDisplayName(pair) : '—'} />
         {plan && (
           <>
             <Row label="Plan" value={plan.name} />

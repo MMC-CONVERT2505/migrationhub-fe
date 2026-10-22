@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { pairDisplayName } from '@/utils/platformName';
 import { Navbar } from '@/components/layout/Navbar';
 import { CompactFooter } from '@/components/layout/Footer';
 import { FlowStepper } from '@/components/migration/FlowStepper';
@@ -38,21 +39,21 @@ const MigrationPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter flex flex-col">
-      <Navbar showBack />
+      <Navbar showBack hideAuthCta />
 
       {/* Migration header */}
       <div className="bg-bg-light border-b border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
           <p className="text-xs text-text-tertiary font-mono mb-2">
             MMC Convert <span className="text-text-secondary">/ Migration Pairs /</span>{' '}
-            {pair.src} → {pair.dst}
+            {pairDisplayName(pair)}
           </p>
 
           <div className="flex items-start gap-4">
             {/* Info */}
             <div>
               <h1 className="text-xl font-bold text-text-primary tracking-tight">
-                {pair.src} → {pair.dst} Migration
+                {pairDisplayName(pair)} Migration
               </h1>
               <p className="text-sm text-text-secondary mt-0.5">
                 Enterprise accounting data migration · Powered by MMC Convert

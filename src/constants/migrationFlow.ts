@@ -96,7 +96,7 @@ export function resolveFlowRedirect(page: 'plan' | 'details' | 'payment' | 'succ
   if (!inquiryForPair(pair, s.inquiry)) return pairCustomerPath(pair);
 
   const free = isFreeSelection(pair, plan);
-  if (page === 'payment') return free ? SUCCESS_PATH : null;
+  if (page === 'payment') return free || s.paymentSkipped ? SUCCESS_PATH : null;
 
   // success: a paid plan needs a payment (or the Operation Team skip) behind it.
   return !free && !s.paymentSkipped && !s.paymentId ? PAYMENT_PATH : null;

@@ -13,6 +13,8 @@ interface NavbarProps {
   variant?: 'default' | 'admin';
   /** Default variant only: show a Back button before the logo (used by the flow, tracker and history pages). */
   showBack?: boolean;
+  /** Hide Sign in / Get started for a signed-out visitor — set on the pair-flow pages, where they would break the order. */
+  hideAuthCta?: boolean;
 }
 
 /** Header links. Section links scroll on the home page; Contact Us is a route. */
@@ -127,7 +129,7 @@ const UserMenu: React.FC = () => {
 };
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = false }) => {
+export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = false, hideAuthCta: hideAuth = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -136,6 +138,8 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
   const { accessToken, user } = useSession(scope);
   const logout = useAuthStore((s) => s.logout);
   const isLoggedIn = !!accessToken;
+  // Once a pair is chosen the flow is the only way forward: Sign in / Get started would let a visitor wander off mid-order.
+  const hideAuthCta = hideAuth && !isLoggedIn;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -251,18 +255,11 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
 
           {/* CTA */}
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-secondary">
-              <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>81 migrations live</span>
-            </div>
-
             {/* Auth area (desktop) */}
             <div className={'hidden lg:flex items-center gap-1.5'}>
               {isLoggedIn ? (
                 <UserMenu />
-              ) : (
+              ) : hideAuthCta ? null : (
                 <>
                   <Link
                     to="/sign-in"
@@ -354,7 +351,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
                     Sign out
                   </button>
                 </>
-              ) : (
+              ) : hideAuthCta ? null : (
                 <>
                   <Link
                     to="/sign-in"

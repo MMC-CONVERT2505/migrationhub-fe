@@ -42,7 +42,7 @@ const PaymentPage: React.FC = () => {
   const [error, setError] = useState(failureReason ? (FAILURE_LABELS[failureReason] ?? 'Something went wrong with your payment.') : '');
 
   // Missing pair, plan or details (refresh, pasted URL): back to the earliest incomplete step.
-  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails });
+  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails, paymentSkipped });
   if (!selectedPair || !plan || redirect) return <Navigate to={redirect ?? '/'} replace />;
 
   const currency = planCurrency(plan);

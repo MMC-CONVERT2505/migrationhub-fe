@@ -125,3 +125,13 @@ describe('resolveFlowRedirect — earliest incomplete step', () => {
     expect(resolveFlowRedirect('success', state({ paymentSkipped: true }))).toBeNull();
   });
 });
+
+describe('Operation Team payment skip', () => {
+  it('payment page sends a skipped-payment order straight to Start migration', () => {
+    expect(resolveFlowRedirect('payment', state({ paymentSkipped: true }))).toBe('/payment/success');
+    expect(resolveFlowRedirect('payment', state({ paymentSkipped: false }))).toBeNull();
+  });
+  it('success page accepts a skipped-payment order without a payment id', () => {
+    expect(resolveFlowRedirect('success', state({ paymentSkipped: true, paymentId: null }))).toBeNull();
+  });
+});

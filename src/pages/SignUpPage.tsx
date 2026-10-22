@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { EXTERNAL_LINKS } from '@/constants/links';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { InputField } from '@/components/auth/InputField';
 import { PasswordField } from '@/components/auth/PasswordField';
@@ -78,7 +77,7 @@ function validate(form: SignUpFormData): AuthError[] {
   if (form.password !== form.confirmPassword)
     errs.push({ field: 'confirmPassword', message: 'Passwords do not match.' });
   if (!form.agreedToTerms)
-    errs.push({ field: 'agreedToTerms', message: 'You must accept the Terms of Service to continue.' });
+    errs.push({ field: 'agreedToTerms', message: 'You must accept the Terms of Use to continue.' });
   return errs;
 }
 
@@ -435,7 +434,7 @@ const SignUpPage: React.FC = () => {
             </div>
             <span className="text-sm text-text-secondary leading-relaxed">
               I agree to the{' '}
-              <a href={EXTERNAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
+              <a href="/termsofuse" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Terms of Use</a>
               {' '}and{' '}
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
             </span>

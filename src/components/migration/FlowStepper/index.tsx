@@ -1,21 +1,28 @@
 import React from 'react';
 import { cn } from '@/utils/format';
-import { FLOW_STEPS, flowStepNumber, type FlowPage } from '@/constants/migrationFlow';
+import { flowSteps, flowStepNumber, findSelectedPlan, isFreeSelection, type FlowPage } from '@/constants/migrationFlow';
+import { useAppStore } from '@/store/appStore';
 
 interface FlowStepperProps {
   page: FlowPage;
   className?: string;
+  /** Free flows skip payment, so the "Pay" stage is dropped. Defaults to what the selected pair + plan imply. */
+  free?: boolean;
 }
 
-/** 4-step Prepare → Pay → Connect → Migrate progress. A labelled ordered list, with the
+/** Prepare → Pay → Connect → Migrate progress (Prepare → Connect → Migrate when free). A labelled ordered list, with the
  *  current step flagged via aria-current so screen readers announce position and state. */
-export const FlowStepper: React.FC<FlowStepperProps> = ({ page, className }) => {
-  const current = flowStepNumber(page);
+export const FlowStepper: React.FC<FlowStepperProps> = ({ page, className, free }) => {
+  const selectedPair = useAppStore((s) => s.selectedPair);
+  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
+  const isFree = free ?? isFreeSelection(selectedPair, findSelectedPlan(selectedPair, selectedPlanId));
+  const steps = flowSteps(isFree);
+  const current = flowStepNumber(page, isFree);
 
   return (
     <nav aria-label="Migration progress" className={cn('w-full', className)}>
       <ol className="flex items-start">
-        {FLOW_STEPS.map((step, idx) => {
+        {steps.map((step, idx) => {
           const n = idx + 1;
           const done = n < current;
           const active = n === current;
@@ -54,7 +61,7 @@ export const FlowStepper: React.FC<FlowStepperProps> = ({ page, className }) => 
                   <span className="sr-only">{done ? ' (completed)' : active ? ' (current step)' : ' (upcoming)'}</span>
                 </span>
               </li>
-              {idx < FLOW_STEPS.length - 1 && (
+              {idx < steps.length - 1 && (
                 <li
                   role="presentation"
                   aria-hidden="true"

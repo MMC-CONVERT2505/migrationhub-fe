@@ -55,10 +55,12 @@ export const OrderSummary: React.FC = () => {
             <Row label="Historical data" value={plan.history} />
             {dateRange && <Row label="Date range" value={dateRange} />}
             {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}
-            <Row
-              label="Add-ons"
-              value={inquiryDetails?.addOnsConfirmed == null ? '—' : inquiryDetails.addOnsConfirmed ? `${yesNo(true)} — quoted separately` : 'None'}
-            />
+            {inquiryDetails?.addOnsConfirmed != null && (
+              <Row
+                label="Add-ons"
+                value={inquiryDetails?.addOnsConfirmed == null ? '—' : inquiryDetails.addOnsConfirmed ? `${yesNo(true)} — quoted separately` : 'None'}
+              />
+            )}
           </>
         )}
         <div className="flex items-center justify-between gap-4 bg-bg-light px-4 py-3.5 sm:px-5">

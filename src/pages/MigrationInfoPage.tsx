@@ -10,12 +10,12 @@ import { useAppStore } from '@/store/appStore';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
-import { TRANSACTION_PLANS, type TransactionPlan } from '@/constants/transactionPlans';
 import {
   PAYMENT_PATH, SUCCESS_PATH, findSelectedPlan, inquiryForPair, isFreeSelection, resolveFlowRedirect,
 } from '@/constants/migrationFlow';
 import { pairPlanPath } from '@/utils/platformMap';
 import { countryForDialCode } from '@/utils/phone';
+import { countryDisplayName } from '@/utils/country';
 
 // Declared once and reused in the restricted list below, so the two lists can never
 // spell the same country differently — the label is what gets stored on the inquiry.
@@ -195,8 +195,6 @@ const MigrationInfoPage: React.FC = () => {
   const existing = inquiryForPair(selectedPair, inquiryDetails);
   const canUpdate = !!(existing?.id && existing.editToken);
 
-  const isXeroToQbo =
-    selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'qbo';
   const isQboToMyob =
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
   // Distinct from isQboToMyob above: the same two platforms, the opposite direction.
@@ -246,7 +244,6 @@ const MigrationInfoPage: React.FC = () => {
         country,
         entityName: inquiry.entityName,
         financialYearEnd: inquiry.financialYearEnd ?? fyEndFor(country),
-        transactionPlan: (inquiry.transactionPlan ?? TRANSACTION_PLANS[0].value) as TransactionPlan,
         addOnsConfirmed: (inquiry.addOnsConfirmed ?? null) as YesNo,
         trackingInventory: (inquiry.trackingInventory ?? null) as YesNo,
       };
@@ -260,7 +257,6 @@ const MigrationInfoPage: React.FC = () => {
       country,
       entityName: '',
       financialYearEnd: fyEndFor(country),
-      transactionPlan: TRANSACTION_PLANS[0].value as TransactionPlan,
       addOnsConfirmed: null as YesNo,
       trackingInventory: null as YesNo,
     };
@@ -296,7 +292,8 @@ const MigrationInfoPage: React.FC = () => {
 
   const plan = findSelectedPlan(selectedPair, selectedPlanId);
   // A free selection skips the Payment page and goes straight to Start Migration.
-  const nextPath = isFreeSelection(selectedPair, plan) ? SUCCESS_PATH : PAYMENT_PATH;
+  const isFree = isFreeSelection(selectedPair, plan);
+  const nextPath = isFree ? SUCCESS_PATH : PAYMENT_PATH;
 
   if (editBlocked) {
     return (
@@ -356,7 +353,8 @@ const MigrationInfoPage: React.FC = () => {
     if (!form.phone.trim()) e.push({ field: 'phone', message: 'Phone number is required.' });
     else if (!/^\+?[0-9\s()-]{6,20}$/.test(form.phone.trim())) e.push({ field: 'phone', message: 'Enter a valid phone number.' });
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
-    if (form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
+    // Add-ons are quoted on top of a paid plan; a free migration has nothing to quote, so it isn't asked.
+    if (!isFree && form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
     if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
   };
@@ -381,8 +379,7 @@ const MigrationInfoPage: React.FC = () => {
     setSubmitting(true);
     // Dial code + national number, still one `phone` string on the wire.
     const phone = `${form.dialCode}${toNationalNumber(form.phone)}`;
-    const transactionPlan = isXeroToQbo ? form.transactionPlan : undefined;
-    const addOnsConfirmed = form.addOnsConfirmed ?? undefined;
+    const addOnsConfirmed = isFree ? undefined : (form.addOnsConfirmed ?? undefined);
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
 
     if (canUpdate && existing?.id && existing.editToken) {
@@ -394,7 +391,6 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          transactionPlan,
           addOnsConfirmed,
           trackingInventory,
         });
@@ -407,7 +403,6 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          transactionPlan,
           addOnsConfirmed,
           trackingInventory,
         });
@@ -433,7 +428,6 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        ...(transactionPlan ? { transactionPlan } : {}),
         ...(addOnsConfirmed !== undefined ? { addOnsConfirmed } : {}),
         ...(trackingInventory !== undefined ? { trackingInventory } : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
@@ -447,7 +441,6 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        transactionPlan,
         addOnsConfirmed,
         trackingInventory,
         editToken: created.editToken,
@@ -531,7 +524,7 @@ const MigrationInfoPage: React.FC = () => {
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="country" className="text-xs font-medium text-text-secondary">Country <span className="text-red-500">*</span></label>
                 <select id="country" value={form.country} onChange={(e) => setCountry(e.target.value)} className={inputCls}>
-                  {countries.map((c) => <option key={c}>{c}</option>)}
+                  {countries.map((c) => <option key={c} value={c}>{countryDisplayName(c)}</option>)}
                 </select>
               </div>
             </div>
@@ -542,24 +535,6 @@ const MigrationInfoPage: React.FC = () => {
                 value={form.entityName} onChange={(e) => set('entityName', e.target.value)} onBlur={() => validateOnBlur('entityName')}
                 placeholder="Acme Pty Ltd" maxLength={150} error={fieldError('entityName')}
               />
-              {isXeroToQbo && (
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="transactionPlan" className="text-xs font-medium text-text-secondary">Type of Data Migration <span className="text-red-500">*</span></label>
-                  <select
-                    id="transactionPlan"
-                    value={form.transactionPlan}
-                    onChange={(e) => set('transactionPlan', e.target.value as TransactionPlan)}
-                    className={inputCls}
-                  >
-                    {TRANSACTION_PLANS.map((plan) => (
-                      <option key={plan.value} value={plan.value}>{plan.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="fye" className="text-xs font-medium text-text-secondary">Financial Year End Date <span className="text-red-500">*</span></label>
                 <select id="fye" value={form.financialYearEnd} onChange={(e) => set('financialYearEnd', e.target.value)} className={inputCls}>
@@ -568,16 +543,18 @@ const MigrationInfoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Add-ons confirmation — asked on every pair, so the quote reflects what
-                the customer actually wants before they reach payment. */}
-            <YesNoField
-              name="addOnsConfirmed"
-              legend="Add-ons Confirmation"
-              hint="Add-ons are quoted on top of your migration plan. Do you want any add-ons included in this migration?"
-              value={form.addOnsConfirmed}
-              onChange={(v) => set('addOnsConfirmed', v)}
-              error={fieldError('addOnsConfirmed')}
-            />
+            {/* Add-ons confirmation — asked on paid migrations only, so the quote reflects what
+                the customer wants before payment. A free migration never reaches payment. */}
+            {!isFree && (
+              <YesNoField
+                name="addOnsConfirmed"
+                legend="Add-ons Confirmation"
+                hint="Add-ons are quoted on top of your migration plan. Do you want any add-ons included in this migration?"
+                value={form.addOnsConfirmed}
+                onChange={(v) => set('addOnsConfirmed', v)}
+                error={fieldError('addOnsConfirmed')}
+              />
+            )}
 
             {asksTrackingInventory && (
               <YesNoField
@@ -610,7 +587,7 @@ const MigrationInfoPage: React.FC = () => {
 
         {/* FAQ — right column on desktop, below the form on mobile (DOM order) */}
         <aside className="min-w-0 lg:sticky lg:top-6">
-          <FaqAccordion pairId={selectedPair.id} />
+          <FaqAccordion pairId={selectedPair.id} free={isFree} />
         </aside>
       </div>
     </FlowLayout>

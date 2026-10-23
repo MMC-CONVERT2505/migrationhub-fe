@@ -15,6 +15,7 @@ export const useAppStore = create<AppState>()(
       migrationComplete: false,
       pendingMigration: null,
       selectedPlanId: null,
+      selectedYears: null,
       inquiryDetails: null,
       entryLocked: false,
 
@@ -49,12 +50,16 @@ export const useAppStore = create<AppState>()(
           migrationComplete: false,
           pendingMigration: null,
           selectedPlanId: null,
+          selectedYears: null,
           entryLocked: false,
           // A finished flow's inquiry must not be attached to the next pair's checkout.
           inquiryDetails: null,
         }),
 
-      setSelectedPlanId: (planId: string | null) => set({ selectedPlanId: planId }),
+      // Choosing a different plan drops any extended-years choice made for the previous one.
+      setSelectedPlanId: (planId: string | null) =>
+        set((s) => (s.selectedPlanId === planId ? {} : { selectedPlanId: planId, selectedYears: null })),
+      setSelectedYears: (years: number | null) => set({ selectedYears: years }),
 
       setPendingMigration: (data: PendingMigration | null) => {
         if (data) {
@@ -74,6 +79,7 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         selectedPair: s.selectedPair,
         selectedPlanId: s.selectedPlanId,
+        selectedYears: s.selectedYears,
         inquiryDetails: s.inquiryDetails,
         entryLocked: s.entryLocked,
       }),

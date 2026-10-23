@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { pairDisplayName } from '@/utils/platformName';
+import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
+import { historyLabel } from '@/utils/historyYears';
 import { formatCurrency, yesNo } from '@/utils/format';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { useAppStore } from '@/store/appStore';
-import { findSelectedPlan, isFreeSelection, planCurrency } from '@/constants/migrationFlow';
+import { planCurrency } from '@/constants/migrationFlow';
 import { pairCustomerPath, pairPlanPath } from '@/utils/platformMap';
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -18,21 +20,19 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 /** Order summary only — no personal details. Read straight from the flow state, so changing
  *  the plan or details and coming back always shows the recalculated figures. */
 export const OrderSummary: React.FC = () => {
-  const pair = useAppStore((s) => s.selectedPair);
-  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
-
-  const plan = findSelectedPlan(pair, selectedPlanId);
-  const isFree = isFreeSelection(pair, plan);
+  // Plan, years and amount come from one place so this summary can't disagree with the Pay button.
+  const { pair, plan, years, extendedYears, extension, total: amountDue, isFree } = useCheckoutSelection();
   // Operation Team: the plan is paid, but nothing is due at checkout.
   const paymentSkipped = usePaymentSkipped(pair?.isFree ?? false, plan);
   const currency = planCurrency(plan);
+  const extraYears = extendedYears !== null && plan?.years != null ? extendedYears - plan.years : 0;
 
   const dateRange = plan
-    ? formatFinancialRange(calculateMigrationPeriod(inquiryDetails?.financialYearEnd, plan.years, plan.isInception))
+    ? formatFinancialRange(calculateMigrationPeriod(inquiryDetails?.financialYearEnd, years ?? plan.years, plan.isInception))
     : null;
 
-  const total = isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(plan?.basePrice ?? 0)} ${currency}`;
+  const total = isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(amountDue)} ${currency}`;
 
   return (
     <section aria-labelledby="order-summary-title" className="overflow-hidden rounded-xl border border-border bg-white">
@@ -53,7 +53,10 @@ export const OrderSummary: React.FC = () => {
         {plan && (
           <>
             <Row label="Plan" value={plan.name} />
-            <Row label="Historical data" value={plan.history} />
+            <Row label="Historical data" value={extendedYears ? historyLabel(extendedYears) : plan.history} />
+            {extraYears > 0 && !paymentSkipped && extension > 0 && (
+              <Row label="Extra historical years" value={`${extraYears} × ${formatCurrency(plan.extraYearPrice ?? 0)} = ${formatCurrency(extension)} ${currency}`} />
+            )}
             {dateRange && <Row label="Date range" value={dateRange} />}
             {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}
             {inquiryDetails?.addOnsConfirmed != null && (

@@ -142,6 +142,7 @@ export function apiPlanToUiPlan(plan: ApiPlan): Plan {
     isInception: plan.isInception,
     support:   plan.support,
     basePrice: Number(plan.basePrice),
+    extraYearPrice: plan.extraYearPrice == null ? null : Number(plan.extraYearPrice),
     currency:  plan.currency || undefined,
     features:  plan.features,
     popular:   plan.popular,

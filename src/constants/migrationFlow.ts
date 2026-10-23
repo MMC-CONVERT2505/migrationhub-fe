@@ -46,8 +46,8 @@ export const planCurrency = (plan: Pick<Plan, 'currency'> | null | undefined): s
   plan?.currency || DEFAULT_CURRENCY;
 
 /** Free when the pair is marketed free or the chosen plan costs nothing. */
-export const isFreeSelection = (pair: Pair | null, plan: Plan | null): boolean =>
-  (pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0);
+export const isFreeSelection = (pair: Pair | null, plan: Plan | null, extensionCost = 0): boolean =>
+  ((pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0)) && extensionCost === 0;
 
 /** What a free pair's plan includes — shown instead of the plan's own name, price and feature list. */
 export const FREE_PAIR_BENEFITS = ['All data categories', 'Email + Phone support', 'Quality Analysis Report'] as const;
@@ -77,6 +77,8 @@ export interface FlowState {
   paymentSkipped?: boolean;
   /** Razorpay paymentId present in the callback URL (success page only). */
   paymentId?: string | null;
+  /** What the customer's extra historical years cost (0 when none): a free plan stops being free if > 0. */
+  extensionCost?: number;
 }
 
 /**
@@ -95,7 +97,7 @@ export function resolveFlowRedirect(page: 'plan' | 'details' | 'payment' | 'succ
 
   if (!inquiryForPair(pair, s.inquiry)) return pairCustomerPath(pair);
 
-  const free = isFreeSelection(pair, plan);
+  const free = isFreeSelection(pair, plan, s.extensionCost ?? 0);
   if (page === 'payment') return free || s.paymentSkipped ? SUCCESS_PATH : null;
 
   // success: a paid plan needs a payment (or the Operation Team skip) behind it.

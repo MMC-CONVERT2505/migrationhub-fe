@@ -54,6 +54,7 @@ const EMPTY: CreatePlanRequest = {
   currency: 'USD',
   history: '',
   years: 1,
+  extraYearPrice: null,
   isInception: false,
   support: '',
   features: [],
@@ -115,6 +116,8 @@ const PlansPage: React.FC = () => {
     ...form,
     // Unlimited plans don't carry a year count — let the backend null it out.
     years: form.isInception ? undefined : form.years,
+    // null clears it (customers can't extend); unlimited plans have no years to extend.
+    extraYearPrice: form.isInception ? null : (form.extraYearPrice ?? null),
     features: featuresText.split('\n').map((s) => s.trim()).filter(Boolean),
   });
 
@@ -162,6 +165,7 @@ const PlansPage: React.FC = () => {
       currency:  plan.currency,
       history:   plan.history,
       years:     plan.years ?? 1,
+      extraYearPrice: plan.extraYearPrice == null ? null : Number(plan.extraYearPrice),
       isInception: plan.isInception,
       support:   plan.support,
       features:  plan.features,
@@ -307,6 +311,22 @@ const PlansPage: React.FC = () => {
         </Field>
       </div>
 
+      <Field label="Price per extra year">
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          className={`${inputCls} disabled:bg-bg-light disabled:text-text-tertiary`}
+          value={form.isInception ? '' : (form.extraYearPrice ?? '')}
+          onChange={(e) => setF('extraYearPrice', e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+          placeholder={form.isInception ? 'Not applicable' : 'Leave empty = customers cannot extend'}
+          disabled={form.isInception}
+        />
+        <p className="text-xs text-text-secondary mt-0.5">
+          Charged for each financial year a customer adds beyond this plan&apos;s years (max 15 in total). Empty = not offered; 0 = extra years are free. The Operation Team can always extend, at no charge.
+        </p>
+      </Field>
+
       <Field label="Features (one per line)" required>
         <textarea
           className={`${inputCls} resize-none`}
@@ -439,6 +459,12 @@ const PlansPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span>History</span>
                   <span className="font-semibold text-text-primary">{plan.history}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Extra year</span>
+                  <span className="font-semibold text-text-primary">
+                    {plan.extraYearPrice == null || plan.isInception ? 'Not offered' : `${plan.currency} ${Number(plan.extraYearPrice).toLocaleString()} / year`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Support</span>

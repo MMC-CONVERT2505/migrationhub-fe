@@ -6,10 +6,11 @@ import { OrderSummary } from '@/components/payment/OrderSummary';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
+import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 import { paymentsService } from '@/api/payments';
 import { ApiError } from '@/api/client';
 import { formatCurrencyCompact } from '@/utils/format';
-import { findSelectedPlan, planCurrency, resolveFlowRedirect, SUCCESS_PATH } from '@/constants/migrationFlow';
+import { planCurrency, resolveFlowRedirect, SUCCESS_PATH } from '@/constants/migrationFlow';
 
 /** Why the customer is back here after the payment provider sent them away (see /payment/failed). */
 const FAILURE_LABELS: Record<string, string> = {
@@ -29,7 +30,8 @@ const PaymentPage: React.FC = () => {
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
   const setPendingMigration = useAppStore((s) => s.setPendingMigration);
 
-  const plan = findSelectedPlan(selectedPair, selectedPlanId);
+  // `total` is the plan price plus any extra years the customer chose; the server recomputes it.
+  const { plan, total, extension, extendedYears } = useCheckoutSelection();
   const paymentSkipped = usePaymentSkipped(selectedPair?.isFree ?? false, plan);
 
   const [processing, setProcessing] = useState(false);
@@ -42,11 +44,11 @@ const PaymentPage: React.FC = () => {
   const [error, setError] = useState(failureReason ? (FAILURE_LABELS[failureReason] ?? 'Something went wrong with your payment.') : '');
 
   // Missing pair, plan or details (refresh, pasted URL): back to the earliest incomplete step.
-  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails, paymentSkipped });
+  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails, paymentSkipped, extensionCost: extension });
   if (!selectedPair || !plan || redirect) return <Navigate to={redirect ?? '/'} replace />;
 
   const currency = planCurrency(plan);
-  const amount = Math.round(parseFloat(String(plan.basePrice)) * 100);
+  const amount = Math.round(total * 100);
 
   const handlePay = async () => {
     if (inFlight.current) return;
@@ -64,6 +66,7 @@ const PaymentPage: React.FC = () => {
       migrationPairId,
       planId,
       ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
+      ...(extendedYears ? { years: extendedYears } : {}),
     };
 
     // Operation Team: paid plan, nothing due — same Start migration step a free one takes.
@@ -78,8 +81,9 @@ const PaymentPage: React.FC = () => {
         amount,
         migrationPairId,
         planId,
+        ...(extendedYears ? { years: extendedYears } : {}),
         currency: 'USD',
-        description: `${plan.name} Migration Plan`,
+        description: `${plan.name} Migration Plan${extendedYears ? ` (${extendedYears} financial years)` : ''}`,
         name: inquiryDetails?.name,
         email: inquiryDetails?.email,
         company: inquiryDetails?.entityName,
@@ -98,7 +102,7 @@ const PaymentPage: React.FC = () => {
 
   const ctaLabel = paymentSkipped
     ? 'Start migration – payment skipped'
-    : `Pay ${formatCurrencyCompact(plan.basePrice)} ${currency} – Complete Payment`;
+    : `Pay ${formatCurrencyCompact(total)} ${currency} – Complete Payment`;
 
   return (
     <FlowLayout page="payment" widthClass="max-w-xl">

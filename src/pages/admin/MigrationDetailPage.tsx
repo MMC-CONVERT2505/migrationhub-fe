@@ -352,7 +352,9 @@ const MigrationDetailPage: React.FC = () => {
               <Row
                 label="Plan"
                 value={
-                  m.plan?.name ??
+                  (m.plan?.name
+                    ? `${m.plan.name}${m.yearsOverride ? ` · extended to ${m.yearsOverride} financial years` : ''}`
+                    : null) ??
                   (m.orderSource === 'APP_STORE'
                     ? m.externalDetails?.isInception
                       ? 'Not matched · inception to date'

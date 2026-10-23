@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { chargeSummary, historyText } from '@/utils/migrationCharge';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
@@ -48,8 +49,7 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
 }) => {
   const navigate = useNavigate();
   const cfg      = STATUS_CONFIG[migration.status] ?? STATUS_CONFIG.DRAFT;
-  const price    = Number(migration.plan.basePrice);
-  const total    = price * 1.1;
+  const charge   = chargeSummary(migration);
   const isActive = migration.status === 'RUNNING' || migration.status === 'QUEUED';
   const isFailed = migration.status === 'FAILED';
 
@@ -132,14 +132,12 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
           <div className="w-px h-8 bg-border" />
           <div>
             <p className="text-xs text-text-tertiary">History</p>
-            <p className="text-sm font-medium text-text-secondary">{migration.plan.history}</p>
+            <p className="text-sm font-medium text-text-secondary">{historyText(migration)}</p>
           </div>
           <div className="w-px h-8 bg-border" />
           <div>
-            <p className="text-xs text-text-tertiary">Total paid</p>
-            <p className="text-sm font-semibold text-text-primary font-mono">
-              {migration.plan.currency} {Math.round(total)}
-            </p>
+            <p className="text-xs text-text-tertiary">{charge.label}</p>
+            <p className="text-sm font-semibold text-text-primary font-mono">{charge.value}</p>
           </div>
         </div>
 

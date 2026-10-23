@@ -11,6 +11,8 @@ import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { formatCurrency } from '@/utils/format';
 import { readySummaryRows } from '@/utils/readySummary';
+import { effectiveYears, extensionCost, historyLabel } from '@/utils/historyYears';
+import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
 import { findSelectedPlan, isFreeSelection, planCurrency, resolveFlowRedirect } from '@/constants/migrationFlow';
 import type { PendingMigration } from '@/types';
@@ -96,14 +98,22 @@ const PaymentSuccessPage: React.FC = () => {
       planId: s.selectedPlanId,
       plan: findSelectedPlan(s.selectedPair, s.selectedPlanId),
       inquiry: s.inquiryDetails,
+      selectedYears: s.selectedYears,
     };
   });
   const { pair, plan } = snap;
+  const { isOperationTeam } = useOperationTeamMember();
+  // Snapshot localStorage pending-migration once too — it survives the Razorpay redirect.
+  const [pending] = useState(readPendingMigration);
+  // Extra historical years chosen on the plan page (null = the plan's own coverage). What the customer
+  // paid for rides on the pending migration, so it survives the payment redirect.
+  const planYears = plan?.years ?? null;
+  const years = effectiveYears(plan, (pending?.planId === plan?.id ? pending?.years : undefined) ?? snap.selectedYears, isOperationTeam);
+  const extendedYears = years != null && planYears != null && years > planYears ? years : null;
+  const extension = extensionCost(plan, years, isOperationTeam);
   // Financial-year-end is persisted in the store (sessionStorage) so it survives
   // the Razorpay redirect; snapshot it once for the page lifecycle.
   const financialYearEnd = snap.inquiry?.financialYearEnd ?? null;
-  // Snapshot localStorage pending-migration once too — it survives the Razorpay redirect.
-  const [pending] = useState(readPendingMigration);
 
   // Paid: prefer localStorage (survives the Razorpay redirect).
   // Free / $0-plan: fall back to the snapshotted pair/plan.
@@ -111,14 +121,14 @@ const PaymentSuccessPage: React.FC = () => {
   const planId = pending?.planId ?? plan?.id ?? undefined;
   const resolvedInquiryId = pending?.inquiryId ?? snap.inquiry?.id ?? undefined;
 
-  const isFree = isFreeSelection(pair, plan);
+  const isFree = isFreeSelection(pair, plan, extension);
   // Operation Team on a paid plan, arriving without a payment: nothing was paid.
   const operationTeamSkip = usePaymentSkipped(pair?.isFree ?? false, plan) && !paymentId;
   const noPayment = isFree || operationTeamSkip;
   const currency = planCurrency(plan);
 
   const dateRange = plan
-    ? formatFinancialRange(calculateMigrationPeriod(financialYearEnd, plan.years, plan.isInception))
+    ? formatFinancialRange(calculateMigrationPeriod(financialYearEnd, extendedYears ?? plan.years, plan.isInception))
     : null;
 
   const needsVerification = !existingMigrationId && Boolean(paymentId) && paymentStatus !== 'success';
@@ -164,6 +174,7 @@ const PaymentSuccessPage: React.FC = () => {
         ...(migPairId ? { migrationPairId: migPairId } : {}),
         ...(planId ? { planId } : {}),
         ...(resolvedInquiryId ? { inquiryId: resolvedInquiryId } : {}),
+        ...(extendedYears ? { years: extendedYears } : {}),
       });
 
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
@@ -202,7 +213,7 @@ const PaymentSuccessPage: React.FC = () => {
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [paymentId, migPairId, planId, resolvedInquiryId, pair, resetMigration, navigate]);
+  }, [paymentId, migPairId, planId, resolvedInquiryId, extendedYears, pair, resetMigration, navigate]);
 
   // ── Verifying: re-check a still-settling payment until it confirms or we give up ──
   useEffect(() => {
@@ -240,7 +251,7 @@ const PaymentSuccessPage: React.FC = () => {
   // Nothing confirmed and nothing to confirm: back to the earliest incomplete step.
   if (!existingMigrationId && !paymentId) {
     const redirect = resolveFlowRedirect('success', {
-      pair, planId: snap.planId, inquiry: snap.inquiry, paymentSkipped: operationTeamSkip, paymentId,
+      pair, planId: snap.planId, inquiry: snap.inquiry, paymentSkipped: operationTeamSkip, paymentId, extensionCost: extension,
     });
     if (redirect) return <Navigate to={redirect} replace />;
   }
@@ -326,7 +337,7 @@ const PaymentSuccessPage: React.FC = () => {
             <dl>
               {readySummaryRows({
                 inquiry: snap.inquiry,
-                history: plan?.history,
+                history: extendedYears ? historyLabel(extendedYears) : plan?.history,
                 financialYearEnd,
                 dateRange,
               }).map((r) => (
@@ -342,7 +353,7 @@ const PaymentSuccessPage: React.FC = () => {
                       ? 'Skipped (Operation Team)'
                       : isFree
                         ? 'Free'
-                        : `${formatCurrency(plan.basePrice)} ${currency}`}
+                        : `${formatCurrency(Number(plan.basePrice) + extension)} ${currency}`}
                   </dd>
                 </div>
               )}

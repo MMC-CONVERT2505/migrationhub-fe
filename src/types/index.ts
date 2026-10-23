@@ -34,6 +34,8 @@ export interface Plan {
   isInception?: boolean;
   support: string;
   basePrice: number;
+  /** Price per extra financial year; absent/null = customers cannot extend this plan. */
+  extraYearPrice?: number | null;
   /** ISO currency code the plan is priced in; absent falls back to DEFAULT_CURRENCY. */
   currency?: string;
   features: string[];
@@ -87,6 +89,8 @@ export interface PendingMigration {
   planId?: string;
   /** Carried across the Razorpay redirect so the created migration links to its inquiry. */
   inquiryId?: number;
+  /** Total years the customer paid for when extending the plan's history. */
+  years?: number;
 }
 
 export interface InquiryDetails {
@@ -117,6 +121,8 @@ export interface AppState {
   /** Set before Razorpay redirect; also written to localStorage for post-redirect survival. */
   pendingMigration: PendingMigration | null;
   selectedPlanId: string | null;
+  /** Operation Team only: total financial years chosen beyond the plan's coverage. */
+  selectedYears: number | null;
   inquiryDetails: InquiryDetails | null;
   /** True when the user arrived via an external deep link — the home page is then locked. */
   entryLocked: boolean;
@@ -132,6 +138,7 @@ export interface AppState {
   resetMigration: () => void;
   setPendingMigration: (data: PendingMigration | null) => void;
   setSelectedPlanId: (planId: string | null) => void;
+  setSelectedYears: (years: number | null) => void;
   setInquiryDetails: (data: InquiryDetails | null) => void;
 }
 

@@ -6,7 +6,7 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   /** Wider dialog for forms. */
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
   /** Ignore Escape / backdrop clicks (e.g. while a request is in flight). */
   locked?: boolean;
 }
@@ -47,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({ title, onClose, children, size = '
         tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`relative bg-white rounded-2xl shadow-2xl w-full ${size === 'lg' ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] overflow-y-auto focus:outline-none`}
+        className={`relative bg-white rounded-2xl shadow-2xl w-full ${size === 'xl' ? 'max-w-3xl' : size === 'lg' ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] overflow-y-auto focus:outline-none`}
       >
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 id={titleId} className="text-base font-semibold text-text-primary">{title}</h2>

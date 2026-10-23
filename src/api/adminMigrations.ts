@@ -80,6 +80,8 @@ export interface AdminMigrationListItem {
   /** What an App Store tool said it sold (years, matched plan…); null for hub orders. */
   externalDetails?: { years?: number | null; isInception?: boolean } | null;
   plan: { name: string } | null;
+  /** Total years when the order extends the plan's history (customer-paid or Operation Team); null = the plan's own. */
+  yearsOverride?: number | null;
   /** Karbon mirror state — null when the integration has never run for this row. */
   karbonWorkItem: KarbonWorkItemSummary | null;
 }

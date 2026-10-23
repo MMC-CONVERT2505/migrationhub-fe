@@ -1,8 +1,7 @@
 import React from 'react';
 import { cn } from '@/utils/format';
-import { flowSteps, flowStepNumber, findSelectedPlan, isFreeSelection, type FlowPage } from '@/constants/migrationFlow';
-import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
-import { useAppStore } from '@/store/appStore';
+import { flowSteps, flowStepNumber, type FlowPage } from '@/constants/migrationFlow';
+import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 
 interface FlowStepperProps {
   page: FlowPage;
@@ -14,12 +13,9 @@ interface FlowStepperProps {
 /** Prepare → Pay → Connect → Migrate progress (Prepare → Connect → Migrate when free). A labelled ordered list, with the
  *  current step flagged via aria-current so screen readers announce position and state. */
 export const FlowStepper: React.FC<FlowStepperProps> = ({ page, className, free }) => {
-  const selectedPair = useAppStore((s) => s.selectedPair);
-  const selectedPlanId = useAppStore((s) => s.selectedPlanId);
-  const plan = findSelectedPlan(selectedPair, selectedPlanId);
-  // Operation Team members are not charged either, so their stepper has no Pay stage.
-  const { isOperationTeam } = useOperationTeamMember();
-  const isFree = free ?? (isFreeSelection(selectedPair, plan) || isOperationTeam);
+  // Free covers a free plan whose extra years (if any) cost nothing; Operation Team members are never charged.
+  const checkout = useCheckoutSelection();
+  const isFree = free ?? (checkout.isFree || checkout.isOperationTeam);
   const steps = flowSteps(isFree);
   const current = flowStepNumber(page, isFree);
 

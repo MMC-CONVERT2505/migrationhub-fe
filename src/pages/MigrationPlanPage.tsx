@@ -8,6 +8,10 @@ import { useAppStore } from '@/store/appStore';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { apiPairToUiPair, extractList, findPairBySlug, pairCustomerPath, pairSlug } from '@/utils/platformMap';
 import { findSelectedPlan, planRequired, usesFreePairBenefits } from '@/constants/migrationFlow';
+import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
+import { canExtendPlan, effectiveYears, extensionCost, historyLabel, yearOptions } from '@/utils/historyYears';
+import { planCurrency } from '@/constants/migrationFlow';
+import { formatCurrency } from '@/utils/format';
 import type { MigrationPairEntity } from '@/types/api';
 
 // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
@@ -25,6 +29,9 @@ const MigrationPlanPage: React.FC = () => {
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
   const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
   const setSelectedPair = useAppStore((s) => s.setSelectedPair);
+  const selectedYears = useAppStore((s) => s.selectedYears);
+  const setSelectedYears = useAppStore((s) => s.setSelectedYears);
+  const { isOperationTeam } = useOperationTeamMember();
 
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState('');
@@ -58,6 +65,11 @@ const MigrationPlanPage: React.FC = () => {
   if (!selectedPair) return <Navigate to="/" replace />;
 
   const needsPlan = planRequired(selectedPair);
+  // Operation Team only: migrate more historical years than the plan covers.
+  const canExtend = canExtendPlan(selectedPlan, isOperationTeam);
+  const years = effectiveYears(selectedPlan, selectedYears, isOperationTeam);
+  const extra = extensionCost(selectedPlan, years, isOperationTeam);
+  const perYear = selectedPlan?.extraYearPrice ?? null;
 
   // Re-fetch the public listing for this pair — the same call PairSlugGate makes.
   const retry = async () => {
@@ -122,9 +134,44 @@ const MigrationPlanPage: React.FC = () => {
                 selected={selectedPlan?.id === plan.id}
                 onSelect={setSelectedPlanId}
                 freePairBenefits={usesFreePairBenefits(selectedPair, plan)}
+                historyText={selectedPlan?.id === plan.id && years != null && years !== plan.years ? historyLabel(years) : undefined}
               />
             ))}
           </fieldset>
+        )}
+
+        {!noPlans && canExtend && selectedPlan && years != null && (
+          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+            <label htmlFor="history-years" className="text-sm font-semibold text-text-primary">Historical years</label>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              {isOperationTeam
+                ? 'Operation Team: migrate more history than the plan includes (no extra charge).'
+                : perYear === 0
+                  ? 'Need more history than the plan includes? Extra years are free.'
+                  : `Need more history than the plan includes? Add extra years for ${formatCurrency(perYear ?? 0)} ${planCurrency(selectedPlan)} each.`}
+            </p>
+            <select
+              id="history-years"
+              value={years}
+              onChange={(e) => setSelectedYears(Number(e.target.value))}
+              className="mt-2 w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              {yearOptions(selectedPlan).map((y) => (
+                <option key={y} value={y}>
+                  {historyLabel(y)}
+                  {y === selectedPlan.years ? ' (plan)' : !isOperationTeam && perYear ? ` (+${formatCurrency(perYear * (y - (selectedPlan.years ?? y)))})` : ''}
+                </option>
+              ))}
+            </select>
+            {!isOperationTeam && extra > 0 && (
+              <p className="mt-2 text-sm font-semibold text-text-primary" aria-live="polite">
+                Total: {formatCurrency(Number(selectedPlan.basePrice) + extra)} {planCurrency(selectedPlan)}
+                <span className="ml-1 font-normal text-text-secondary">
+                  ({Number(selectedPlan.basePrice) > 0 ? `plan ${formatCurrency(Number(selectedPlan.basePrice))} + ` : ''}{(years ?? 0) - (selectedPlan.years ?? 0)} extra year{(years ?? 0) - (selectedPlan.years ?? 0) === 1 ? '' : 's'})
+                </span>
+              </p>
+            )}
+          </div>
         )}
 
         {!noPlans && (

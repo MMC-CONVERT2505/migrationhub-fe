@@ -6,10 +6,13 @@ import { migrationPairsService } from '@/api/migrationPairs';
 import { ApiError } from '@/api/client';
 import { extractList } from '@/utils/platformMap';
 import { RichTextEditor, isRichTextBlank } from '@/components/admin/RichTextEditor';
+import { GuideTreeEditor } from '@/components/admin/GuideTreeEditor';
+import { firstProblem, newNode } from '@/utils/guideTree';
 import type {
   CreateFaqRequest,
   FaqEntity,
   FaqStatus,
+  GuideNode,
   ListMigrationPairsQuery,
   MigrationPairEntity,
 } from '@/types/api';
@@ -44,6 +47,10 @@ interface QaDraft {
   uid: string;
   question: string;
   answer: string;
+  /** The module-list tree. Kept while the admin flips back to a text answer, so a stray click never loses it. */
+  nodes: GuideNode[] | null;
+  /** true = this question is answered with the module list, false = with the text above. */
+  asModules: boolean;
 }
 
 interface FaqFormState {
@@ -54,7 +61,7 @@ interface FaqFormState {
 }
 
 const newUid = () => Math.random().toString(36).slice(2, 10);
-const emptyDraft = (): QaDraft => ({ uid: newUid(), question: '', answer: '' });
+const emptyDraft = (): QaDraft => ({ uid: newUid(), question: '', answer: '', nodes: null, asModules: false });
 const emptyForm = (): FaqFormState => ({
   migrationPairId: '',
   description: '',
@@ -107,7 +114,7 @@ const QaList: React.FC<{
     <div className="space-y-2">
       {items.map((item, index) => {
         const open = openUids.has(item.uid);
-        const blank = isRichTextBlank(item.answer);
+        const blank = item.asModules ? firstProblem(item.nodes ?? []) !== null : isRichTextBlank(item.answer);
 
         return (
           <div
@@ -185,12 +192,38 @@ const QaList: React.FC<{
                   />
                 </Field>
 
-                <Field label="Answer" required hint="Formatting and images are allowed; anything unsafe is stripped when saved.">
-                  <RichTextEditor
-                    value={item.answer}
-                    onChange={(html) => patch(item.uid, { answer: html })}
-                  />
-                </Field>
+                <div className="flex items-center gap-1 text-xs" role="group" aria-label="Answer type">
+                  <span className="mr-1 font-medium text-text-secondary">Answer type:</span>
+                  {([['text', 'Text'], ['modules', 'Module list (with ⓘ pop-ups)']] as const).map(([kind, label]) => {
+                    const active = (kind === 'modules') === item.asModules;
+                    return (
+                      <button
+                        key={kind}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          patch(item.uid, kind === 'modules' ? { asModules: true, nodes: item.nodes ?? [newNode()] } : { asModules: false })
+                        }
+                        className={`rounded-md border px-2 py-1 font-medium ${active ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-border text-text-secondary hover:bg-bg-light'}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {item.asModules ? (
+                  <Field label="Module list" required hint="Shown as a bulleted list with ⓘ pop-ups. Switching to Text keeps this list until you save, but only the chosen type is saved.">
+                    <GuideTreeEditor value={item.nodes ?? []} onChange={(nodes) => patch(item.uid, { nodes })} />
+                  </Field>
+                ) : (
+                  <Field label="Answer" required hint="Formatting and images are allowed; anything unsafe is stripped when saved.">
+                    <RichTextEditor
+                      value={item.answer}
+                      onChange={(html) => patch(item.uid, { answer: html })}
+                    />
+                  </Field>
+                )}
               </div>
             )}
           </div>
@@ -253,6 +286,8 @@ const FaqFormPage: React.FC = () => {
               uid: item.id,
               question: item.question,
               answer: item.answer,
+              nodes: item.nodes?.length ? item.nodes : null,
+              asModules: !!item.nodes?.length,
             }))
           : [emptyDraft()];
 
@@ -320,7 +355,8 @@ const FaqFormPage: React.FC = () => {
 
     const items = form.items.map((item) => ({
       question: item.question.trim(),
-      answer: item.answer,
+      answer: item.asModules ? '' : item.answer,
+      nodes: item.asModules ? (item.nodes ?? []) : null,
     }));
 
     if (!items.length) {
@@ -330,7 +366,7 @@ const FaqFormPage: React.FC = () => {
 
     const seen = new Set<string>();
     for (let index = 0; index < items.length; index++) {
-      const { question, answer } = items[index];
+      const { question, answer, nodes } = items[index];
       const uid = form.items[index].uid;
 
       if (!question) return fail(uid, `Question ${index + 1} is empty.`);
@@ -338,7 +374,10 @@ const FaqFormPage: React.FC = () => {
         return fail(uid, `Duplicate question: “${question}”.`);
       }
       seen.add(question.toLowerCase());
-      if (isRichTextBlank(answer)) {
+      if (nodes) {
+        const problem = firstProblem(nodes);
+        if (problem) return fail(uid, `“${question}”: ${problem}`);
+      } else if (isRichTextBlank(answer)) {
         return fail(uid, `The answer for “${question}” is empty.`);
       }
     }
@@ -349,7 +388,7 @@ const FaqFormPage: React.FC = () => {
       // would make clearing the box on an edit silently keep the old text.
       description: isRichTextBlank(form.description) ? '' : form.description,
       status: form.status,
-      items,
+      items: items.map(({ question, answer, nodes }) => (nodes ? { question, nodes } : { question, answer })),
     };
   };
 

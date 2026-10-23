@@ -1,5 +1,6 @@
-import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { isAdminPath } from '@/utils/brandTheme';
 import { Spinner } from '@/components/common/Spinner';
 import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -69,8 +70,20 @@ const PageLoader: React.FC = () => (
 );
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+/** Public pages wear the MMC Convert palette; /admin keeps the original one (index.html sets the first paint). */
+const BrandTheme: React.FC = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isAdminPath(pathname)) root.removeAttribute('data-brand');
+    else root.setAttribute('data-brand', 'mmc');
+  }, [pathname]);
+  return null;
+};
+
 const App: React.FC = () => (
   <Suspense fallback={<PageLoader />}>
+    <BrandTheme />
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/about"     element={<AboutPage />} />
@@ -114,6 +127,8 @@ const App: React.FC = () => (
           <Route path="faqs"             element={<FaqsPage />} />
           <Route path="faqs/new"         element={<FaqFormPage />} />
           <Route path="faqs/:id"         element={<FaqFormPage />} />
+
+
 
 
           <Route path="plans"            element={<PlansPage />} />

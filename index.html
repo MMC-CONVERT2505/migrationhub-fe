@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-brand="mmc">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // The admin panel keeps the original palette; everything else wears the MMC Convert one.
+      if (/^\/admin(\/|$)/.test(location.pathname)) document.documentElement.removeAttribute('data-brand');
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="MMC Convert — Enterprise accounting data migration platform. Migrate between QBO, Xero, MYOB, FreshBooks, Tally, ZOHO and more." />

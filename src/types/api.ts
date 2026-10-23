@@ -272,6 +272,8 @@ export interface CreateMigrationRequest {
   migrationPairId?: string;
   planId?: string;
   inquiryId?: number;
+  /** Operation Team only: total financial years, when more than the plan covers. */
+  years?: number;
 }
 
 export interface MigrationRecord {
@@ -368,6 +370,12 @@ export interface UserMigration {
     features: string[];
     popular: boolean;
   };
+  /** Total years when the order extends the plan's history; null = the plan's own. */
+  yearsOverride?: number | null;
+  /** An Operation Team member started this order without payment. */
+  paymentWaived?: boolean;
+  /** What was charged; null when nothing was (free pair, $0 plan, waiver). */
+  payment?: { amount: string | number; currency: string; status: string } | null;
   connectors: unknown[];
   /** Present on single-migration fetches (`getById`); absent on list. */
   journey?: JourneyStage[];
@@ -380,6 +388,8 @@ export interface InitiatePaymentRequest {
   amount: number;
   migrationPairId: string;
   planId: string;
+  /** Total years when buying extra history; the server computes the real amount. */
+  years?: number;
   currency?: string;
   description?: string;
   name?: string;
@@ -711,6 +721,8 @@ export interface ApiPlan {
   currency: string;    // "USD"
   history: string;
   years: number | null;     // null when isInception
+  /** Price of each extra financial year; null = customers cannot extend this plan. Decimal string. */
+  extraYearPrice?: string | null;
   isInception: boolean;     // unlimited "inception to date" plan
   support: string;
   features: string[];
@@ -723,6 +735,8 @@ export interface CreatePlanRequest {
   currency?: string;
   history: string;
   years?: number;        // ignored when isInception is true
+  /** Per extra year; null/omitted = customers cannot extend this plan, 0 = extra years are free. */
+  extraYearPrice?: number | null;
   isInception?: boolean;
   support: string;
   features: string[];
@@ -740,6 +754,8 @@ export interface FaqItemEntity {
   question: string;
   /** Sanitized HTML — the API strips anything outside its allowlist on write. */
   answer: string;
+  /** Module-list answer; when present it is shown instead of `answer` (which is then empty). */
+  nodes?: GuideNode[] | null;
   sortOrder: number;
 }
 
@@ -777,7 +793,9 @@ export interface PublicFaqResponse {
 
 export interface FaqItemInput {
   question: string;
-  answer: string;
+  /** Text answer. Omitted for a module-list answer. */
+  answer?: string;
+  nodes?: GuideNode[];
 }
 
 export interface CreateFaqRequest {
@@ -796,3 +814,14 @@ export interface ListFaqsQuery {
   take?: number;
 }
 
+// ─── Module-list answers (an FAQ question answered with a tree) ───────────────
+
+export interface GuideNode {
+  id: string;
+  label: string;
+  /** item = a bulleted entry; heading = a bold run-in label such as "What We Convert:". */
+  kind: 'item' | 'heading';
+  /** Sanitized HTML for the ⓘ pop-up; absent = no button. */
+  info?: string;
+  children?: GuideNode[];
+}

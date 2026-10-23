@@ -57,7 +57,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 }) => (
   <div className="min-h-screen flex bg-bg">
     {/* ── Left brand panel (hidden on small screens) ── */}
-    <div className="hidden lg:flex lg:w-[46%] xl:w-[42%] bg-gradient-to-br from-[#1e3a8a] to-[#1d4ed8] flex-col justify-between p-10 xl:p-14 relative overflow-hidden flex-shrink-0">
+    <div className="hidden lg:flex lg:w-[46%] xl:w-[42%] bg-gradient-to-br from-[rgb(var(--auth-from))] to-[rgb(var(--auth-to))] flex-col justify-between p-10 xl:p-14 relative overflow-hidden flex-shrink-0">
       {/* Background pattern */}
       <div
         className="absolute inset-0 opacity-[0.06]"

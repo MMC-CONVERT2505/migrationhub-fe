@@ -1,4 +1,6 @@
-import { decodeJwt, useSession } from '@/store/authStore';
+import { useEffect } from 'react';
+import { decodeJwt, useAuthStore, useSession } from '@/store/authStore';
+import { usersService } from '@/api/users';
 
 export const OP_TEAM_ROLE = 'OP_TEAM';
 
@@ -16,11 +18,29 @@ function roleNames(roles: unknown): string[] {
  * token's claims before the profile has loaded. Display only: the server
  * re-checks the role from the database on every migration it records.
  */
+// One refresh at a time per token, however many components ask.
+let refreshing: string | null = null;
+
 export function useOperationTeamMember(): { isOperationTeam: boolean; name: string | null } {
   const { accessToken, user } = useSession('user');
+  const setUser = useAuthStore((s) => s.setUser);
+
+  // A session saved before roles were stored has a token but no roles on the profile: fetch them once,
+  // so a signed-in Operation Team member is never treated as a customer because of a stale session.
+  const needsRoles = !!accessToken && user?.roles === undefined;
+  useEffect(() => {
+    if (!needsRoles || !accessToken || refreshing === accessToken) return;
+    refreshing = accessToken;
+    usersService
+      .getMe()
+      .then((res) => setUser('user', res.data))
+      .catch(() => { refreshing = null; });
+  }, [needsRoles, accessToken, setUser]);
+
   if (!accessToken) return { isOperationTeam: false, name: null };
 
-  const roles = user?.roles !== undefined ? roleNames(user.roles) : roleNames(decodeJwt(accessToken)?.roles);
+  // Either source is enough: a cached profile can be older than the token (or the reverse).
+  const roles = [...roleNames(user?.roles), ...roleNames(decodeJwt(accessToken)?.roles)];
   const isOperationTeam = roles.includes(OP_TEAM_ROLE);
   const name = user ? `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim() || user.email || null : null;
   return { isOperationTeam, name };

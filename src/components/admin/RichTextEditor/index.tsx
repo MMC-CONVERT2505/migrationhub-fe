@@ -43,6 +43,8 @@ interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /** Hide the image button for fields that are text only. Default true. */
+  allowImages?: boolean;
 }
 
 /**
@@ -57,6 +59,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = 'Write the answer…',
+  allowImages = true,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -194,6 +197,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </svg>
         </ToolbarButton>
 
+        {allowImages && (
+          <>
         <span className="w-px h-4 bg-border mx-1" />
 
         <ToolbarButton
@@ -213,6 +218,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </svg>
           )}
         </ToolbarButton>
+
+          </>
+        )}
 
         <input
           ref={fileRef}

@@ -24,7 +24,7 @@ export const Hero: React.FC = () => {
 
           <div className="mt-8 flex items-center gap-6">
             <div className="flex -space-x-2">
-              {['#2563eb', '#16a34a', '#ea580c', '#9b1c1c'].map((color, i) => (
+              {['#E8820C', '#16a34a', '#2563eb', '#9b1c1c'].map((color, i) => (
                 <div
                   key={i}
                   className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"

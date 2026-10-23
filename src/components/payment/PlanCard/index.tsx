@@ -11,11 +11,13 @@ interface PlanCardProps {
   onSelect: (planId: string) => void;
   /** A free pair's plan: only the history and what's included — no plan name, price or support line. */
   freePairBenefits?: boolean;
+  /** Replaces the plan's history text, e.g. when the Operation Team extends the years on the selected plan. */
+  historyText?: string;
 }
 
 /** One selectable plan. A native radio inside a label, so selection and arrow-key
  *  navigation come from the browser and are announced by screen readers. */
-export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSelect, freePairBenefits = false }) => {
+export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSelect, freePairBenefits = false, historyText }) => {
   const free = Number(plan.basePrice) === 0;
   return (
     <label
@@ -45,7 +47,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSele
           <>
             {/* The plan name stays available to assistive tech even though it isn't shown. */}
             <span className="sr-only">{plan.name} plan</span>
-            <p className="text-sm font-bold text-text-primary">{plan.history} history</p>
+            <p className="text-sm font-bold text-text-primary">{historyText ?? plan.history} history</p>
             <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Included">
               {FREE_PAIR_BENEFITS.map((f) => (
                 <li key={f} className="rounded border border-border bg-bg-lighter px-2 py-0.5 text-[11px] text-text-secondary">{f}</li>
@@ -57,7 +59,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSele
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-bold text-text-primary">{plan.name}</p>
-            <p className="mt-0.5 text-[11px] font-medium text-text-secondary">{plan.history} history</p>
+            <p className="mt-0.5 text-[11px] font-medium text-text-secondary">{historyText ?? plan.history} history</p>
           </div>
           <div className="text-right flex-shrink-0">
             {free ? (

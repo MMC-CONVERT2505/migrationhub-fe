@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FLOW_STEPS,
+  isFreeSelection,
   flowSteps,
   usesFreePairBenefits,
   FREE_PAIR_BENEFITS,
@@ -133,5 +134,19 @@ describe('Operation Team payment skip', () => {
   });
   it('success page accepts a skipped-payment order without a payment id', () => {
     expect(resolveFlowRedirect('success', state({ paymentSkipped: true, paymentId: null }))).toBeNull();
+  });
+});
+
+describe('free selection with paid extra years', () => {
+  it('a free pair stops being free once the extra years cost something', () => {
+    expect(isFreeSelection(pair({ isFree: true }), plan({ basePrice: 0 }), 0)).toBe(true);
+    expect(isFreeSelection(pair({ isFree: true }), plan({ basePrice: 0 }), 396)).toBe(false);
+    expect(isFreeSelection(pair({ isFree: false }), plan({ basePrice: 0 }), 99)).toBe(false);
+  });
+  it('success needs a payment behind it when extra years are owed, and the payment page stays open', () => {
+    const free = state({ pair: pair({ isFree: true, plans: [plan({ basePrice: 0 })] }), planId: 'p-basic', extensionCost: 396 });
+    expect(resolveFlowRedirect('payment', free)).toBeNull();
+    expect(resolveFlowRedirect('success', free)).toBe('/payment');
+    expect(resolveFlowRedirect('success', { ...free, paymentId: '11' })).toBeNull();
   });
 });

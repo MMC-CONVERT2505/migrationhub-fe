@@ -11,14 +11,14 @@ import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
 import {
-  PAYMENT_PATH, SUCCESS_PATH, findSelectedPlan, inquiryForPair, isFreeSelection, resolveFlowRedirect,
+  PAYMENT_PATH, SUCCESS_PATH, inquiryForPair, resolveFlowRedirect,
 } from '@/constants/migrationFlow';
 import { pairPlanPath } from '@/utils/platformMap';
 import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
 import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit } from '@/utils/inquiryContact';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
-import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
+import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 
 // Declared once and reused in the restricted list below, so the two lists can never
 // spell the same country differently — the label is what gets stored on the inquiry.
@@ -201,6 +201,11 @@ const MigrationInfoPage: React.FC = () => {
   const existing = inquiryForPair(selectedPair, inquiryDetails);
   const canUpdate = !!(existing?.id && existing.editToken);
 
+  // Hooks stay above the early return below. A free selection stays free only while the customer's
+  // extra historical years cost nothing; the Operation Team is never charged.
+  const { plan, isFree, isOperationTeam } = useCheckoutSelection();
+  const operatorSkipsPayment = usePaymentSkipped(selectedPair?.isFree ?? false, plan);
+
   const isQboToMyob =
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
   // Distinct from isQboToMyob above: the same two platforms, the opposite direction.
@@ -250,7 +255,6 @@ const MigrationInfoPage: React.FC = () => {
         country,
         entityName: inquiry.entityName,
         financialYearEnd: inquiry.financialYearEnd ?? fyEndFor(country),
-        addOnsConfirmed: (inquiry.addOnsConfirmed ?? null) as YesNo,
         trackingInventory: (inquiry.trackingInventory ?? null) as YesNo,
       };
     }
@@ -263,7 +267,6 @@ const MigrationInfoPage: React.FC = () => {
       country,
       entityName: '',
       financialYearEnd: fyEndFor(country),
-      addOnsConfirmed: null as YesNo,
       trackingInventory: null as YesNo,
     };
   });
@@ -296,13 +299,9 @@ const MigrationInfoPage: React.FC = () => {
   const redirect = resolveFlowRedirect('details', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails });
   if (!selectedPair || redirect) return <Navigate to={redirect ?? '/'} replace />;
 
-  const plan = findSelectedPlan(selectedPair, selectedPlanId);
-  // A free selection skips the Payment page and goes straight to Start Migration.
-  const isFree = isFreeSelection(selectedPair, plan);
-  // Operation Team: email is the shared team inbox (locked) and phone is not collected.
-  const { isOperationTeam } = useOperationTeamMember();
-  // Free selections and Operation Team orders have nothing to pay, so they skip the Payment page.
-  const skipsPayment = isFree || usePaymentSkipped(selectedPair?.isFree ?? false, plan);
+  // Free selections (extra years included) and Operation Team orders have nothing to pay, so they
+  // skip the Payment page and go straight to Start Migration.
+  const skipsPayment = isFree || operatorSkipsPayment;
   const nextPath = skipsPayment ? SUCCESS_PATH : PAYMENT_PATH;
 
   if (editBlocked) {
@@ -360,8 +359,6 @@ const MigrationInfoPage: React.FC = () => {
     if (!form.name.trim()) e.push({ field: 'name', message: 'Name is required.' });
     e.push(...contactErrors({ isOperator: isOperationTeam, email: form.email, phone: form.phone }));
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
-    // Add-ons are quoted on top of a paid plan; a free migration has nothing to quote, so it isn't asked.
-    if (!isFree && form.addOnsConfirmed === null) e.push({ field: 'addOnsConfirmed', message: 'Please confirm whether you need any add-ons.' });
     if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
   };
@@ -389,7 +386,6 @@ const MigrationInfoPage: React.FC = () => {
       { isOperator: isOperationTeam, email: form.email, phone: form.phone, dialCode: form.dialCode },
       toNationalNumber,
     );
-    const addOnsConfirmed = isFree ? undefined : (form.addOnsConfirmed ?? undefined);
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
 
     if (canUpdate && existing?.id && existing.editToken) {
@@ -400,7 +396,6 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          addOnsConfirmed,
           trackingInventory,
         });
 
@@ -412,7 +407,6 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          addOnsConfirmed,
           trackingInventory,
         });
 
@@ -436,7 +430,6 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        ...(addOnsConfirmed !== undefined ? { addOnsConfirmed } : {}),
         ...(trackingInventory !== undefined ? { trackingInventory } : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
@@ -449,7 +442,6 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        addOnsConfirmed,
         trackingInventory,
         editToken: created.editToken,
         migrationPairId: selectedPair.id ? String(selectedPair.id) : undefined,
@@ -555,19 +547,6 @@ const MigrationInfoPage: React.FC = () => {
                 </select>
               </div>
             </div>
-
-            {/* Add-ons confirmation — asked on paid migrations only, so the quote reflects what
-                the customer wants before payment. A free migration never reaches payment. */}
-            {!isFree && (
-              <YesNoField
-                name="addOnsConfirmed"
-                legend="Add-ons Confirmation"
-                hint="Add-ons are quoted on top of your migration plan. Do you want any add-ons included in this migration?"
-                value={form.addOnsConfirmed}
-                onChange={(v) => set('addOnsConfirmed', v)}
-                error={fieldError('addOnsConfirmed')}
-              />
-            )}
 
             {asksTrackingInventory && (
               <YesNoField

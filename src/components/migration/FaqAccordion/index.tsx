@@ -1,4 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
+import { GuideTree, safeNodes } from '@/components/migration/GuideTree';
+import type { GuideNode } from '@/types/api';
 import { Spinner } from '@/components/common/Spinner';
 import { faqsService } from '@/api/faqs';
 
@@ -7,6 +9,8 @@ interface FaqEntry {
   question: string;
   /** Sanitized HTML: server-side allowlist for admin FAQs, escaped for defaults. */
   answerHtml: string;
+  /** Module-list answer; rendered instead of answerHtml. */
+  nodes?: GuideNode[] | null;
 }
 
 const escapeHtml = (text: string): string =>
@@ -79,16 +83,22 @@ const FaqItem: React.FC<{ item: FaqEntry; open: boolean; onToggle: () => void; b
           </svg>
         </button>
       </h3>
-      <div
-        id={panelId}
-        role="region"
-        aria-labelledby={buttonId}
-        hidden={!open}
-        className="faq-answer px-4 pb-4 text-sm text-text-secondary leading-relaxed"
-        // Safe by construction: admin answers are sanitized against a strict
-        // allowlist before they are stored, and the defaults above are escaped.
-        dangerouslySetInnerHTML={{ __html: item.answerHtml }}
-      />
+      {item.nodes && item.nodes.length > 0 ? (
+        <div id={panelId} role="region" aria-labelledby={buttonId} hidden={!open} className="px-4 pb-4">
+          <GuideTree nodes={item.nodes} />
+        </div>
+      ) : (
+        <div
+          id={panelId}
+          role="region"
+          aria-labelledby={buttonId}
+          hidden={!open}
+          className="faq-answer px-4 pb-4 text-sm text-text-secondary leading-relaxed"
+          // Safe by construction: admin answers are sanitized against a strict
+          // allowlist before they are stored, and the defaults above are escaped.
+          dangerouslySetInnerHTML={{ __html: item.answerHtml }}
+        />
+      )}
     </div>
   );
 };
@@ -116,7 +126,7 @@ export const FaqAccordion: React.FC<{ pairId?: number | string | null; /** Free 
         if (cancelled) return;
         const faq = res?.faq;
         if (faq && faq.items.length > 0) {
-          setEntries(faq.items.map((item) => ({ key: item.id, question: item.question, answerHtml: item.answer })));
+          setEntries(faq.items.map((item) => ({ key: item.id, question: item.question, answerHtml: item.answer, nodes: safeNodes(item.nodes).length ? item.nodes : null })));
           if (faq.description) setDescriptionHtml(faq.description);
           setOpenIdx(0);
         }

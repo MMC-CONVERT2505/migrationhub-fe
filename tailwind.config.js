@@ -1,4 +1,6 @@
 // @ts-nocheck
+const v = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,26 +10,39 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Colours are CSS variables (see index.css) so the public site can wear the MMC Convert
+        // palette while the admin panel keeps the original one. `<alpha-value>` keeps /50 style modifiers working.
         bg: {
-          DEFAULT: '#f4f7fc',
+          DEFAULT: v('bg'),
           white: '#ffffff',
-          light: '#f0f4fa',
-          lighter: '#e8edf7',
-          muted: '#dde4f0',
+          light: v('bg-light'),
+          lighter: v('bg-lighter'),
+          muted: v('bg-muted'),
         },
         border: {
-          DEFAULT: '#dce2ef',
-          medium: '#c8d0e7',
-          dark: '#b0bcd8',
+          DEFAULT: v('border'),
+          medium: v('border-medium'),
+          dark: v('border-dark'),
         },
         text: {
-          primary: '#111827',
-          secondary: '#4b5568',
-          tertiary: '#9ba3b8',
+          primary: v('text-primary'),
+          secondary: v('text-secondary'),
+          tertiary: v('text-tertiary'),
         },
         blue: {
-          DEFAULT: '#2563eb',
-          light: 'rgba(37,99,235,0.07)',
+          50: v('blue-50'),
+          100: v('blue-100'),
+          200: v('blue-200'),
+          300: v('blue-300'),
+          400: v('blue-400'),
+          500: v('blue-500'),
+          600: v('blue-600'),
+          700: v('blue-700'),
+          800: v('blue-800'),
+          900: v('blue-900'),
+          950: v('blue-950'),
+          DEFAULT: v('blue-600'),
+          light: 'rgb(var(--blue-600) / 0.07)',
         },
         green: {
           DEFAULT: '#16a34a',
@@ -54,9 +69,9 @@ export default {
         full: '9999px',
       },
       boxShadow: {
-        card: '0 2px 8px rgba(37,99,235,0.06)',
-        'card-hover': '0 8px 24px rgba(37,99,235,0.14)',
-        elevated: '0 4px 16px rgba(37,99,235,0.1)',
+        card: '0 2px 8px rgb(var(--blue-600) / 0.06)',
+        'card-hover': '0 8px 24px rgb(var(--blue-600) / 0.14)',
+        elevated: '0 4px 16px rgb(var(--blue-600) / 0.1)',
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',

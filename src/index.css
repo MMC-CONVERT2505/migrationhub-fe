@@ -6,26 +6,64 @@
 
 /* CSS Custom Properties */
 :root {
-  --bg: #f4f7fc;
+  /* Colour channels (R G B) so Tailwind can apply opacity. Defaults = the original palette (admin panel). */
+  --bg: 244 247 252;
+  --bg-light: 240 244 250;
+  --bg-lighter: 232 237 247;
+  --bg-muted: 221 228 240;
+  --border: 220 226 239;
+  --border-medium: 200 208 231;
+  --border-dark: 176 188 216;
+  --text-primary: 17 24 39;
+  --text-secondary: 75 85 104;
+  --text-tertiary: 155 163 184;
+  --blue-50: 239 246 255;
+  --blue-100: 219 234 254;
+  --blue-200: 191 219 254;
+  --blue-300: 147 197 253;
+  --blue-400: 96 165 250;
+  --blue-500: 59 130 246;
+  --blue-600: 37 99 235;
+  --blue-700: 29 78 216;
+  --blue-800: 30 64 175;
+  --blue-900: 30 58 138;
+  --blue-950: 23 37 84;
+  --auth-from: 30 58 138;
+  --auth-to: 29 78 216;
   --bg-white: #ffffff;
-  --bg-light: #f0f4fa;
-  --bg-lighter: #e8edf7;
-  --bg-muted: #dde4f0;
-  --border: #dce2ef;
-  --border-medium: #c8d0e7;
-  --border-dark: #b0bcd8;
-  --text-primary: #111827;
-  --text-secondary: #4b5568;
-  --text-tertiary: #9ba3b8;
-  --blue: #2563eb;
-  --blue-light: rgba(37, 99, 235, 0.07);
   --green: #16a34a;
   --green-light: rgba(22, 163, 74, 0.08);
   --red: #dc2626;
   --amber: #b45309;
   --radius: 0.5rem;
-  --shadow-card: 0 2px 8px rgba(37, 99, 235, 0.06);
-  --shadow-card-hover: 0 8px 24px rgba(37, 99, 235, 0.14);
+}
+
+/* MMC Convert palette for the public site: brand orange (#FFA02E) as the accent, neutral greys, #333 text.
+   Set on <html> by index.html / App for every page outside /admin. */
+html[data-brand='mmc'] {
+  --bg: 250 250 250;
+  --bg-light: 245 245 245;
+  --bg-lighter: 238 238 238;
+  --bg-muted: 231 231 231;
+  --border: 231 231 231;
+  --border-medium: 221 221 221;
+  --border-dark: 204 204 204;
+  --text-primary: 51 51 51;
+  --text-secondary: 85 85 85;
+  --text-tertiary: 118 118 118;
+  --blue-50: 255 247 235;
+  --blue-100: 255 236 211;
+  --blue-200: 255 217 168;
+  --blue-300: 255 194 115;
+  --blue-400: 255 176 74;
+  --blue-500: 255 160 46;
+  --blue-600: 217 119 6; /* #D97706: a shade darker than the logo orange so white button text stays legible (~3.2:1) */
+  --blue-700: 179 95 6;
+  --blue-800: 138 72 4;
+  --blue-900: 107 56 5;
+  --blue-950: 66 33 2;
+  --auth-from: 138 72 4;
+  --auth-to: 232 130 12;
 }
 
 /* Base Reset */
@@ -45,8 +83,8 @@ html {
 
 body {
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  background-color: var(--bg);
-  color: var(--text-primary);
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text-primary));
   line-height: 1.6;
   min-height: 100vh;
   position: relative;
@@ -154,28 +192,28 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-light);
+  background: rgb(var(--bg-light));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-dark);
+  background: rgb(var(--border-dark));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: rgb(var(--text-tertiary));
 }
 
 /* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid rgb(var(--blue-600));
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(37, 99, 235, 0.15);
-  color: var(--text-primary);
+  background: rgb(var(--blue-600) / 0.15);
+  color: rgb(var(--text-primary));
 }
 
 /* Table styles */
@@ -214,7 +252,7 @@ button {
 .faq-answer h4 {
   margin: 1em 0 0.5em;
   font-weight: 600;
-  color: var(--text-primary);
+  color: rgb(var(--text-primary));
 }
 
 .faq-answer h3 { font-size: 1.05em; }
@@ -234,7 +272,7 @@ button {
 }
 
 .faq-answer a {
-  color: var(--blue);
+  color: rgb(var(--blue-700));
   text-decoration: underline;
 }
 
@@ -243,21 +281,21 @@ button {
   max-width: 100%;
   height: auto;
   margin: 0.75em 0;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: var(--radius);
 }
 
 .faq-answer blockquote {
   margin: 0 0 0.75em;
   padding-left: 0.875rem;
-  border-left: 3px solid var(--border-medium);
-  color: var(--text-tertiary);
+  border-left: 3px solid rgb(var(--border-medium));
+  color: rgb(var(--text-tertiary));
 }
 
 .faq-answer code {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.9em;
-  background: var(--bg-light);
+  background: rgb(var(--bg-light));
   padding: 0.1em 0.3em;
   border-radius: 4px;
 }
@@ -265,7 +303,7 @@ button {
 .faq-answer pre {
   margin: 0 0 0.75em;
   padding: 0.75rem;
-  background: var(--bg-light);
+  background: rgb(var(--bg-light));
   border-radius: var(--radius);
   overflow-x: auto;
 }
@@ -273,4 +311,26 @@ button {
 .faq-answer pre code {
   background: none;
   padding: 0;
+}
+
+/* Tables inside FAQ answers / ⓘ pop-ups (comparison tables). Scrolls inside its own box on narrow screens. */
+.faq-answer table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.92em;
+}
+.faq-answer th,
+.faq-answer td {
+  border: 1px solid rgb(var(--border-medium));
+  padding: 0.45em 0.65em;
+  text-align: left;
+  vertical-align: top;
+}
+.faq-answer th {
+  background: rgb(var(--bg-light));
+  font-weight: 600;
+  color: rgb(var(--text-primary));
 }

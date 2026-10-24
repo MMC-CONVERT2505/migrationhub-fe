@@ -6,7 +6,7 @@
 
 /* CSS Custom Properties */
 :root {
-  /* Colour channels (R G B) so Tailwind can apply opacity. Defaults = the original palette (admin panel). */
+  /* Colour channels (R G B) so Tailwind can apply opacity. Defaults = the original blue palette, used only if data-brand is removed. */
   --bg: 244 247 252;
   --bg-light: 240 244 250;
   --bg-lighter: 232 237 247;
@@ -38,8 +38,8 @@
   --radius: 0.5rem;
 }
 
-/* MMC Convert palette for the public site: brand orange (#FFA02E) as the accent, neutral greys, #333 text.
-   Set on <html> by index.html / App for every page outside /admin. */
+/* MMC Convert palette for the whole app (public site and admin): brand orange (#FFA02E) as the accent, neutral
+   greys, #333 text. Set on <html> in index.html. */
 html[data-brand='mmc'] {
   --bg: 250 250 250;
   --bg-light: 245 245 245;
@@ -333,4 +333,35 @@ button {
   background: rgb(var(--bg-light));
   font-weight: 600;
   color: rgb(var(--text-primary));
+}
+
+/* Our show/hide toggle replaces the browser's own (Edge draws one in the same spot and steals the click). */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear { display: none; }
+
+/* Admin tables and the sidebar: a scrollbar that is always visible when there is more to see
+   (the page default is a thin 6px bar that disappears on macOS / touch), with a pinned table header. */
+.admin-scroll {
+  overflow: auto;
+  max-height: var(--admin-scroll-max, max(20rem, calc(100vh - 14rem)));
+  scrollbar-width: auto;
+  scrollbar-color: rgb(var(--text-tertiary)) rgb(var(--bg-light));
+}
+.admin-scroll-x { max-height: none; overflow-y: hidden; }
+.admin-scroll-y { overflow-x: hidden; max-height: none; }
+.admin-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+.admin-scroll::-webkit-scrollbar-track { background: rgb(var(--bg-light)); border-left: 1px solid rgb(var(--border)); }
+.admin-scroll::-webkit-scrollbar-thumb {
+  background: rgb(var(--text-tertiary));
+  border-radius: 6px;
+  border: 3px solid rgb(var(--bg-light));
+}
+.admin-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--text-secondary)); }
+.admin-scroll::-webkit-scrollbar-corner { background: rgb(var(--bg-light)); }
+.admin-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgb(var(--bg-light));
+  box-shadow: 0 1px 0 rgb(var(--border));
 }

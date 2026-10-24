@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { cn } from '@/utils/format';
 import { InputField } from '@/components/auth/InputField';
 import type { PasswordStrength, PasswordRequirement } from '@/types/auth';
+import { PASSWORD_MIN, PASSWORD_MAX } from '@/utils/password';
 
 interface PasswordFieldProps {
   label?: string;
@@ -13,6 +14,9 @@ interface PasswordFieldProps {
   /** Show strength meter below the field */
   showStrength?: boolean;
   id?: string;
+  /** 'new-password' for create/reset/change fields so browsers don't autofill the old one. Defaults from showStrength. */
+  autoComplete?: 'current-password' | 'new-password';
+  hint?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -32,8 +36,8 @@ function getStrength(password: string): PasswordStrength {
 
 function getRequirements(password: string): PasswordRequirement[] {
   return [
-    { label: 'At least 8 characters',          met: password.length >= 8 },
-    { label: 'One uppercase letter',             met: /[A-Z]/.test(password) },
+    { label: `${PASSWORD_MIN}–${PASSWORD_MAX} characters`, met: password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX },
+    { label: 'Upper & lower case letters',       met: /[A-Z]/.test(password) && /[a-z]/.test(password) },
     { label: 'One number',                       met: /[0-9]/.test(password) },
     { label: 'One special character',            met: /[^A-Za-z0-9]/.test(password) },
   ];
@@ -71,6 +75,8 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
   required,
   showStrength = false,
   id,
+  autoComplete,
+  hint,
 }) => {
   const [visible, setVisible] = useState(false);
 
@@ -90,13 +96,19 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
         placeholder={placeholder}
         required={required}
         error={error}
-        autoComplete={showStrength ? 'new-password' : 'current-password'}
+        hint={hint}
+        aria-label={label ? undefined : 'Password'}
+        autoComplete={autoComplete ?? (showStrength ? 'new-password' : 'current-password')}
         suffix={
+          // The mousedown guard keeps the input focused, so the click always lands on the toggle (a blur
+          // re-render or the browser's own reveal icon could otherwise swallow the first click).
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setVisible((v) => !v)}
-            className="text-text-tertiary hover:text-text-secondary transition-colors focus:outline-none"
+            className="flex items-center justify-center w-8 h-8 -mr-2 rounded-md touch-manipulation text-text-tertiary hover:text-text-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             aria-label={visible ? 'Hide password' : 'Show password'}
+            aria-pressed={visible}
           >
             <EyeIcon open={visible} />
           </button>

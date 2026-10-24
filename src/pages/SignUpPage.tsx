@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { InputField } from '@/components/auth/InputField';
 import { PasswordField } from '@/components/auth/PasswordField';
+import { validateNewPassword } from '@/utils/password';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Divider } from '@/components/auth/Divider';
 import { Button } from '@/components/common/Button';
@@ -72,8 +73,8 @@ function validate(form: SignUpFormData): AuthError[] {
     errs.push({ field: 'mobile', message: 'Please enter a valid mobile number.' });
   }
 
-  if (form.password.length < 8)
-    errs.push({ field: 'password', message: 'Password must be at least 8 characters.' });
+  const pwError = validateNewPassword(form.password);
+  if (pwError) errs.push({ field: 'password', message: pwError });
   if (form.password !== form.confirmPassword)
     errs.push({ field: 'confirmPassword', message: 'Passwords do not match.' });
   if (!form.agreedToTerms)
@@ -389,7 +390,7 @@ const SignUpPage: React.FC = () => {
           label="Password"
           value={form.password}
           onChange={(v) => set('password', v)}
-          placeholder="Min. 8 characters"
+          placeholder="8–16 characters"
           required
           showStrength
           error={fieldError('password')}
@@ -404,6 +405,7 @@ const SignUpPage: React.FC = () => {
           placeholder="Re-enter your password"
           required
           error={fieldError('confirmPassword')}
+          autoComplete="new-password"
         />
 
         {/* Terms */}

@@ -4,15 +4,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
-import { summarisePlans, type PlanSummary } from '@/utils/pricing';
+import { MAX_PRICING_CARDS, summarisePlans, type PlanSummary } from '@/utils/pricing';
+import { countriesOf, normalizeCountry } from '@/utils/countryPricing';
+import { useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
 import { goToSection } from '@/utils/scroll';
 import type { Pair } from '@/types';
 import type { MigrationPairEntity } from '@/types/api';
 
+const DEFAULT_COUNTRY = 'Australia';
+
 const priceLabel = (p: PlanSummary) => {
   if (p.max === 0) return 'Free';
-  return p.min === p.max ? formatCurrency(p.min) : `from ${formatCurrency(p.min)}`;
+  // Lead with what a paying customer pays; free migrations are noted underneath, never shown as "from 0".
+  return p.minPaid === p.max ? formatCurrency(p.max, p.currency) : `from ${formatCurrency(p.minPaid, p.currency)}`;
 };
 
 /** Home-page "Pricing" section: the plans on offer across all migrations, priced per migration pair. */
@@ -35,7 +40,17 @@ export const PricingSection: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const plans = useMemo(() => summarisePlans(pairs), [pairs]);
+  // The visitor's country (shared with the plan step, so their choice carries into checkout). Only a country the
+  // price list actually covers is used; otherwise Australia, else the first one offered.
+  const storedCountry = useAppStore((s) => s.selectedCountry);
+  const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
+  const countries = useMemo(() => countriesOf(pairs), [pairs]);
+  const stored = normalizeCountry(storedCountry);
+  const country = countries.length === 0
+    ? null
+    : stored && countries.includes(stored) ? stored : countries.includes(DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : countries[0];
+
+  const plans = useMemo(() => summarisePlans(pairs, 'USD', country).slice(0, MAX_PRICING_CARDS), [pairs, country]);
   const showPlans = state === 'ready' && plans.length > 0;
 
   return (
@@ -49,6 +64,20 @@ export const PricingSection: React.FC = () => {
           </p>
         </motion.div>
 
+        {state === 'ready' && countries.length > 0 && (
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <label htmlFor="pricing-country" className="text-sm font-medium text-text-secondary">Show prices for</label>
+            <select
+              id="pricing-country"
+              value={country ?? ''}
+              onChange={(e) => setSelectedCountry(e.target.value || null)}
+              className="w-full max-w-xs rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
+
         {state === 'loading' && (
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6" aria-hidden="true">
             {[0, 1, 2].map((i) => <div key={i} className="h-56 rounded-xl bg-white border border-border animate-pulse" />)}
@@ -56,14 +85,14 @@ export const PricingSection: React.FC = () => {
         )}
 
         {showPlans && (
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite">
             {plans.map((p) => (
               <div key={p.key} className={`relative bg-white rounded-xl p-6 flex flex-col border ${p.popular ? 'border-blue-600 shadow-card' : 'border-border'}`}>
                 {p.popular && <span className="absolute -top-px right-4 rounded-b-md bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Most popular</span>}
                 <h3 className="text-lg font-bold text-text-primary">{p.name}</h3>
                 {p.history && <p className="mt-0.5 text-xs text-text-secondary">{p.history}</p>}
                 <p className="mt-4 font-mono text-3xl font-bold text-text-primary">{priceLabel(p)}</p>
-                {p.max > 0 && <p className="text-[11px] text-text-tertiary">one-time · {p.currency}</p>}
+                {p.max > 0 && <p className="text-[11px] text-text-tertiary">one-time · {p.currency}{p.taxRate > 0 ? ` · +${p.taxRate}% GST` : ''}{p.hasFree ? ' · free on some migrations' : ''}</p>}
                 {p.support && <p className="mt-3 text-sm text-text-secondary">{p.support}</p>}
                 {p.features.length > 0 && (
                   <ul className="mt-3 space-y-1.5 flex-1">
@@ -82,7 +111,9 @@ export const PricingSection: React.FC = () => {
 
         {state !== 'loading' && !showPlans && (
           <p className="mt-10 text-center text-sm text-text-secondary">
-            Plans and prices are shown for each migration. Choose your migration below to see them.
+            {state === 'ready' && country
+              ? `No plans are listed for ${country} yet. Choose your migration below to see what is available.`
+              : 'Plans and prices are shown for each migration. Choose your migration below to see them.'}
           </p>
         )}
 

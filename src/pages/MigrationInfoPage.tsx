@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { FlowLayout } from '@/components/migration/FlowLayout';
 import { FaqAccordion } from '@/components/migration/FaqAccordion';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
@@ -13,11 +13,12 @@ import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
 import {
-  PAYMENT_PATH, SUCCESS_PATH, inquiryForPair, resolveFlowRedirect,
+  PAYMENT_PATH, SUCCESS_PATH, inquiryForPair, planCurrency, resolveFlowRedirect,
 } from '@/constants/migrationFlow';
 import { pairPlanPath } from '@/utils/platformMap';
 import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
+import { hasPriceList, normalizeCountry, offeredCountries, validCountry } from '@/utils/countryPricing';
 import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit } from '@/utils/inquiryContact';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
@@ -105,6 +106,30 @@ const XERO_RECKON_COUNTRIES = [AUSTRALIA, NEW_ZEALAND];
  * depends on nothing but the selected country, which keeps it out of effect deps.
  */
 const fyEndFor = (country: string) => COUNTRY_FY_END[country] ?? DEFAULT_FY_END;
+
+// Leaving for the plan step to change the country must not cost the customer what they already typed. The country-
+// dependent fields (dial code, FY end) are deliberately not kept: they follow the new country. Session-only, per pair.
+const DRAFT_FIELDS = ['name', 'email', 'phone', 'entityName'] as const;
+const draftKey = (pairId: number | string | undefined) => `mmc-details-draft:${pairId ?? ''}`;
+function readDraft(pairId: number | string | undefined): Partial<Record<(typeof DRAFT_FIELDS)[number], string>> | null {
+  try {
+    const raw = sessionStorage.getItem(draftKey(pairId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const out: Partial<Record<(typeof DRAFT_FIELDS)[number], string>> = {};
+    for (const f of DRAFT_FIELDS) if (typeof parsed[f] === 'string') out[f] = (parsed[f] as string).slice(0, 200);
+    return out;
+  } catch {
+    return null;
+  }
+}
+function saveDraft(pairId: number | string | undefined, form: Record<(typeof DRAFT_FIELDS)[number], string>) {
+  try {
+    sessionStorage.setItem(draftKey(pairId), JSON.stringify(Object.fromEntries(DRAFT_FIELDS.map((f) => [f, form[f]]))));
+  } catch {
+    /* storage unavailable: the form just starts fresh */
+  }
+}
 
 
 interface FieldErr { field: string; message: string }
@@ -236,18 +261,44 @@ const MigrationInfoPage: React.FC = () => {
     (isXeroToMyob && XERO_MYOB_COUNTRIES) ||
     (isXeroToReckon && XERO_RECKON_COUNTRIES) ||
     null;
-  const countries = restrictedCountries ?? COUNTRIES;
+  // A pair with a country price list offers exactly the countries it is priced for, and the country is the one
+  // already chosen on the plan step (it decided the price), so the two can never disagree.
+  const storedCountry = useAppStore((s) => s.selectedCountry);
+  const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
+  const priceListed = hasPriceList(selectedPair);
+  const pricedCountries = useMemo(
+    () => COUNTRIES.filter((c) => offeredCountries(selectedPair).includes(normalizeCountry(c) ?? '')),
+    [selectedPair],
+  );
+  const countries = priceListed ? pricedCountries : (restrictedCountries ?? COUNTRIES);
+  // The country is chosen once, on the plan step, because it decides the price. Here it is shown, not asked again
+  // (a second control could silently re-price the order). The one exception is the dedicated deep-link flow, which has
+  // no plan step to go back to, so its details page is where the country is picked.
+  const countryLocked = priceListed && !skipsPlanStep(selectedPair, dedicatedFlow);
   // A restricted pair opens on the first country it is sold in; the rest keep the
   // historical default so an unrestricted pair lands where it always has.
-  const defaultCountry = restrictedCountries ? restrictedCountries[0] : COUNTRIES[3];
+  const chosenLabel = priceListed
+    ? pricedCountries.find((c) => normalizeCountry(c) === validCountry(selectedPair, storedCountry))
+    : undefined;
+  const defaultCountry = chosenLabel ?? (priceListed ? pricedCountries[0] : restrictedCountries ? restrictedCountries[0] : COUNTRIES[3]);
+
+  const draft = useMemo(() => readDraft(selectedPair?.id), [selectedPair?.id]);
+  // Read once, then dropped: a draft only bridges the round trip to the plan step.
+  useEffect(() => {
+    try { sessionStorage.removeItem(draftKey(selectedPair?.id)); } catch { /* ignore */ }
+  }, [selectedPair?.id]);
 
   const [form, setForm] = useState(() => {
+    const base = ((): {
+      name: string; email: string; phone: string; dialCode: string; country: string;
+      entityName: string; financialYearEnd: string; trackingInventory: YesNo;
+    } => {
     // Pre-fill from the inquiry the customer already submitted — everything
     // it might be missing (an in-flight session from before this field was
     // widened into the store) falls back exactly like a fresh form would.
     if (existing) {
       const inquiry = existing;
-      const country = inquiry.country ?? defaultCountry;
+      const country = chosenLabel ?? inquiry.country ?? defaultCountry;
       const { dialCode, phone } = splitPhone(
         inquiry.phone,
         COUNTRY_DIAL_CODE[country] ?? COUNTRY_DIAL_CODE[defaultCountry],
@@ -274,6 +325,8 @@ const MigrationInfoPage: React.FC = () => {
       financialYearEnd: fyEndFor(country),
       trackingInventory: null as YesNo,
     };
+    })();
+    return draft ? { ...base, ...draft } : base;
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -300,8 +353,26 @@ const MigrationInfoPage: React.FC = () => {
     }));
   }, [countries, form.country]);
 
+  // Whatever way the country changes (select, dial code, snap-back), the price list follows it.
+  useEffect(() => {
+    if (!priceListed || countryLocked) return;
+    const c = normalizeCountry(form.country);
+    if (c && c !== storedCountry) setSelectedCountry(c);
+  }, [priceListed, countryLocked, form.country, storedCountry, setSelectedCountry]);
+
+  // Locked: the form always follows the country chosen on the plan step (e.g. after coming back from changing it).
+  useEffect(() => {
+    if (!countryLocked || !chosenLabel || form.country === chosenLabel) return;
+    setForm((p) => ({
+      ...p,
+      country: chosenLabel,
+      dialCode: COUNTRY_DIAL_CODE[chosenLabel] ?? p.dialCode,
+      financialYearEnd: p.financialYearEnd === fyEndFor(p.country) ? fyEndFor(chosenLabel) : p.financialYearEnd,
+    }));
+  }, [countryLocked, chosenLabel, form.country]);
+
   // Pair or plan missing (refresh, pasted URL, stale session): back to the earliest incomplete step.
-  const redirect = resolveFlowRedirect('details', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails });
+  const redirect = resolveFlowRedirect('details', { pair: selectedPair, planId: selectedPlanId, country: storedCountry, inquiry: inquiryDetails });
   if (!selectedPair || redirect) return <Navigate to={redirect ?? '/'} replace />;
 
   // Free selections (extra years included) and Operation Team orders have nothing to pay, so they
@@ -347,6 +418,8 @@ const MigrationInfoPage: React.FC = () => {
   // old country's statutory date, so a deliberately chosen period is never overwritten.
   const setDialCode = (dialCode: string) =>
     setForm((p) => {
+      // A locked country never moves because of a phone prefix (an overseas contact number is fine).
+      if (countryLocked) return { ...p, dialCode };
       const country = countryForDialCode(dialCode, countries, p.country, COUNTRY_DIAL_CODE);
       if (!country) return { ...p, dialCode };
       const fyUntouched = p.financialYearEnd === fyEndFor(p.country);
@@ -532,10 +605,31 @@ const MigrationInfoPage: React.FC = () => {
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="country" className="text-xs font-medium text-text-secondary">Country <span className="text-red-500">*</span></label>
-                <select id="country" value={form.country} onChange={(e) => setCountry(e.target.value)} className={inputCls}>
-                  {countries.map((c) => <option key={c} value={c}>{countryDisplayName(c)}</option>)}
-                </select>
+                {countryLocked ? (
+                  <>
+                    <span id="country-label" className="text-xs font-medium text-text-secondary">Country</span>
+                    <div
+                      id="country"
+                      role="group"
+                      aria-labelledby="country-label"
+                      className={`${inputCls} flex items-center justify-between gap-3 bg-bg-light`}
+                    >
+                      <span className="font-medium text-text-primary">
+                        {countryDisplayName(form.country)}
+                        {plan && <span className="font-normal text-text-secondary"> · prices in {planCurrency(plan)}</span>}
+                      </span>
+                      <Link to={pairPlanPath(selectedPair!)} onClick={() => saveDraft(selectedPair!.id, form)} className="text-xs font-semibold text-blue-700 hover:underline">Change</Link>
+                    </div>
+                    <p className="text-xs text-text-tertiary">Chosen on the plan step. Changing it updates your prices.</p>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="country" className="text-xs font-medium text-text-secondary">Country <span className="text-red-500">*</span></label>
+                    <select id="country" value={form.country} onChange={(e) => setCountry(e.target.value)} className={inputCls}>
+                      {countries.map((c) => <option key={c} value={c}>{countryDisplayName(c)}</option>)}
+                    </select>
+                  </>
+                )}
               </div>
             </div>
 

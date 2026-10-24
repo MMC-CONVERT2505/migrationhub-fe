@@ -1,6 +1,8 @@
 import React from 'react';
 import { platformDisplayName } from '@/utils/platformName';
 import type { Pair } from '@/types';
+import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
+import { hasPriceList } from '@/utils/countryPricing';
 
 interface SelectedPairBannerProps {
   pair: Pair;
@@ -8,7 +10,13 @@ interface SelectedPairBannerProps {
 }
 
 /** Highlighted label of the pair the current migration flow is for. */
-export const SelectedPairBanner: React.FC<SelectedPairBannerProps> = ({ pair, className = '' }) => (
+export const SelectedPairBanner: React.FC<SelectedPairBannerProps> = ({ pair, className = '' }) => {
+  // On a country price list free-or-paid is a property of this customer's selection, not of the pair.
+  const { plan, isFree: selectionFree } = useCheckoutSelection();
+  const priced = hasPriceList(pair);
+  const free = priced ? selectionFree : !!pair.isFree;
+  const label = priced && !plan ? '🌍 Priced by country' : free ? '🔥 Free' : '🏷️ Paid';
+  return (
   <div className={`flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3 ${className}`}>
     <div className="min-w-0">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600">Selected migration</p>
@@ -19,10 +27,11 @@ export const SelectedPairBanner: React.FC<SelectedPairBannerProps> = ({ pair, cl
     <span
       className={
         'ml-auto flex-shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ' +
-        (pair.isFree ? 'bg-green-100 text-green-700' : 'bg-white border border-border text-text-secondary')
+        (free ? 'bg-green-100 text-green-700' : 'bg-white border border-border text-text-secondary')
       }
     >
-      {pair.isFree ? '🔥 Free' : '🏷️ Paid'}
+      {label}
     </span>
   </div>
-);
+  );
+};

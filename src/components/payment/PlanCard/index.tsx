@@ -66,8 +66,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, name, selected, onSele
               <p className="font-mono text-lg font-bold text-green-600">Free</p>
             ) : (
               <>
-                <p className="font-mono text-lg font-bold text-text-primary">{formatCurrency(plan.basePrice)}</p>
-                <p className="mt-0.5 text-[10.5px] text-text-tertiary">one-time · {planCurrency(plan)}</p>
+                <p className="font-mono text-lg font-bold text-text-primary">{formatCurrency(plan.basePrice, planCurrency(plan))}</p>
+                <p className="mt-0.5 text-[10.5px] text-text-tertiary">one-time{plan.taxRate ? ` · +${plan.taxRate}% GST` : ''}</p>
               </>
             )}
           </div>

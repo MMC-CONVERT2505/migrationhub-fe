@@ -8,6 +8,7 @@ import { ApiError } from '@/api/client';
 import { extractList, normalizePlatform } from '@/utils/platformMap';
 import type {
   ApiPlan,
+  ApiPlanPrice,
   BannerEntity,
   MigrationPairEntity,
   CreateMigrationPairRequest,
@@ -329,9 +330,11 @@ const PairFormBody: React.FC<{
   users: UserProfile[];
   existingAssignees?: MigrationPairAssignee[];
   assigneeNote?: string;
+  /** The pair has a country price list: prices (and which countries are free) come from it, not from the switch below. */
+  priced?: boolean;
   sourceReadOnly?: boolean;
   destinationReadOnly?: boolean;
-}> = ({ values, onChange, logos, users, existingAssignees, assigneeNote, sourceReadOnly = false, destinationReadOnly = false }) => {
+}> = ({ values, onChange, logos, users, existingAssignees, assigneeNote, priced = false, sourceReadOnly = false, destinationReadOnly = false }) => {
   const handleSourceChange = (src: string) => {
     const auto = autoDisplayName(src, values.destination);
     onChange({ source: src, displayName: auto });
@@ -471,7 +474,11 @@ const PairFormBody: React.FC<{
           checked={values.isFree}
           onChange={(v) => onChange({ isFree: v })}
           label="Free migration"
-          description="Skip the payment step — users can start migrating at no charge."
+          description={
+            priced
+              ? 'No effect on this pair: it has a country price list, so customers pay (or not) per country as listed. Operation Team members never pay.'
+              : 'Skip the payment step — users can start migrating at no charge.'
+          }
         />
       </div>
 
@@ -486,14 +493,26 @@ const PairFormBody: React.FC<{
   );
 };
 
+/**
+ * What a plan costs on a pair, for the admin: a pair with a country price list is priced from it (the plan's own
+ * price is only a default there), so say that instead of showing a number that is never charged.
+ */
+const planPriceText = (plan: ApiPlan, rows: ApiPlanPrice[] | undefined): string => {
+  const own = (rows ?? []).filter((r) => r.planId === plan.id);
+  return own.length > 0
+    ? `${own.length} country price${own.length === 1 ? '' : 's'}`
+    : `${plan.currency} ${parseFloat(plan.basePrice).toFixed(2)}`;
+};
+
 // ─── Plan manager (attach / detach plans on an existing pair) ─────────────────
 
 const PlanManager: React.FC<{
   pairId: number | string;
   attachedPlans: ApiPlan[];
   availablePlans: ApiPlan[];
+  priceRows?: ApiPlanPrice[];
   onRefresh: () => void;
-}> = ({ pairId, attachedPlans, availablePlans, onRefresh }) => {
+}> = ({ pairId, attachedPlans, availablePlans, priceRows, onRefresh }) => {
   const [attachId, setAttachId] = useState('');
   const [working, setWorking]   = useState(false);
   const [err, setErr]           = useState('');
@@ -541,7 +560,7 @@ const PlanManager: React.FC<{
               <div>
                 <p className="text-xs font-medium text-text-primary">{p.name}</p>
                 <p className="text-[11px] text-text-secondary font-mono">
-                  ${parseFloat(p.basePrice).toFixed(2)} {p.currency}
+                  {planPriceText(p, priceRows)}
                 </p>
               </div>
               <button
@@ -568,7 +587,7 @@ const PlanManager: React.FC<{
             <option value="">— Attach a plan —</option>
             {unattached.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} — ${parseFloat(p.basePrice).toFixed(2)} {p.currency}
+                {p.name} — {p.currency} {parseFloat(p.basePrice).toFixed(2)} (default)
               </option>
             ))}
           </select>
@@ -859,14 +878,14 @@ const MigrationPairsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {pair.isFree ? (
+                      {pair.isFree && !(pair.planPrices?.length) ? (
                         <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700">Free</span>
                       ) : pair.plans.length > 0 ? (
                         <div className="space-y-0.5">
                           {pair.plans.map((pl) => (
                             <div key={pl.id} className="flex items-center gap-1.5">
                               <span className="text-xs font-medium text-text-primary">{pl.name}</span>
-                              <span className="text-[11px] text-text-secondary font-mono">${parseFloat(pl.basePrice).toFixed(2)}</span>
+                              <span className="text-[11px] text-text-secondary font-mono">{planPriceText(pl, pair.planPrices)}</span>
                             </div>
                           ))}
                         </div>
@@ -947,11 +966,13 @@ const MigrationPairsPage: React.FC = () => {
               users={users}
               existingAssignees={editAssignees.existing}
               assigneeNote={usersError || editAssignees.error || (!editAssignees.loaded ? 'Loading the current team…' : undefined)}
+              priced={(editTarget.planPrices?.length ?? 0) > 0}
             />
             <PlanManager
               pairId={editTarget.id}
               attachedPlans={editTarget.plans}
               availablePlans={availablePlans}
+              priceRows={editTarget.planPrices}
               onRefresh={load}
             />
             <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">

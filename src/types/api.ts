@@ -384,12 +384,16 @@ export interface UserMigration {
 // ─── Payments (backend-driven flow) ───────────────────────────────────────────
 
 export interface InitiatePaymentRequest {
-  /** Amount in USD cents (e.g. $50.00 → 5000). */
+  /** Amount in minor units of `currency` (e.g. $50.00 → 5000); the server recomputes it from the price list. */
   amount: number;
   migrationPairId: string;
   planId: string;
   /** Total years when buying extra history; the server computes the real amount. */
   years?: number;
+  /** Customer country; selects the server's price list row (price, currency, tax). */
+  country?: string;
+  /** The customer's details record; the server checks its country matches `country`. */
+  inquiryId?: number;
   currency?: string;
   description?: string;
   name?: string;
@@ -466,7 +470,17 @@ export interface PairLogo {
   status: BannerStatus;
 }
 
+export interface ApiPlanPrice {
+  planId: string;
+  country: string;
+  currency: string;
+  basePrice: string;
+  extraYearPrice: string | null;
+  taxRate: string;
+}
+
 export interface MigrationPairEntity {
+  planPrices?: ApiPlanPrice[];
   id: number | string;
   source: string;
   destination: string;

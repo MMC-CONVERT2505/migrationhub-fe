@@ -22,7 +22,7 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 export const OrderSummary: React.FC = () => {
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
   // Plan, years and amount come from one place so this summary can't disagree with the Pay button.
-  const { pair, plan, years, extendedYears, extension, total: amountDue, isFree } = useCheckoutSelection();
+  const { pair, plan, country, years, extendedYears, extension, subtotal, tax, total: amountDue, isFree } = useCheckoutSelection();
   // Operation Team: the plan is paid, but nothing is due at checkout.
   const paymentSkipped = usePaymentSkipped(pair?.isFree ?? false, plan);
   const currency = planCurrency(plan);
@@ -32,7 +32,7 @@ export const OrderSummary: React.FC = () => {
     ? formatFinancialRange(calculateMigrationPeriod(inquiryDetails?.financialYearEnd, years ?? plan.years, plan.isInception))
     : null;
 
-  const total = isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(amountDue)} ${currency}`;
+  const total = isFree ? 'Free' : paymentSkipped ? 'Skipped' : `${formatCurrency(amountDue, currency)}`;
 
   return (
     <section aria-labelledby="order-summary-title" className="overflow-hidden rounded-xl border border-border bg-white">
@@ -54,8 +54,18 @@ export const OrderSummary: React.FC = () => {
           <>
             <Row label="Plan" value={plan.name} />
             <Row label="Historical data" value={extendedYears ? historyLabel(extendedYears) : plan.history} />
+            {!isFree && !paymentSkipped && (extension > 0 || tax > 0) && (
+              <Row label="Plan price" value={Number(plan.basePrice) === 0 ? 'Free' : formatCurrency(Number(plan.basePrice), currency)} />
+            )}
             {extraYears > 0 && !paymentSkipped && extension > 0 && (
-              <Row label="Extra historical years" value={`${extraYears} × ${formatCurrency(plan.extraYearPrice ?? 0)} = ${formatCurrency(extension)} ${currency}`} />
+              <Row label="Extra historical years" value={`${extraYears} × ${formatCurrency(plan.extraYearPrice ?? 0, currency)} = ${formatCurrency(extension, currency)}`} />
+            )}
+            {country && <Row label="Country" value={country} />}
+            {tax > 0 && !paymentSkipped && (
+              <>
+                <Row label="Subtotal" value={formatCurrency(subtotal, currency)} />
+                <Row label={`GST (${plan.taxRate}%)`} value={formatCurrency(tax, currency)} />
+              </>
             )}
             {dateRange && <Row label="Date range" value={dateRange} />}
             {inquiryDetails?.financialYearEnd && <Row label="Financial year end" value={inquiryDetails.financialYearEnd} />}

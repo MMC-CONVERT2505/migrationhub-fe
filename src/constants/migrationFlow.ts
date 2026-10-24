@@ -1,5 +1,6 @@
 import type { InquiryDetails, Pair, Plan } from '@/types';
 import { pairCustomerPath, pairPlanPath } from '@/utils/platformMap';
+import { hasPriceList, normalizeCountry, pricedPlans } from '@/utils/countryPricing';
 
 /** The four stepper stages shown on every post-pair-selection page. */
 export const FLOW_STEPS = [
@@ -47,21 +48,25 @@ export const planCurrency = (plan: Pick<Plan, 'currency'> | null | undefined): s
 
 /** Free when the pair is marketed free or the chosen plan costs nothing. */
 export const isFreeSelection = (pair: Pair | null, plan: Plan | null, extensionCost = 0): boolean =>
-  ((pair?.isFree ?? false) || (plan != null && Number(plan.basePrice) === 0)) && extensionCost === 0;
+  // On a country price list the plan's own (country) price decides; the pair flag is a legacy whole-pair switch.
+  (((!hasPriceList(pair) && (pair?.isFree ?? false)) || (plan != null && Number(plan.basePrice) === 0))) && extensionCost === 0;
 
 /** What a free pair's plan includes — shown instead of the plan's own name, price and feature list. */
 export const FREE_PAIR_BENEFITS = ['All data categories', 'Email + Phone support', 'Quality Analysis Report'] as const;
 
 /** True for the zero-cost plan of a free pair, which is presented as just its history + FREE_PAIR_BENEFITS. */
 export const usesFreePairBenefits = (pair: Pair | null, plan: Pick<Plan, 'basePrice'>): boolean =>
-  (pair?.isFree ?? false) && Number(plan.basePrice) === 0;
+  !hasPriceList(pair) && (pair?.isFree ?? false) && Number(plan.basePrice) === 0;
 
 /** A pair with attached plans needs one chosen. A free pair with none can proceed without. */
 export const planRequired = (pair: Pair): boolean => pair.plans.length > 0 || !pair.isFree;
 
-/** The plan in the store, only if it actually belongs to the pair — a stale id from another pair is ignored. */
-export const findSelectedPlan = (pair: Pair | null, planId: string | null): Plan | null =>
-  pair?.plans.find((p) => p.id === planId) ?? null;
+/**
+ * The plan in the store as priced for the customer's country, only if it actually belongs to the pair and is
+ * sold there — a stale id from another pair, or a plan the chosen country does not get, is ignored.
+ */
+export const findSelectedPlan = (pair: Pair | null, planId: string | null, country: string | null = null): Plan | null =>
+  pricedPlans(pair, country).find((p) => p.id === planId) ?? null;
 
 /** The inquiry in the store, only if it was created for this pair and can still be edited. */
 export const inquiryForPair = (pair: Pair | null, inquiry: InquiryDetails | null): InquiryDetails | null =>
@@ -72,6 +77,8 @@ export const inquiryForPair = (pair: Pair | null, inquiry: InquiryDetails | null
 export interface FlowState {
   pair: Pair | null;
   planId: string | null;
+  /** Customer country: part of what a plan costs, so part of whether the plan is still selectable. */
+  country?: string | null;
   inquiry: InquiryDetails | null;
   /** Operation Team members start a paid plan without paying. */
   paymentSkipped?: boolean;
@@ -91,11 +98,18 @@ export function resolveFlowRedirect(page: 'plan' | 'details' | 'payment' | 'succ
   if (!pair) return '/';
   if (page === 'plan') return null;
 
-  const plan = findSelectedPlan(pair, s.planId);
+  const plan = findSelectedPlan(pair, s.planId, s.country ?? null);
   if (planRequired(pair) && !plan) return pairPlanPath(pair);
   if (page === 'details') return null;
 
-  if (!inquiryForPair(pair, s.inquiry)) return pairCustomerPath(pair);
+  const inquiry = inquiryForPair(pair, s.inquiry);
+  if (!inquiry) return pairCustomerPath(pair);
+  // The country on the customer's details must be the one the order is priced for. A mismatch (they went back and
+  // changed it) sends them to confirm the details again rather than pay a price their details don't support.
+  // After a payment has been made the order is already settled, so nothing is re-checked.
+  if (hasPriceList(pair) && s.country && !s.paymentId && normalizeCountry(inquiry.country) !== s.country) {
+    return pairCustomerPath(pair);
+  }
 
   const free = isFreeSelection(pair, plan, s.extensionCost ?? 0);
   if (page === 'payment') return free || s.paymentSkipped ? SUCCESS_PATH : null;

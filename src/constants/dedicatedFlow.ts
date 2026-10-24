@@ -1,5 +1,6 @@
 import type { Pair, Plan } from '@/types';
 import { pairSlug } from '@/utils/platformMap';
+import { hasPriceList, offeredCountries, pricedPlans } from '@/utils/countryPricing';
 
 /**
  * Pairs that also have a dedicated flow, entered ONLY through the website deep link
@@ -85,5 +86,7 @@ export function dedicatedFlowRedirect({ pair, flow, urlToken, step }: GuardInput
 export function dedicatedFreePlan(pair: Pair): Plan | 'none' | null {
   if (!pair.isFree) return null;
   if (pair.plans.length === 0) return 'none';
+  // Price-listed pair: the free plan is the one that is free in the pair's first country (the others are listed alongside it).
+  if (hasPriceList(pair)) return pricedPlans(pair, offeredCountries(pair)[0]).find((p) => Number(p.basePrice) === 0 && !p.isInception) ?? null;
   return pair.plans.find((p) => Number(p.basePrice) === 0 && !p.isInception) ?? null;
 }

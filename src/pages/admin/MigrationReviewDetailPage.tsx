@@ -219,7 +219,7 @@ const MigrationReviewDetailPage: React.FC = () => {
               {r.migration.plan && (
                 <Row
                   label="Plan price"
-                  value={r.migration.plan.isInception ? 'Inception to date' : `${r.migration.plan.currency} ${r.migration.plan.basePrice}${r.migration.plan.years ? ` · ${r.migration.plan.years}y` : ''}`}
+                  value={r.migration.plan.isInception ? 'Inception to date' : `${r.migration.plan.currency} ${r.migration.plan.basePrice} (default)${r.migration.plan.years ? ` · ${r.migration.plan.years}y` : ''}`}
                 />
               )}
               <Row label="Customer" value={r.migration.customer.name ?? r.migration.customer.email ?? 'Anonymous'} />

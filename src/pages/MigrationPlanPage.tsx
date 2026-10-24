@@ -14,6 +14,7 @@ import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 import { canExtendPlan, effectiveYears, extensionCost, historyLabel, yearOptions } from '@/utils/historyYears';
 import { planCurrency } from '@/constants/migrationFlow';
 import { formatCurrency } from '@/utils/format';
+import { hasPriceList, offeredCountries, orderTotals, pricedPlans, validCountry } from '@/utils/countryPricing';
 import type { MigrationPairEntity } from '@/types/api';
 
 // Display order: Free → Basic → Standard → Enterprise (unknown names sort last).
@@ -32,17 +33,31 @@ const MigrationPlanPage: React.FC = () => {
   const setSelectedPlanId = useAppStore((s) => s.setSelectedPlanId);
   const setSelectedPair = useAppStore((s) => s.setSelectedPair);
   const selectedYears = useAppStore((s) => s.selectedYears);
+  const storedCountry = useAppStore((s) => s.selectedCountry);
+  const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
   const setSelectedYears = useAppStore((s) => s.setSelectedYears);
   const { isOperationTeam } = useOperationTeamMember();
 
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState('');
 
+  // A pair with a country price list is priced per country: the customer picks theirs first, and every
+  // plan below is shown (and later charged) at that country's price. Other pairs ignore all of this.
+  const priceListed = hasPriceList(selectedPair);
+  const countries = useMemo(() => offeredCountries(selectedPair), [selectedPair]);
+  const country = priceListed ? validCountry(selectedPair, storedCountry) : null;
+  // A single-country pair has nothing to choose; a stale or unsold country is dropped, never guessed.
+  useEffect(() => {
+    if (!priceListed) return;
+    const wanted = country ?? (countries.length === 1 ? countries[0] : null);
+    if (wanted !== storedCountry) setSelectedCountry(wanted);
+  }, [priceListed, country, storedCountry, countries, setSelectedCountry]);
+
   const plans = useMemo(
-    () => [...(selectedPair?.plans ?? [])].sort((a, b) => rank(a.name) - rank(b.name)),
-    [selectedPair],
+    () => [...pricedPlans(selectedPair, country)].sort((a, b) => rank(a.name) - rank(b.name)),
+    [selectedPair, country],
   );
-  const selectedPlan = findSelectedPlan(selectedPair, selectedPlanId);
+  const selectedPlan = findSelectedPlan(selectedPair, selectedPlanId, country);
 
   // Pre-select a plan handed over by the website (?plan=<id or name>). Applied only when it names one of this pair's plans; the customer can still change it.
   const planParam = searchParams.get('plan');
@@ -73,8 +88,10 @@ const MigrationPlanPage: React.FC = () => {
   useEffect(() => {
     if (!freeChoice || !dedicatedFlow) return;
     setSelectedPlanId(freeChoice === 'none' ? null : (freeChoice.id ?? null));
+    // The plan was priced for the pair's first country; the details step must start from that same country.
+    if (hasPriceList(selectedPair)) setSelectedCountry(validCountry(selectedPair, storedCountry) ?? offeredCountries(selectedPair)[0] ?? null);
     navigate(dedicatedDetailsPath(dedicatedFlow), { replace: true });
-  }, [freeChoice, dedicatedFlow, setSelectedPlanId, navigate]);
+  }, [freeChoice, dedicatedFlow, setSelectedPlanId, setSelectedCountry, selectedPair, storedCountry, navigate]);
 
   if (!selectedPair) return <Navigate to="/" replace />;
   if (freeChoice) return <div className="min-h-screen flex items-center justify-center bg-bg"><Spinner size="lg" /></div>;
@@ -85,6 +102,7 @@ const MigrationPlanPage: React.FC = () => {
   const years = effectiveYears(selectedPlan, selectedYears, isOperationTeam);
   const extra = extensionCost(selectedPlan, years, isOperationTeam);
   const perYear = selectedPlan?.extraYearPrice ?? null;
+  const fmt = (n: number) => formatCurrency(n, selectedPlan ? planCurrency(selectedPlan) : undefined);
 
   // Re-fetch the public listing for this pair — the same call PairSlugGate makes.
   const retry = async () => {
@@ -104,7 +122,8 @@ const MigrationPlanPage: React.FC = () => {
     }
   };
 
-  const noPlans = plans.length === 0 && needsPlan;
+  const awaitingCountry = priceListed && !country;
+  const noPlans = plans.length === 0 && needsPlan && !awaitingCountry;
 
   return (
     <FlowLayout page="plan">
@@ -118,7 +137,30 @@ const MigrationPlanPage: React.FC = () => {
             : 'Pick the plan that matches how much history you need to bring across.'}
         </p>
 
-        {noPlans ? (
+        {priceListed && countries.length > 0 && (
+          <div className="mt-6">
+            <label htmlFor="plan-country" className="text-sm font-semibold text-text-primary">Country your business is registered in</label>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              This sets your currency and prices, and you&rsquo;ll confirm it with your details next. Not listed?{' '}
+              <Link to="/contact" className="font-medium text-blue-700 hover:underline">Contact us</Link>.
+            </p>
+            <select
+              id="plan-country"
+              value={country ?? ''}
+              onChange={(e) => setSelectedCountry(e.target.value || null)}
+              className="mt-2 w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              {!country && <option value="">Select your country…</option>}
+              {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
+
+        {awaitingCountry ? (
+          <p className="mt-6 rounded-xl border border-border bg-bg-light p-4 text-sm text-text-secondary">
+            Select your country to see the plans and prices available to you.
+          </p>
+        ) : noPlans ? (
           <div role="alert" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
             <p className="text-sm font-semibold text-text-primary">We couldn&rsquo;t load plans for this migration</p>
             <p className="mt-1 text-sm text-text-secondary">
@@ -163,7 +205,7 @@ const MigrationPlanPage: React.FC = () => {
                 ? 'Operation Team: migrate more history than the plan includes (no extra charge).'
                 : perYear === 0
                   ? 'Need more history than the plan includes? Extra years are free.'
-                  : `Need more history than the plan includes? Add extra years for ${formatCurrency(perYear ?? 0)} ${planCurrency(selectedPlan)} each.`}
+                  : `Need more history than the plan includes? Add extra years for ${fmt(perYear ?? 0)} each.`}
             </p>
             <select
               id="history-years"
@@ -174,29 +216,29 @@ const MigrationPlanPage: React.FC = () => {
               {yearOptions(selectedPlan).map((y) => (
                 <option key={y} value={y}>
                   {historyLabel(y)}
-                  {y === selectedPlan.years ? ' (plan)' : !isOperationTeam && perYear ? ` (+${formatCurrency(perYear * (y - (selectedPlan.years ?? y)))})` : ''}
+                  {y === selectedPlan.years ? ' (plan)' : !isOperationTeam && perYear ? ` (+${fmt(perYear * (y - (selectedPlan.years ?? y)))})` : ''}
                 </option>
               ))}
             </select>
             {!isOperationTeam && extra > 0 && (
               <p className="mt-2 text-sm font-semibold text-text-primary" aria-live="polite">
-                Total: {formatCurrency(Number(selectedPlan.basePrice) + extra)} {planCurrency(selectedPlan)}
+                Total: {fmt(orderTotals(selectedPlan, extra).subtotal)}{selectedPlan.taxRate ? ` + ${selectedPlan.taxRate}% GST` : ''}
                 <span className="ml-1 font-normal text-text-secondary">
-                  ({Number(selectedPlan.basePrice) > 0 ? `plan ${formatCurrency(Number(selectedPlan.basePrice))} + ` : ''}{(years ?? 0) - (selectedPlan.years ?? 0)} extra year{(years ?? 0) - (selectedPlan.years ?? 0) === 1 ? '' : 's'})
+                  ({Number(selectedPlan.basePrice) > 0 ? `plan ${fmt(Number(selectedPlan.basePrice))} + ` : ''}{(years ?? 0) - (selectedPlan.years ?? 0)} extra year{(years ?? 0) - (selectedPlan.years ?? 0) === 1 ? '' : 's'})
                 </span>
               </p>
             )}
           </div>
         )}
 
-        {!noPlans && (
+        {!noPlans && !awaitingCountry && (
           <div className="mt-6">
             <Button
               type="button"
               variant="primary"
               size="lg"
               fullWidth
-              disabled={needsPlan && !selectedPlan}
+              disabled={(needsPlan && !selectedPlan) || awaitingCountry}
               onClick={() => navigate(detailsPathFor(selectedPair, dedicatedFlow))}
             >
               Continue

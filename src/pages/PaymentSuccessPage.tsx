@@ -10,6 +10,7 @@ import { ApiError } from '@/api/client';
 import { PENDING_MIGRATION_LS_KEY, useAppStore } from '@/store/appStore';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { formatCurrency } from '@/utils/format';
+import { orderTotals } from '@/utils/countryPricing';
 import { readySummaryRows } from '@/utils/readySummary';
 import { effectiveYears, extensionCost, historyLabel } from '@/utils/historyYears';
 import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
@@ -96,7 +97,8 @@ const PaymentSuccessPage: React.FC = () => {
     return {
       pair: s.selectedPair,
       planId: s.selectedPlanId,
-      plan: findSelectedPlan(s.selectedPair, s.selectedPlanId),
+      plan: findSelectedPlan(s.selectedPair, s.selectedPlanId, s.selectedCountry),
+      country: s.selectedCountry,
       inquiry: s.inquiryDetails,
       selectedYears: s.selectedYears,
     };
@@ -253,7 +255,7 @@ const PaymentSuccessPage: React.FC = () => {
   // Nothing confirmed and nothing to confirm: back to the earliest incomplete step.
   if (!existingMigrationId && !paymentId) {
     const redirect = resolveFlowRedirect('success', {
-      pair, planId: snap.planId, inquiry: snap.inquiry, paymentSkipped: operationTeamSkip, paymentId, extensionCost: extension,
+      pair, planId: snap.planId, country: snap.country, inquiry: snap.inquiry, paymentSkipped: operationTeamSkip, paymentId, extensionCost: extension,
     });
     if (redirect) return <Navigate to={redirect} replace />;
   }
@@ -355,7 +357,7 @@ const PaymentSuccessPage: React.FC = () => {
                       ? 'Skipped (Operation Team)'
                       : isFree
                         ? 'Free'
-                        : `${formatCurrency(Number(plan.basePrice) + extension)} ${currency}`}
+                        : `${formatCurrency(orderTotals(plan, extension).total)} ${currency}`}
                   </dd>
                 </div>
               )}

@@ -5,6 +5,7 @@ import { DATA_CATEGORIES } from '@/constants/pairs';
 import { useAppStore } from '@/store/appStore';
 import { platformDisplayName } from '@/utils/platformName';
 import { formatCurrency } from '@/utils/format';
+import { pricedPlans } from '@/utils/countryPricing';
 import type { Pair } from '@/types';
 
 interface ReviewStepProps {
@@ -38,7 +39,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack })
     selectedPlanId: s.selectedPlanId,
   }));
 
-  const plan = pair.plans.find((p) => p.id === selectedPlanId) ?? null;
+  const selectedCountry = useAppStore((s) => s.selectedCountry);
+  const plan = pricedPlans(pair, selectedCountry).find((p) => p.id === selectedPlanId) ?? null;
 
   const totalRecords = DATA_CATEGORIES
     .filter((_, i) => selectedDataCategories.includes(i))
@@ -110,7 +112,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ pair, onStart, onBack })
               </span>
             ) : plan ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
-                ✓ Paid — {formatCurrency(plan.basePrice)} USD
+                ✓ Paid — {formatCurrency(plan.basePrice)} {plan.currency ?? 'USD'}
               </span>
             ) : (
               <span className="text-text-tertiary">—</span>

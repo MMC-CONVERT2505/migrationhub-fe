@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { CompactFooter } from '@/components/layout/Footer';
 import { Spinner } from '@/components/common/Spinner';
@@ -7,8 +7,15 @@ import { migrationPairsService } from '@/api/migrationPairs';
 import { apiPairToUiPair, extractList, findPairBySlug, uiPairMatchesSlug } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
 import type { MigrationPairEntity } from '@/types/api';
+import { FLOW_PARAM, canonicalSlug, dedicatedFlowRedirect, isDedicatedPair, type DedicatedStep } from '@/constants/dedicatedFlow';
 
 type Status = 'loading' | 'error' | 'ready';
+
+const GateLoader: React.FC = () => (
+  <div className="min-h-screen bg-bg flex items-center justify-center">
+    <Spinner size="lg" />
+  </div>
+);
 
 interface PairSlugGateProps {
   /**
@@ -22,6 +29,8 @@ interface PairSlugGateProps {
    * whose path names the pair itself and so carries no slug param to read.
    */
   slug?: string;
+  /** Which step this wraps — dedicated pair flows guard the details step with the flow token. */
+  step?: DedicatedStep;
   children: React.ReactNode;
 }
 
@@ -36,8 +45,13 @@ interface PairSlugGateProps {
  * wrong pair. Children mount only once a pair is resolved, so every step below can
  * read `selectedPair` and initialise its form state from it.
  */
-export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, slug: fixedSlug, children }) => {
+export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, slug: fixedSlug, step = 'plan', children }) => {
   const { pairSlug } = useParams<{ pairSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const urlToken = searchParams.get(FLOW_PARAM);
+  const dedicatedFlow = useAppStore((s) => s.dedicatedFlow);
+  const startDedicatedFlow = useAppStore((s) => s.startDedicatedFlow);
+  const endDedicatedFlow = useAppStore((s) => s.endDedicatedFlow);
   const slug = fixedSlug ?? pairSlug;
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setSelectedPair = useAppStore((s) => s.setSelectedPair);
@@ -50,6 +64,8 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     error: '',
   });
   const [retry, setRetry] = useState(0);
+  // The pair the URL named, when it is not the pair this tab's dedicated flow is locked to.
+  const [resolvedOther, setResolvedOther] = useState<ReturnType<typeof apiPairToUiPair> | null>(null);
 
   // A stored pair that the URL still names. Skipping the fetch for it keeps the
   // home → details click instant, and gives us something to fall back on when the
@@ -65,6 +81,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
       return;
     }
     if (resolvedFromStore) {
+      setResolvedOther(null);
       setRemote({ slug, status: 'ready', error: '' });
       return;
     }
@@ -72,6 +89,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     const notFound = `We couldn't find the migration "${slug}". It may have been renamed or is no longer available.`;
     let cancelled = false;
     setRemote({ slug, status: 'loading', error: '' });
+    setResolvedOther(null);
 
     migrationPairsService
       .available()
@@ -90,7 +108,12 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
           return;
         }
         // apiPairToUiPair carries the authoritative isFree + plans from the DB.
-        setSelectedPair(apiPairToUiPair(match));
+        const resolved = apiPairToUiPair(match);
+        // Inside a dedicated flow another pair must not replace the flow's pair in the store; the guard below
+        // sends the visitor back to the flow.
+        const flowNow = useAppStore.getState().dedicatedFlow;
+        if (!flowNow || flowNow.slug === canonicalSlug(resolved)) setSelectedPair(resolved);
+        setResolvedOther(flowNow && flowNow.slug !== canonicalSlug(resolved) ? resolved : null);
         setRemote({ slug, status: 'ready', error: '' });
       })
       .catch(() => {
@@ -123,7 +146,23 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     if (lockEntry && status === 'ready') setEntryLocked(true);
   }, [lockEntry, status, setEntryLocked]);
 
-  if (status === 'ready') return <>{children}</>;
+  // Dedicated flow (website deep link only): no way out to home or another pair while it is active. The pair the
+  // URL named decides (not whatever stale pair sits in the store).
+  const urlPair = resolvedOther ?? (storeMatch ? selectedPair : null);
+  const entering = lockEntry && !!urlPair && isDedicatedPair(urlPair) && !dedicatedFlow;
+  const redirect =
+    status === 'ready' && urlPair
+      ? dedicatedFlowRedirect({ pair: urlPair, flow: dedicatedFlow, urlToken, step })
+      : null;
+
+  // Only the website deep link starts the dedicated flow: issue this tab's token, then let the guard re-run with it.
+  useEffect(() => {
+    if (entering && status === 'ready' && urlPair) startDedicatedFlow(canonicalSlug(urlPair));
+  }, [entering, status, urlPair, startDedicatedFlow]);
+
+  if (redirect) return <Navigate to={redirect} replace />;
+  if (status === 'ready' && !entering) return <>{children}</>;
+  if (status === 'ready' && entering) return <GateLoader />;
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -153,7 +192,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
               >
                 Try again
               </button>
-              <Link to="/" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
+              <Link to="/" onClick={() => endDedicatedFlow()} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
                 Go to homepage
               </Link>
             </div>

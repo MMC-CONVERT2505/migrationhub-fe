@@ -210,6 +210,8 @@ const PaymentSuccessPage: React.FC = () => {
         return;
       }
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
+      // A dedicated pair flow locks the visitor in; a failed creation must not leave them with nowhere to go.
+      if (useAppStore.getState().dedicatedFlow) useAppStore.getState().endDedicatedFlow();
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }

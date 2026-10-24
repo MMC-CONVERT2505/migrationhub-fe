@@ -1,4 +1,5 @@
 import type { TransactionPlan } from '@/constants/transactionPlans';
+import type { DedicatedFlow } from '@/constants/dedicatedFlow';
 
 // ─── Platform & Migration Pair Types ────────────────────────────────────────
 
@@ -126,10 +127,15 @@ export interface AppState {
   inquiryDetails: InquiryDetails | null;
   /** True when the user arrived via an external deep link — the home page is then locked. */
   entryLocked: boolean;
+  /** Dedicated pair flows only: issued on entry through the Hub, proves this tab came in properly. */
+  dedicatedFlow: DedicatedFlow | null;
 
   setScreen: (screen: Screen) => void;
   setSelectedPair: (pair: Pair | null) => void;
   setEntryLocked: (locked: boolean) => void;
+  /** Enter a dedicated pair's flow: issues this tab's token and locks the session to the flow. */
+  startDedicatedFlow: (slug: string) => void;
+  endDedicatedFlow: () => void;
   nextMigrationStep: () => void;
   prevMigrationStep: () => void;
   toggleDataCategory: (index: number) => void;

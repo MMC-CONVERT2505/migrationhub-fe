@@ -60,6 +60,9 @@ const PlansPage: React.FC = () => {
 
   const [form, setForm]             = useState<CreatePlanRequest>(EMPTY);
   const [featuresText, setFeaturesText] = useState('');
+  // "Historical years": whether customers may add years beyond the plan. Off sends no price, which is what
+  // hides the selector on the user side; the typed price is kept in the form so toggling doesn't lose it.
+  const [yearsEnabled, setYearsEnabled] = useState(false);
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState('');
 
@@ -85,20 +88,29 @@ const PlansPage: React.FC = () => {
     const req = planToRequest(preset);
     setForm(req);
     setFeaturesText(req.features.join('\n'));
+    setYearsEnabled(false);
   };
 
   const buildForm = (): CreatePlanRequest => ({
     ...form,
     // Unlimited plans don't carry a year count — let the backend null it out.
     years: form.isInception ? undefined : form.years,
-    // null clears it (customers can't extend); unlimited plans have no years to extend.
-    extraYearPrice: form.isInception ? null : (form.extraYearPrice ?? null),
+    // null = Historical years disabled (customers can't extend); unlimited plans have no years to extend.
+    extraYearPrice: form.isInception || !yearsEnabled ? null : (form.extraYearPrice ?? null),
     features: featuresText.split('\n').map((s) => s.trim()).filter(Boolean),
   });
+
+  /** Enabled needs a price (0 = free); otherwise the plan would silently save as disabled. */
+  const yearsProblem = (): string | null =>
+    yearsEnabled && !form.isInception && form.extraYearPrice == null
+      ? 'Enter the price per extra year for Historical years (0 makes extra years free), or set it to Disabled.'
+      : null;
 
   // ── Create ────────────────────────────────────────────────────────────────
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const problem = yearsProblem();
+    if (problem) { setFormError(problem); return; }
     setSaving(true);
     setFormError('');
     try {
@@ -106,6 +118,7 @@ const PlansPage: React.FC = () => {
       setCreateOpen(false);
       setForm(EMPTY);
       setFeaturesText('');
+      setYearsEnabled(false);
       load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Failed to create plan.');
@@ -147,12 +160,15 @@ const PlansPage: React.FC = () => {
       popular:   plan.popular,
     });
     setFeaturesText(plan.features.join('\n'));
+    setYearsEnabled(plan.extraYearPrice != null && !plan.isInception);
     setFormError('');
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
+    const problem = yearsProblem();
+    if (problem) { setFormError(problem); return; }
     setSaving(true);
     setFormError('');
     try {
@@ -286,21 +302,46 @@ const PlansPage: React.FC = () => {
         </Field>
       </div>
 
-      <Field label="Price per extra year">
-        <input
-          type="number"
-          min={0}
-          step="0.01"
-          className={`${inputCls} disabled:bg-bg-light disabled:text-text-tertiary`}
-          value={form.isInception ? '' : (form.extraYearPrice ?? '')}
-          onChange={(e) => setF('extraYearPrice', e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-          placeholder={form.isInception ? 'Not applicable' : 'Leave empty = customers cannot extend'}
-          disabled={form.isInception}
-        />
-        <p className="text-xs text-text-secondary mt-0.5">
-          Charged for each financial year a customer adds beyond this plan&apos;s years (max 15 in total). Empty = not offered; 0 = extra years are free. The Operation Team can always extend, at no charge.
-        </p>
-      </Field>
+      <fieldset className="space-y-2" disabled={form.isInception}>
+        <legend className="block text-xs font-medium text-text-secondary mb-1.5">Historical years</legend>
+        <div className="flex items-center gap-5" role="radiogroup" aria-label="Historical years">
+          {([['Enabled', true], ['Disabled', false]] as const).map(([label, value]) => (
+            <label key={label} className="flex items-center gap-2 text-sm text-text-primary cursor-pointer">
+              <input
+                type="radio"
+                name={`historical-years-${isCreate ? 'create' : 'edit'}`}
+                className="w-4 h-4 border-border text-blue-600 focus:ring-blue-500"
+                checked={!form.isInception && yearsEnabled === value}
+                onChange={() => setYearsEnabled(value)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {form.isInception ? (
+          <p className="text-xs text-text-secondary">Not applicable: an inception-to-date plan already covers all years.</p>
+        ) : yearsEnabled ? (
+          <Field label="Price per extra year" required>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className={inputCls}
+              value={form.extraYearPrice ?? ''}
+              onChange={(e) => setF('extraYearPrice', e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+              placeholder="e.g. 25 (0 = extra years are free)"
+              required
+            />
+            <p className="text-xs text-text-secondary mt-0.5">
+              Customers see a Historical years selector on the plan page and pay this for each financial year added beyond the plan&apos;s years (15 in total at most).
+            </p>
+          </Field>
+        ) : (
+          <p className="text-xs text-text-secondary">
+            Customers can&apos;t add years: the Historical years selector is hidden on the plan page. The Operation Team can always extend, at no charge.
+          </p>
+        )}
+      </fieldset>
 
       <Field label="Features (one per line)" required>
         <textarea
@@ -357,7 +398,7 @@ const PlansPage: React.FC = () => {
             </button>
           )}
           <button
-            onClick={() => { setCreateOpen(true); setForm(EMPTY); setFeaturesText(''); setFormError(''); }}
+            onClick={() => { setCreateOpen(true); setForm(EMPTY); setFeaturesText(''); setYearsEnabled(false); setFormError(''); }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -436,9 +477,9 @@ const PlansPage: React.FC = () => {
                   <span className="font-semibold text-text-primary">{plan.history}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Extra year</span>
+                  <span>Historical years</span>
                   <span className="font-semibold text-text-primary">
-                    {plan.extraYearPrice == null || plan.isInception ? 'Not offered' : `${plan.currency} ${Number(plan.extraYearPrice).toLocaleString()} / year`}
+                    {plan.extraYearPrice == null || plan.isInception ? 'Disabled' : Number(plan.extraYearPrice) === 0 ? 'Enabled · free' : `Enabled · ${plan.currency} ${Number(plan.extraYearPrice).toLocaleString()} / year`}
                   </span>
                 </div>
                 <div className="flex justify-between">

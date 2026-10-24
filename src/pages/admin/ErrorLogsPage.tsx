@@ -14,6 +14,8 @@ import { ApiError } from '@/api/client';
 import { ErrorLogBrowser } from '@/components/admin/ErrorLogBrowser';
 import { MigrationErrorList } from '@/components/admin/ErrorLogBrowser/MigrationErrorList';
 import { ErrorEntry } from '@/components/admin/ErrorLogBrowser/ErrorEntry';
+import { Pagination } from '@/components/admin/Pagination';
+import { clampSkip } from '@/utils/pagination';
 import {
   Badge, CATEGORY_META, GROUP_STATUS_META, SEVERITY_META, ago, fmt,
 } from '@/components/admin/ErrorLogBrowser/shared';
@@ -214,6 +216,9 @@ const ErrorLogsPage: React.FC = () => {
       if (id !== reqId.current) return;
       setRows(res.data);
       setTotal(res.total);
+      // The list can shrink under us: never sit on a page past the end.
+      const safeSkip = clampSkip(skip, res.total, PAGE_SIZE);
+      if (safeSkip !== skip) setSkip(safeSkip);
     } catch (err) {
       if (id !== reqId.current) return;
       setRows([]);
@@ -247,8 +252,6 @@ const ErrorLogsPage: React.FC = () => {
     }),
     [tools],
   );
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
 
   const browserFilters = useMemo(
     () => ({
@@ -443,7 +446,7 @@ const ErrorLogsPage: React.FC = () => {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="admin-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
@@ -537,29 +540,7 @@ const ErrorLogsPage: React.FC = () => {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-text-secondary">
-                <span>Page {currentPage} of {totalPages}</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={skip === 0}
-                    onClick={() => setSkip(Math.max(0, skip - PAGE_SIZE))}
-                    className="px-3 py-1.5 rounded-lg border border-border bg-white disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setSkip(skip + PAGE_SIZE)}
-                    className="px-3 py-1.5 rounded-lg border border-border bg-white disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination skip={skip} size={PAGE_SIZE} total={total} noun="error logs" disabled={loading} onSkipChange={setSkip} />
           </>
         )}
       </div>

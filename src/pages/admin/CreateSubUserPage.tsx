@@ -113,7 +113,7 @@ const CreateSubUserPage: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+      {error && <div role="alert" className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="bg-white border border-border rounded-xl p-6 shadow-card space-y-5 mb-5">

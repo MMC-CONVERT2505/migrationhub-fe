@@ -47,7 +47,7 @@ const MigrationReviewDetailPage: React.FC = () => {
       setR(data);
       setError('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load review request.');
+      setError(err instanceof ApiError ? err.message : 'Failed to load help request.');
     } finally {
       setLoading(false);
     }
@@ -91,9 +91,9 @@ const MigrationReviewDetailPage: React.FC = () => {
   if (error || !r) {
     return (
       <div>
-        <Link to="/admin/migration-reviews" className="text-sm text-blue-600 hover:underline">← Back to migration reviews</Link>
-        <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {error || 'Review request not found.'}
+        <Link to="/admin/migration-reviews" className="text-sm text-blue-600 hover:underline">← Back to migration help requests</Link>
+        <div role="alert" className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {error || 'Help request not found.'}
         </div>
       </div>
     );
@@ -105,7 +105,7 @@ const MigrationReviewDetailPage: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-      <Link to="/admin/migration-reviews" className="text-sm text-blue-600 hover:underline">← Back to migration reviews</Link>
+      <Link to="/admin/migration-reviews" className="text-sm text-blue-600 hover:underline">← Back to migration help requests</Link>
 
       <div className="mt-3 mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

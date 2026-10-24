@@ -71,10 +71,12 @@ interface DonutChartProps {
   loading?: boolean;
 }
 
+// Status colours stay semantic (green / red); "in progress" follows the brand accent and "pending" is neutral so
+// the two never read as the same orange. CSS variables keep the chart on the theme.
 const COLORS = {
   completed:  '#16a34a',
-  inProgress: '#2563eb',
-  pending:    '#b45309',
+  inProgress: 'rgb(var(--blue-600))',
+  pending:    'rgb(var(--text-tertiary))',
   failed:     '#dc2626',
 };
 
@@ -93,7 +95,7 @@ function buildArcs(
         key={i}
         cx={cx} cy={cy} r={r}
         fill="none"
-        stroke={color}
+        style={{ stroke: color }}
         strokeWidth={sw}
         strokeDasharray={`${dash} ${gap}`}
         strokeDashoffset={-offset + circ / 4}
@@ -130,12 +132,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({ outcomes, loading }) => 
           <div className="w-[138px] h-[138px] rounded-full border-[18px] border-bg-lighter animate-pulse" />
         ) : (
           <svg width="138" height="138" viewBox="0 0 138 138">
-            <circle cx="69" cy="69" r="52" fill="none" stroke="#e8edf7" strokeWidth="18" />
+            <circle cx="69" cy="69" r="52" fill="none" style={{ stroke: 'rgb(var(--bg-lighter))' }} strokeWidth="18" />
             {buildArcs(data, total)}
-            <text x="69" y="64" textAnchor="middle" fontSize="19" fontWeight="700" fill="#111827" fontFamily="IBM Plex Sans, sans-serif">
+            <text x="69" y="64" textAnchor="middle" fontSize="19" fontWeight="700" style={{ fill: 'rgb(var(--text-primary))' }} fontFamily="IBM Plex Sans, sans-serif">
               {successRate}%
             </text>
-            <text x="69" y="79" textAnchor="middle" fontSize="9.5" fill="#4b5568" fontFamily="IBM Plex Sans, sans-serif">
+            <text x="69" y="79" textAnchor="middle" fontSize="9.5" style={{ fill: 'rgb(var(--text-secondary))' }} fontFamily="IBM Plex Sans, sans-serif">
               success rate
             </text>
           </svg>

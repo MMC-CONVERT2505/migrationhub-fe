@@ -5,32 +5,11 @@ import { permissionsService } from '@/api/permissions';
 import { ApiError } from '@/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { CreateRoleRequest, Permission, Role } from '@/types/api';
+import { Modal } from '@/components/admin/Modal';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 const inputCls =
   'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white transition-colors';
-
-const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
-  title, onClose, children,
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-    >
-      <div className="flex items-center justify-between p-5 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  </div>
-);
 
 // ─── Permission checkbox list ─────────────────────────────────────────────────
 const PermissionPicker: React.FC<{
@@ -230,10 +209,11 @@ const RolesPage: React.FC = () => {
         )}
       </div>
 
-      {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+      {error && <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       {/* Table */}
       <div className="bg-white border border-border rounded-xl overflow-hidden shadow-card">
+        <div className="admin-scroll">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-light">
@@ -326,13 +306,14 @@ const RolesPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Create Modal */}
       {createOpen && (
-        <Modal title="Create Role" onClose={() => setCreateOpen(false)}>
+        <Modal size="lg" title="Create Role" onClose={() => setCreateOpen(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
-            {formError && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
+            {formError && <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
             {roleForm(true)}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light transition-colors">Cancel</button>
@@ -344,9 +325,9 @@ const RolesPage: React.FC = () => {
 
       {/* Edit Modal */}
       {editTarget && (
-        <Modal title={`Edit — ${editTarget.name}`} onClose={() => setEditTarget(null)}>
+        <Modal size="lg" title={`Edit — ${editTarget.name}`} onClose={() => setEditTarget(null)}>
           <form onSubmit={handleEdit} className="space-y-4">
-            {formError && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
+            {formError && <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
             {roleForm(false)}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light transition-colors">Cancel</button>
@@ -358,7 +339,7 @@ const RolesPage: React.FC = () => {
 
       {/* Delete Confirm */}
       {deleteTarget && (
-        <Modal title="Delete Role" onClose={() => setDeleteTarget(null)}>
+        <Modal size="lg" title="Delete Role" onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
             <p className="text-sm text-text-secondary">
               Are you sure you want to delete <span className="font-semibold text-text-primary">{deleteTarget.name}</span>? Users with this role will lose its permissions.
@@ -373,9 +354,9 @@ const RolesPage: React.FC = () => {
 
       {/* Assign Permissions Modal (per-role) */}
       {assignTarget && (
-        <Modal title={`Permissions — ${assignTarget.name}`} onClose={() => setAssignTarget(null)}>
+        <Modal size="lg" title={`Permissions — ${assignTarget.name}`} onClose={() => setAssignTarget(null)}>
           <form onSubmit={handleAssignSave} className="space-y-4">
-            {assignError && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{assignError}</div>}
+            {assignError && <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{assignError}</div>}
             <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
               This replaces all permissions on this role. Always send the complete desired set.
             </div>

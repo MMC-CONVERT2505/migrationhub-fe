@@ -5,6 +5,7 @@ import { faqsService } from '@/api/faqs';
 import { ApiError } from '@/api/client';
 import { extractList } from '@/utils/platformMap';
 import type { FaqEntity, FaqStatus } from '@/types/api';
+import { Modal } from '@/components/admin/Modal';
 
 // ─── Shared UI primitives (match the other admin pages) ───────────────────────
 
@@ -15,35 +16,6 @@ const plainText = (html: string): string =>
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-const Modal: React.FC<{
-  title: string;
-  wide?: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ title, wide, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96, y: -8 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      className={`relative bg-white rounded-2xl shadow-2xl w-full mb-10 ${wide ? 'max-w-3xl' : 'max-w-md'}`}
-    >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button
-          onClick={onClose}
-          className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
-  </div>
-);
 
 const StatusBadge: React.FC<{ status: FaqStatus }> = ({ status }) => (
   <span
@@ -121,7 +93,7 @@ const FaqsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
 
       <div className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
@@ -140,7 +112,7 @@ const FaqsPage: React.FC = () => {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="admin-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg-light">

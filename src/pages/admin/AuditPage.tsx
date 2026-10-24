@@ -4,6 +4,8 @@ import { ActivityFeed } from '@/components/admin/ActivityFeed';
 import { BarChart, DonutChart } from '@/components/admin/Charts';
 import { analyticsService, activitiesService } from '@/api/admin';
 import { principalLabel, principalSubLabel } from '@/utils/format';
+import { Pagination } from '@/components/admin/Pagination';
+import { clampSkip } from '@/utils/pagination';
 import type {
   ActivityItem,
   AnalyticsOutcomes,
@@ -77,6 +79,9 @@ const AuditPage: React.FC = () => {
       const rows = (res as any)?.data ?? res;
       setAuditRows(Array.isArray(rows) ? rows : rows?.data ?? []);
       setAuditTotal((res as any)?.total ?? 0);
+      // The list can shrink under us: never sit on a page past the end.
+      const safeSkip = clampSkip(skip, ((res as any)?.total ?? 0), PAGE_SIZE);
+      if (safeSkip !== skip) setSkip(safeSkip);
     } catch {
       setAuditRows([]);
     } finally {
@@ -116,8 +121,6 @@ const AuditPage: React.FC = () => {
       ]
     : Array(4).fill(null);
 
-  const totalPages  = Math.ceil(auditTotal / PAGE_SIZE);
-  const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -222,7 +225,7 @@ const AuditPage: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="admin-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -297,31 +300,7 @@ const AuditPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-secondary">
-              Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, auditTotal)} of {auditTotal}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setSkip((p) => Math.max(0, p - PAGE_SIZE))}
-                disabled={skip === 0}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1 text-xs text-text-secondary">{currentPage} / {totalPages}</span>
-              <button
-                onClick={() => setSkip((p) => p + PAGE_SIZE)}
-                disabled={skip + PAGE_SIZE >= auditTotal}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination skip={skip} size={PAGE_SIZE} total={auditTotal} noun="entries" disabled={auditLoading} onSkipChange={setSkip} />
       </div>
 
       {/* Live activity feed */}

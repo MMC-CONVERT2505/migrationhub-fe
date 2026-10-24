@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ORDER_SOURCE_LABEL,
+  gatewayLabel,
   type PaymentStatus,
   adminMigrationsService,
   type AdminMigrationDetail,
@@ -107,7 +108,7 @@ const MigrationDetailPage: React.FC = () => {
     return (
       <div>
         <Link to="/admin/migrations" className="text-sm text-blue-600 hover:underline">← Back to migrations</Link>
-        <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div role="alert" className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           {error || 'Migration not found.'}
         </div>
       </div>
@@ -306,7 +307,7 @@ const MigrationDetailPage: React.FC = () => {
                   label="Amount"
                   value={`${m.payment.currency} ${Number(m.payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 />
-                <Row label="Gateway" value={m.payment.gateway} />
+                <Row label="Gateway" value={gatewayLabel(m.payment.gateway)} />
                 <Row label="Transaction ID" value={m.payment.transactionId ?? '—'} mono />
                 <Row label="Reference" value={m.payment.reference ?? '—'} mono />
                 <Row
@@ -325,7 +326,7 @@ const MigrationDetailPage: React.FC = () => {
                   : m.migrationPair.isFree
                   ? 'Free migration — no payment is required.'
                   : m.orderSource === 'APP_STORE'
-                    ? 'The App Store tool has not reported a payment for this order yet.'
+                    ? 'The Xero App Store tool has not reported a payment for this order yet.'
                     : 'No payment has been recorded for this migration.'}
               </p>
             )}

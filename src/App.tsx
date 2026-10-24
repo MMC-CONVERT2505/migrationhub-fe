@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/Spinner';
@@ -77,8 +77,25 @@ const RouteBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
 };
 
+/**
+ * A page the browser restores from its back/forward cache keeps its old in-memory state and never re-runs the app's
+ * start-up. The flow lock is written to the tab's saved session by pages visited after it, so re-read that
+ * session whenever a cached page is shown again — otherwise Back could show a stale home page inside a locked flow.
+ */
+const SessionResync: React.FC = () => {
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) void useAppStore.persist.rehydrate();
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
+  return null;
+};
+
 const App: React.FC = () => (
   <RouteBoundary>
+  <SessionResync />
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />

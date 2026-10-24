@@ -7,6 +7,8 @@ import { InputField } from '@/components/auth/InputField';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/utils/format';
 import { useAppStore } from '@/store/appStore';
+import { skipsPlanStep } from '@/constants/dedicatedFlow';
+import { useDedicatedBackTrap } from '@/hooks/useDedicatedBackTrap';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
 import { FY_ENDS, COUNTRY_FY_END, DEFAULT_FY_END } from '@/constants/financialYear';
@@ -195,6 +197,9 @@ const MigrationInfoPage: React.FC = () => {
   const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
   const selectedPlanId = useAppStore((s) => s.selectedPlanId);
+  const dedicatedFlow = useAppStore((s) => s.dedicatedFlow);
+  // Direct-link flow only: Back/Forward must not leave customer-details. Normal flows are untouched.
+  useDedicatedBackTrap(skipsPlanStep(selectedPair, dedicatedFlow));
 
   // Going back to this page after the inquiry was created (e.g. "Edit details" on the
   // payment page) updates that inquiry rather than creating a duplicate.
@@ -566,13 +571,16 @@ const MigrationInfoPage: React.FC = () => {
               <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>
                 {nextPath === SUCCESS_PATH ? 'Continue' : 'Continue to Payment'}
               </Button>
-              <button
-                type="button"
-                onClick={() => navigate(pairPlanPath(selectedPair))}
-                className="mt-2 w-full text-center text-xs font-medium text-text-secondary hover:text-text-primary underline-offset-2 hover:underline"
-              >
-                Change plan
-              </button>
+              {/* A dedicated flow takes the Free plan on entry and has no plan step to go back to. */}
+              {!skipsPlanStep(selectedPair, dedicatedFlow) && (
+                <button
+                  type="button"
+                  onClick={() => navigate(pairPlanPath(selectedPair))}
+                  className="mt-2 w-full text-center text-xs font-medium text-text-secondary hover:text-text-primary underline-offset-2 hover:underline"
+                >
+                  Change plan
+                </button>
+              )}
             </div>
           </form>
         </div>

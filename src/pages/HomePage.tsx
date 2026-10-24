@@ -24,7 +24,6 @@ const HomePage: React.FC = () => {
   // Deep-link users are locked to the migration flow — the marketing home is off-limits.
   const entryLocked = useAppStore((s) => s.entryLocked);
   const selectedPair = useAppStore((s) => s.selectedPair);
-  const setEntryLocked = useAppStore((s) => s.setEntryLocked);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -37,9 +36,11 @@ const HomePage: React.FC = () => {
   }, []);
 
   // Clear a stale lock that has no pair to return to, so we never trap the user (or loop).
+  const dedicatedFlow = useAppStore((s) => s.dedicatedFlow);
+  const endDedicatedFlow = useAppStore((s) => s.endDedicatedFlow);
   useEffect(() => {
-    if (entryLocked && !selectedPair) setEntryLocked(false);
-  }, [entryLocked, selectedPair, setEntryLocked]);
+    if (!selectedPair && (entryLocked || dedicatedFlow)) endDedicatedFlow();
+  }, [entryLocked, dedicatedFlow, selectedPair, endDedicatedFlow]);
 
   if (entryLocked && selectedPair) return <Navigate to={pairDetailsPath(selectedPair)} replace />;
 

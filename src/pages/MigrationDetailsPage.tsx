@@ -11,7 +11,7 @@ import MigrationInfoPage from '@/pages/MigrationInfoPage';
  * MigrationInfoPage sends the visitor back to the Plan page if no plan is chosen yet.
  */
 const MigrationDetailsPage: React.FC = () => (
-  <PairSlugGate>
+  <PairSlugGate step="details">
     <MigrationInfoPage />
   </PairSlugGate>
 );

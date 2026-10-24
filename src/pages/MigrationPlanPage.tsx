@@ -5,8 +5,10 @@ import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
 import { PlanCard } from '@/components/payment/PlanCard';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
+import { Spinner } from '@/components/common/Spinner';
+import { dedicatedDetailsPath, dedicatedFreePlan, detailsPathFor, skipsPlanStep } from '@/constants/dedicatedFlow';
 import { migrationPairsService } from '@/api/migrationPairs';
-import { apiPairToUiPair, extractList, findPairBySlug, pairCustomerPath, pairSlug } from '@/utils/platformMap';
+import { apiPairToUiPair, extractList, findPairBySlug, pairSlug } from '@/utils/platformMap';
 import { findSelectedPlan, planRequired, usesFreePairBenefits } from '@/constants/migrationFlow';
 import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 import { canExtendPlan, effectiveYears, extensionCost, historyLabel, yearOptions } from '@/utils/historyYears';
@@ -62,7 +64,20 @@ const MigrationPlanPage: React.FC = () => {
     if (soleFreePlanId && selectedPlanId !== soleFreePlanId) setSelectedPlanId(soleFreePlanId);
   }, [soleFreePlanId, selectedPlanId, setSelectedPlanId]);
 
+  // Dedicated pair flow (Xero → Reckon): the plan step is still the first stop, but a free pair has nothing to
+  // choose, so take the Free plan and go straight on to customer details with this tab's flow token.
+  const dedicatedFlow = useAppStore((s) => s.dedicatedFlow);
+  // Every visit to this step moves straight on (replacing it in the history), so it is never a place to come back
+  // to: customer-details is the only stop. Back, the logo and the home page all end up there.
+  const freeChoice = skipsPlanStep(selectedPair, dedicatedFlow) && selectedPair ? dedicatedFreePlan(selectedPair) : null;
+  useEffect(() => {
+    if (!freeChoice || !dedicatedFlow) return;
+    setSelectedPlanId(freeChoice === 'none' ? null : (freeChoice.id ?? null));
+    navigate(dedicatedDetailsPath(dedicatedFlow), { replace: true });
+  }, [freeChoice, dedicatedFlow, setSelectedPlanId, navigate]);
+
   if (!selectedPair) return <Navigate to="/" replace />;
+  if (freeChoice) return <div className="min-h-screen flex items-center justify-center bg-bg"><Spinner size="lg" /></div>;
 
   const needsPlan = planRequired(selectedPair);
   // Operation Team only: migrate more historical years than the plan covers.
@@ -182,7 +197,7 @@ const MigrationPlanPage: React.FC = () => {
               size="lg"
               fullWidth
               disabled={needsPlan && !selectedPlan}
-              onClick={() => navigate(pairCustomerPath(selectedPair))}
+              onClick={() => navigate(detailsPathFor(selectedPair, dedicatedFlow))}
             >
               Continue
             </Button>

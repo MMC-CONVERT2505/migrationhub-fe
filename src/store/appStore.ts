@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AppState, PendingMigration, Screen, Pair, InquiryDetails } from '@/types';
+import { newFlowToken } from '@/constants/dedicatedFlow';
 
 const PENDING_MIGRATION_LS_KEY = 'mmc-pending-migration';
 
@@ -18,10 +19,14 @@ export const useAppStore = create<AppState>()(
       selectedYears: null,
       inquiryDetails: null,
       entryLocked: false,
+      dedicatedFlow: null,
 
       setScreen: (screen: Screen) => set({ currentScreen: screen }),
       setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
       setEntryLocked: (locked: boolean) => set({ entryLocked: locked }),
+      // A fresh entry always gets a fresh token, so an old link or another tab's token can never match.
+      startDedicatedFlow: (slug: string) => set({ dedicatedFlow: { slug, token: newFlowToken() }, entryLocked: true }),
+      endDedicatedFlow: () => set({ dedicatedFlow: null, entryLocked: false }),
 
       nextMigrationStep: () =>
         set((s) => ({ migrationStep: Math.min(s.migrationStep + 1, 5) })),
@@ -52,6 +57,7 @@ export const useAppStore = create<AppState>()(
           selectedPlanId: null,
           selectedYears: null,
           entryLocked: false,
+          dedicatedFlow: null,
           // A finished flow's inquiry must not be attached to the next pair's checkout.
           inquiryDetails: null,
         }),
@@ -82,6 +88,7 @@ export const useAppStore = create<AppState>()(
         selectedYears: s.selectedYears,
         inquiryDetails: s.inquiryDetails,
         entryLocked: s.entryLocked,
+        dedicatedFlow: s.dedicatedFlow,
       }),
     },
   ),

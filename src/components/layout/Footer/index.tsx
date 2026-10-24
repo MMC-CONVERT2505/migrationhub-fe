@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { EXTERNAL_LINKS, CONTACT_EMAIL, CONTACT_PHONE } from '@/constants/links';
 import { goToSection } from '@/utils/scroll';
 import { LogoMark } from '@/components/layout/Navbar';
+import { NAV_TEXT_MUTED } from '@/constants/navStyles';
 
 type FooterLink =
   | { label: string; to: string }
@@ -31,7 +32,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
   ],
 };
 
-const LINK_CLASS = 'text-sm text-text-tertiary hover:text-text-secondary transition-colors';
+const LINK_CLASS = `text-sm ${NAV_TEXT_MUTED}`;
 
 /** Slim footer for task pages (flow, tracker, history): same copyright line as the full one. */
 export const CompactFooter: React.FC = () => (
@@ -97,8 +98,8 @@ export const Footer: React.FC = () => {
         <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-x-8 gap-y-1 text-sm text-text-tertiary">
             <p>&copy; {new Date().getFullYear()} MMC Convert. All rights reserved.</p>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-text-secondary transition-colors">{CONTACT_EMAIL}</a>
-            <a href={`tel:${CONTACT_PHONE}`} className="hover:text-text-secondary transition-colors">{CONTACT_PHONE}</a>
+            <a href={`mailto:${CONTACT_EMAIL}`} className={NAV_TEXT_MUTED}>{CONTACT_EMAIL}</a>
+            <a href={`tel:${CONTACT_PHONE}`} className={NAV_TEXT_MUTED}>{CONTACT_PHONE}</a>
           </div>
           <div className="flex items-center gap-4 text-xs text-text-tertiary">
             <span className="flex items-center gap-1.5">

@@ -8,6 +8,7 @@ import { useAuthScope } from '@/hooks/useAuthScope';
 import { authService } from '@/api/auth';
 import { goToSection } from '@/utils/scroll';
 import { OperationTeamBadge } from '@/components/auth/OperationTeamBadge';
+import { NAV_TEXT } from '@/constants/navStyles';
 
 interface NavbarProps {
   variant?: 'default' | 'admin';
@@ -104,7 +105,7 @@ const UserMenu: React.FC = () => {
             <Link
               to="/migrations"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-primary hover:text-blue-700 focus-visible:text-blue-700 hover:bg-bg-light transition-colors"
             >
               <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
@@ -115,7 +116,7 @@ const UserMenu: React.FC = () => {
             <Link
               to="/change-password"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-primary hover:text-blue-700 focus-visible:text-blue-700 hover:bg-bg-light transition-colors"
             >
               <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -168,8 +169,8 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
   const navLinks = (mobile: boolean) =>
     NAV_LINKS.map((link) => {
       const cls = mobile
-        ? 'px-3 py-2.5 text-sm font-semibold text-blue-700 rounded-md hover:bg-bg-light hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600'
-        : 'px-3 py-2 text-sm font-semibold text-blue-700 rounded-md hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600';
+        ? `px-3 py-2.5 text-sm font-semibold rounded-md hover:bg-bg-light hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${NAV_TEXT}`
+        : `px-3 py-2 text-sm font-semibold rounded-md hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${NAV_TEXT}`;
       return 'to' in link ? (
         <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)} className={cls}>{link.label}</Link>
       ) : (
@@ -239,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors text-sm rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="flex items-center gap-1.5 text-text-primary hover:text-blue-700 focus-visible:text-blue-700 transition-colors text-sm rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -274,7 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
                 <>
                   <Link
                     to="/sign-in"
-                    className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors font-medium"
+                    className="px-3 py-1.5 text-sm text-text-primary hover:text-blue-700 focus-visible:text-blue-700 rounded-md hover:bg-bg-light transition-colors font-medium"
                   >
                     Sign in
                   </Link>
@@ -296,7 +297,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
 
             {/* Mobile menu button */}
             <button
-              className={cn('p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-light transition-colors', 'lg:hidden')}
+              className={cn('p-2 rounded-md text-text-primary hover:text-blue-700 focus-visible:text-blue-700 hover:bg-bg-light transition-colors', 'lg:hidden')}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -351,14 +352,14 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
                   <Link
                     to="/migrations"
                     onClick={() => setMobileOpen(false)}
-                    className="px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors font-medium"
+                    className="px-3 py-2.5 text-sm text-text-primary hover:text-blue-700 focus-visible:text-blue-700 rounded-md hover:bg-bg-light transition-colors font-medium"
                   >
                     My Migrations
                   </Link>
                   <Link
                     to="/change-password"
                     onClick={() => setMobileOpen(false)}
-                    className="px-3 py-2.5 text-sm text-text-secondary hover:text-text-primary rounded-md hover:bg-bg-light transition-colors font-medium"
+                    className="px-3 py-2.5 text-sm text-text-primary hover:text-blue-700 focus-visible:text-blue-700 rounded-md hover:bg-bg-light transition-colors font-medium"
                   >
                     Change password
                   </Link>
@@ -374,7 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({ variant = 'default', showBack = 
                   <Link
                     to="/sign-in"
                     onClick={() => setMobileOpen(false)}
-                    className="px-3 py-2.5 text-sm text-center text-text-secondary hover:text-text-primary rounded-md border border-border hover:bg-bg-light transition-colors font-medium"
+                    className="px-3 py-2.5 text-sm text-center text-text-primary hover:text-blue-700 focus-visible:text-blue-700 rounded-md border border-border hover:bg-bg-light transition-colors font-medium"
                   >
                     Sign in
                   </Link>

@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
 import { usePermissions } from '@/hooks/usePermissions';
+import { NAV_TEXT } from '@/constants/navStyles';
 
 interface NavItem {
   label: string;
@@ -197,7 +198,7 @@ export const AdminLayout: React.FC = () => {
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-blue-50 text-blue-700'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-light'
+                    : `hover:bg-bg-light ${NAV_TEXT}`
                 )
               }
             >
@@ -218,7 +219,7 @@ export const AdminLayout: React.FC = () => {
             className={({ isActive }) =>
               cn(
                 'flex-shrink-0 min-w-[76px] px-2 flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
-                isActive ? 'text-blue-700' : 'text-text-secondary'
+                isActive ? 'text-blue-700' : NAV_TEXT
               )
             }
           >

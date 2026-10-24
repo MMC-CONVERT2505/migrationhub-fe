@@ -24,9 +24,13 @@ interface PairLogo { image: string; name: string }
 
 export type OrderSource = 'MIGRATION_HUB' | 'APP_STORE';
 
+/** Payment gateways as people read them; the stored value for Xero App Store payments stays "AppStore". */
+export const gatewayLabel = (gateway: string | null | undefined): string =>
+  gateway === 'AppStore' ? 'Xero App Store' : (gateway ?? '—');
+
 export const ORDER_SOURCE_LABEL: Record<OrderSource, string> = {
   MIGRATION_HUB: 'MigrationHub',
-  APP_STORE: 'App Store',
+  APP_STORE: 'Xero App Store',
 };
 
 export interface AdminMigrationPair {
@@ -73,11 +77,11 @@ export interface AdminMigrationListItem {
   user: { email: string | null; firstname: string; lastname: string } | null;
   customer: MigrationCustomer;
   runner: MigrationRunner;
-  /** Where the order was placed: the MigrationHub itself, or the App Store (run by the migration tool). */
+  /** Where the order was placed: the MigrationHub itself, or the Xero App Store (run by the migration tool). */
   orderSource: OrderSource;
   /** An Operation Team member started this paid migration without payment. */
   paymentWaived: boolean;
-  /** What an App Store tool said it sold (years, matched plan…); null for hub orders. */
+  /** What a Xero App Store tool said it sold (years, matched plan…); null for hub orders. */
   externalDetails?: { years?: number | null; isInception?: boolean } | null;
   plan: { name: string } | null;
   /** Total years when the order extends the plan's history (customer-paid or Operation Team); null = the plan's own. */
@@ -132,7 +136,7 @@ export interface AdminMigrationPayment {
   /** Decimal string, 2 places. */
   amount: string;
   currency: string;
-  /** Who took the payment: Razorpay for hub checkouts, AppStore for App Store orders. */
+  /** Who took the payment: Razorpay for hub checkouts, AppStore for Xero App Store orders. */
   gateway: string;
   /** The gateway's own payment / transaction id, once one exists. */
   transactionId: string | null;

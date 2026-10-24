@@ -31,7 +31,8 @@ export function formatCurrency(amount: number): string {
 /** Kept for the pay button; identical to formatCurrency now that decimals are gone. */
 export const formatCurrencyCompact = formatCurrency;
 
-export function formatNumber(n: number): string {
+export function formatNumber(n: number | null | undefined): string {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
   return n.toLocaleString();
 }
 

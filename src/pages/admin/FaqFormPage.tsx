@@ -476,7 +476,7 @@ const FaqFormPage: React.FC = () => {
       ) : (
         <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-5">
           {formError && (
-            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{formError}</div>
+            <div role="alert" className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{formError}</div>
           )}
 
           <section className="bg-white border border-border rounded-xl shadow-card p-5 sm:p-6 space-y-4">

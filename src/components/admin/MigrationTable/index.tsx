@@ -18,7 +18,7 @@ export const MigrationTable: React.FC<MigrationTableProps> = ({ pairs, loading }
       </span>
     </div>
 
-    <div className="overflow-x-auto">
+    <div className="admin-scroll">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-bg-light">

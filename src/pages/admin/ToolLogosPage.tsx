@@ -5,6 +5,7 @@ import { uploadService } from '@/api/upload';
 import { ApiError } from '@/api/client';
 import { extractList } from '@/utils/platformMap';
 import type { BannerEntity, BannerType, CreateBannerRequest } from '@/types/api';
+import { Modal } from '@/components/admin/Modal';
 
 // Brand logos are stored as banners. This page manages the two logo types:
 // ToolLogo (attached to migration pairs) and HomeLogo (site branding).
@@ -38,34 +39,6 @@ const Field: React.FC<{
     </label>
     {children}
     {hint && <p className="text-[11px] text-text-secondary">{hint}</p>}
-  </div>
-);
-
-const Modal: React.FC<{
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96, y: -8 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mb-10"
-    >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button
-          onClick={onClose}
-          className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
   </div>
 );
 
@@ -289,7 +262,7 @@ const ToolLogosPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
 
       <div className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
@@ -351,7 +324,7 @@ const ToolLogosPage: React.FC = () => {
         <Modal title={editTarget ? `Edit — ${editTarget.name}` : 'Add Tool Logo'} onClose={closeForms}>
           <form onSubmit={editTarget ? handleEdit : handleCreate} className="space-y-4">
             {formError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
+              <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
             <Field label="Name" required hint="Shown to admins when picking a logo, e.g. “QuickBooks Online”.">
               <input

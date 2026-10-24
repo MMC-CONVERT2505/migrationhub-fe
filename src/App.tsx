@@ -1,6 +1,6 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { isAdminPath } from '@/utils/brandTheme';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/Spinner';
 import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -19,6 +19,7 @@ const PrivacyPage         = React.lazy(() => import('@/pages/PrivacyPage'));
 const TermsPage           = React.lazy(() => import('@/pages/TermsPage'));
 const ForgotPasswordPage  = React.lazy(() => import('@/pages/ForgotPasswordPage'));
 const ResetPasswordPage   = React.lazy(() => import('@/pages/ResetPasswordPage'));
+const ChangePasswordPage  = React.lazy(() => import('@/pages/ChangePasswordPage'));
 const MigrationPage        = React.lazy(() => import('@/pages/MigrationPage'));
 const MigrationPlanPage     = React.lazy(() => import('@/pages/MigrationPlanPage'));
 const MigrationDetailsPage  = React.lazy(() => import('@/pages/MigrationDetailsPage'));
@@ -70,20 +71,15 @@ const PageLoader: React.FC = () => (
 );
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-/** Public pages wear the MMC Convert palette; /admin keeps the original one (index.html sets the first paint). */
-const BrandTheme: React.FC = () => {
+/** One crashing page shows a retry message instead of a blank screen; navigating elsewhere clears it. */
+const RouteBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { pathname } = useLocation();
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isAdminPath(pathname)) root.removeAttribute('data-brand');
-    else root.setAttribute('data-brand', 'mmc');
-  }, [pathname]);
-  return null;
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
 };
 
 const App: React.FC = () => (
+  <RouteBoundary>
   <Suspense fallback={<PageLoader />}>
-    <BrandTheme />
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/about"     element={<AboutPage />} />
@@ -109,6 +105,7 @@ const App: React.FC = () => (
       <Route path="/sign-up"   element={<SignUpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password"  element={<ResetPasswordPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
 
 
       {/* Admin login — public, no guard */}
@@ -148,6 +145,7 @@ const App: React.FC = () => (
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </Suspense>
+  </RouteBoundary>
 );
 
 export default App;

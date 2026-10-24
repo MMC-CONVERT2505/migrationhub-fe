@@ -102,7 +102,7 @@ const ResetPasswordPage: React.FC = () => {
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <PasswordField id="new-password" label="New password" value={password} onChange={setPassword} required showStrength error={errors.password} />
-        <PasswordField id="confirm-password" label="Confirm new password" value={confirm} onChange={setConfirm} required error={errors.confirm} />
+        <PasswordField id="confirm-password" label="Confirm new password" value={confirm} onChange={setConfirm} required autoComplete="new-password" error={errors.confirm} />
         <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>Reset password</Button>
       </form>
 

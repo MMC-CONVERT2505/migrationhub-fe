@@ -16,6 +16,7 @@ import type {
   MigrationPairAssignee,
   UserProfile,
 } from '@/types/api';
+import { Modal } from '@/components/admin/Modal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,30 +83,6 @@ const EnvBadge: React.FC<{ env: MigrationEnvironment }> = ({ env }) => {
   const color = env === 'PRODUCTION' ? 'bg-blue-50 text-blue-700' : env === 'STAGING' ? 'bg-yellow-50 text-yellow-700' : 'bg-purple-50 text-purple-700';
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>{env}</span>;
 };
-
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
-const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96, y: -8 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl mb-10"
-    >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-light">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
-  </div>
-);
 
 // ─── Shared form sections ─────────────────────────────────────────────────────
 
@@ -834,7 +811,7 @@ const MigrationPairsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
 
       {/* Table */}
@@ -851,7 +828,7 @@ const MigrationPairsPage: React.FC = () => {
             <p className="text-sm">No migration pairs yet</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="admin-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
@@ -932,10 +909,10 @@ const MigrationPairsPage: React.FC = () => {
 
       {/* ── Create Modal ───────────────────────────────────────────────────────── */}
       {createOpen && (
-        <Modal title="Add Migration Pair" onClose={() => setCreateOpen(false)}>
+        <Modal size="xl" title="Add Migration Pair" onClose={() => setCreateOpen(false)}>
           <form onSubmit={handleCreate} className="space-y-0">
             {formError && (
-              <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
+              <div role="alert" className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
             <PairFormBody
               values={createForm}
@@ -958,10 +935,10 @@ const MigrationPairsPage: React.FC = () => {
 
       {/* ── Edit Modal ─────────────────────────────────────────────────────────── */}
       {editTarget && editForm && (
-        <Modal title={`Edit — ${editTarget.displayName}`} onClose={() => setEditTarget(null)}>
+        <Modal size="xl" title={`Edit — ${editTarget.displayName}`} onClose={() => setEditTarget(null)}>
           <form onSubmit={handleEdit} className="space-y-0">
             {formError && (
-              <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
+              <div role="alert" className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>
             )}
             <PairFormBody
               values={editForm}
@@ -991,7 +968,7 @@ const MigrationPairsPage: React.FC = () => {
 
       {/* ── Delete Confirm ─────────────────────────────────────────────────────── */}
       {deleteTarget && (
-        <Modal title="Delete Migration Pair" onClose={() => setDeleteTarget(null)}>
+        <Modal size="xl" title="Delete Migration Pair" onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
             <p className="text-sm text-text-secondary">
               Are you sure you want to delete{' '}

@@ -75,7 +75,7 @@ const ReportsPage: React.FC = () => {
     );
 
     if (pairsRes.status === 'fulfilled') {
-      setRows(pairsRes.value);
+      setRows(Array.isArray(pairsRes.value) ? pairsRes.value : []);
     } else {
       setRows([]);
       setError(
@@ -161,7 +161,7 @@ const ReportsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
           <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
@@ -338,7 +338,7 @@ const ReportDetailPanel: React.FC<{
     {loading ? (
       <div className="flex items-center justify-center py-10"><Spinner size="md" /></div>
     ) : error ? (
-      <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+      <div role="alert" className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-sm text-red-700">{error}</p>
       </div>
     ) : report ? (

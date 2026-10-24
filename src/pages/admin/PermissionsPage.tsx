@@ -5,31 +5,10 @@ import { rolesService } from '@/api/roles';
 import { ApiError } from '@/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { CreatePermissionRequest, Permission, Role } from '@/types/api';
+import { Modal } from '@/components/admin/Modal';
 
 const inputCls =
   'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white transition-colors';
-
-const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
-  title, onClose, children,
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-      className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-    >
-      <div className="flex items-center justify-between p-5 border-b border-border">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-        <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  </div>
-);
 
 const PermissionsPage: React.FC = () => {
   const { can } = usePermissions();
@@ -178,7 +157,7 @@ const PermissionsPage: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+      {error && <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       {loading ? (
         <div className="space-y-4">
@@ -197,6 +176,7 @@ const PermissionsPage: React.FC = () => {
                 <h3 className="text-sm font-bold text-text-primary font-mono">{module}</h3>
                 <span className="text-xs text-text-secondary">{perms.length} action{perms.length !== 1 ? 's' : ''}</span>
               </div>
+              <div className="admin-scroll admin-scroll-x">
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-border">
                   {perms.map((p) => (
@@ -235,6 +215,7 @@ const PermissionsPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ))}
         </div>
@@ -242,10 +223,10 @@ const PermissionsPage: React.FC = () => {
 
       {/* Create Modal */}
       {createOpen && (
-        <Modal title="Create Permission" onClose={() => setCreateOpen(false)}>
+        <Modal size="lg" title="Create Permission" onClose={() => setCreateOpen(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
             {formError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+              <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
                 {formError}
               </div>
             )}
@@ -273,7 +254,7 @@ const PermissionsPage: React.FC = () => {
 
       {/* Delete confirm Modal */}
       {deleteTarget && (
-        <Modal title="Delete Permission" onClose={() => setDeleteTarget(null)}>
+        <Modal size="lg" title="Delete Permission" onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
             <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
               <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -299,9 +280,9 @@ const PermissionsPage: React.FC = () => {
 
       {/* Assign Modal */}
       {assignOpen && (
-        <Modal title="Assign Permissions to Role" onClose={() => setAssignOpen(false)}>
+        <Modal size="lg" title="Assign Permissions to Role" onClose={() => setAssignOpen(false)}>
           <form onSubmit={handleAssign} className="space-y-4">
-            {formError && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
+            {formError && <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{formError}</div>}
             <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
               This replaces all permissions on the role. Always send the complete desired set.
             </div>

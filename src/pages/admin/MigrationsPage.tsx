@@ -11,6 +11,8 @@ import {
 import { ApiError } from '@/api/client';
 import { statusMeta } from '@/constants/migrationStatus';
 import { karbonPrimaryMeta, karbonSyncMeta } from '@/constants/karbonStatus';
+import { Pagination } from '@/components/admin/Pagination';
+import { clampSkip } from '@/utils/pagination';
 
 const PAGE_SIZE = 20;
 
@@ -57,6 +59,9 @@ const MigrationsPage: React.FC = () => {
       });
       setRows(res.data);
       setTotal(res.total);
+      // The list can shrink under us: never sit on a page past the end.
+      const safeSkip = clampSkip(skip, res.total, PAGE_SIZE);
+      if (safeSkip !== skip) setSkip(safeSkip);
     } catch (err) {
       setRows([]);
       setTotal(0);
@@ -68,8 +73,6 @@ const MigrationsPage: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -81,7 +84,7 @@ const MigrationsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
+        <div role="alert" className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2.5">
           <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
@@ -149,7 +152,7 @@ const MigrationsPage: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="admin-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -275,31 +278,7 @@ const MigrationsPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-bg-light">
-            <p className="text-xs text-text-secondary">
-              Showing {skip + 1}–{Math.min(skip + PAGE_SIZE, total)} of {total}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setSkip((p) => Math.max(0, p - PAGE_SIZE))}
-                disabled={skip === 0}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1 text-xs text-text-secondary">{currentPage} / {totalPages}</span>
-              <button
-                onClick={() => setSkip((p) => p + PAGE_SIZE)}
-                disabled={skip + PAGE_SIZE >= total}
-                className="px-3 py-1 text-xs font-medium border border-border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination skip={skip} size={PAGE_SIZE} total={total} noun="migrations" disabled={loading} onSkipChange={setSkip} />
       </div>
     </motion.div>
   );

@@ -169,7 +169,7 @@ const UsersPage: React.FC = () => {
 
       {/* Table */}
       <div className="bg-white border border-border rounded-xl overflow-hidden shadow-card">
-        <div className="overflow-x-auto">
+        <div className="admin-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-bg-light">
@@ -312,7 +312,7 @@ const UsersPage: React.FC = () => {
       {roleTarget && (
         <Modal title={`Edit Roles — ${roleTarget.firstname} ${roleTarget.lastname}`} onClose={() => setRoleTarget(null)}>
           <form onSubmit={handleAssignRoles} className="space-y-4">
-            {roleError && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{roleError}</div>}
+            {roleError && <div role="alert" className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{roleError}</div>}
             <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
               This replaces all current roles. Always send the complete desired set.
             </div>

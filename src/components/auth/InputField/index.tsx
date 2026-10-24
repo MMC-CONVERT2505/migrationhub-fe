@@ -17,10 +17,12 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
 
     return (
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={inputId} className="text-xs font-medium text-text-secondary">
-          {label}
-          {props.required && <span className="text-red-500 ml-0.5">*</span>}
-        </label>
+        {label && (
+          <label htmlFor={inputId} className="text-xs font-medium text-text-secondary">
+            {label}
+            {props.required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+        )}
 
         <div className="relative">
           {/* Left icon */}

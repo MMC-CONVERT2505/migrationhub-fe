@@ -1,10 +1,20 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
 import { usePermissions } from '@/hooks/usePermissions';
 
-const NAV_ITEMS = [
+interface NavItem {
+  label: string;
+  /** Short label for the narrow mobile bar, where two "Migration …" items would otherwise both read "Migration". */
+  short?: string;
+  to: string;
+  end: boolean;
+  icon: React.ReactNode;
+}
+
+const NAV_ITEMS: NavItem[] = [
   {
     label: 'Dashboard',
     to: '/admin',
@@ -57,6 +67,7 @@ const NAV_ITEMS = [
   },
   {
     label: 'Migration Pairs',
+    short: 'Pairs',
     to: '/admin/migration-pairs',
     end: false,
     icon: (
@@ -66,7 +77,8 @@ const NAV_ITEMS = [
     ),
   },
   {
-    label: 'Migration Reviews',
+    label: 'Migration Help Requests',
+    short: 'Help',
     to: '/admin/migration-reviews',
     end: false,
     icon: (
@@ -136,7 +148,8 @@ const NAV_ITEMS = [
     ),
   },
   {
-    label: 'Inquiries',
+    label: 'Inquiry Orders',
+    short: 'Orders',
     to: '/admin/inquiries',
     end: false,
     icon: (
@@ -159,6 +172,7 @@ const NAV_ITEMS = [
 
 export const AdminLayout: React.FC = () => {
   const { can } = usePermissions();
+  const { pathname } = useLocation();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (item.to === '/admin/permissions' && !can('permissions.read')) return false;
@@ -170,8 +184,9 @@ export const AdminLayout: React.FC = () => {
     <Navbar variant="admin" />
     <div className="flex">
       {/* Sidebar */}
-      <aside aria-label="Admin" className="hidden md:flex flex-col w-56 min-h-[calc(100vh-64px)] bg-white border-r border-border flex-shrink-0 sticky top-16 self-start">
-        <nav className="p-3 space-y-0.5 flex-1">
+      <aside aria-label="Admin" className="hidden md:flex flex-col w-56 h-[calc(100vh-64px)] bg-white border-r border-border flex-shrink-0 sticky top-16 self-start">
+        {/* Scrolls on its own, so every module stays reachable on short screens */}
+        <nav className="admin-scroll admin-scroll-y p-3 space-y-0.5 flex-1 min-h-0">
           {visibleItems.map((item) => (
             <NavLink
               key={item.to}
@@ -208,14 +223,16 @@ export const AdminLayout: React.FC = () => {
             }
           >
             {item.icon}
-            <span className="truncate">{item.label.split(' ')[0]}</span>
+            <span className="truncate">{item.short ?? item.label.split(' ')[0]}</span>
           </NavLink>
         ))}
       </nav>
 
       {/* Page content */}
       <main className="flex-1 p-6 pb-20 md:pb-6 min-w-0">
-        <Outlet />
+        <ErrorBoundary resetKey={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   </div>

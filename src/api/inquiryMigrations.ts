@@ -23,11 +23,33 @@ export type UpdateInquiryRequest = Omit<CreateInquiryRequest, 'migrationPairId'>
 
 // Both yes/no answers come back nullable: null is a question that was never put to
 // the customer, which reads differently from a "No" they actually gave.
+/** Whether the inquiry became an order — the same facts the ORDER PLACED / INCOMPLETE ORDER emails report. */
+export type InquiryOrderState = 'PLACED' | 'INCOMPLETE' | 'IN_PROGRESS';
+
+export interface InquiryOrder {
+  state: InquiryOrderState;
+  /** Why it is incomplete (matches the INCOMPLETE ORDER email), null otherwise. */
+  reason: string | null;
+  /** "Order placed", "Payment failed", "Payment not initiated"… */
+  label: string;
+  detail: string | null;
+  paymentGateway: string | null;
+  paymentStatus: string | null;
+  amount: string | null;
+  currency: string | null;
+  migrationId: string | null;
+  migrationStatus: string | null;
+  /** MMC was emailed an INCOMPLETE ORDER for this one. */
+  reportedToMmc: boolean;
+}
+
 export interface InquiryMigrationUser
   extends Omit<CreateInquiryRequest, 'addOnsConfirmed' | 'trackingInventory'> {
   id: number;
   userId: number | null;
   userEmail?: string | null;
+  /** Admin list only. */
+  order?: InquiryOrder;
   addOnsConfirmed: boolean | null;
   trackingInventory: boolean | null;
   createdAt: string;
@@ -48,6 +70,7 @@ export interface ListInquiriesParams {
   skip?: number;
   take?: number;
   search?: string;
+  orderStatus?: 'placed' | 'incomplete';
 }
 
 export const inquiryMigrationsService = {

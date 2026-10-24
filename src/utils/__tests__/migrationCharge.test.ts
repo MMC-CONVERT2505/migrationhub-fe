@@ -5,8 +5,8 @@ const base = { migrationPair: { isFree: false }, plan: { basePrice: 389, currenc
 
 describe('chargeSummary', () => {
   it('shows what was actually charged — not plan price × anything', () => {
-    expect(chargeSummary({ ...base, payment: { amount: '539.00', status: 'Success' } })).toEqual({ label: 'Total paid', value: 'AUD 539' });
-    expect(chargeSummary({ ...base, payment: { amount: 389, status: 'success' } }).value).toBe('AUD 389');
+    expect(chargeSummary({ ...base, payment: { amount: '539.00', status: 'Success' } })).toEqual({ label: 'Total paid', value: 'A$539' });
+    expect(chargeSummary({ ...base, payment: { amount: 389, status: 'success' } }).value).toBe('A$389');
   });
   it('a payment that has not settled is not "paid"', () => {
     expect(chargeSummary({ ...base, payment: { amount: 389, status: 'Pending' } })).toEqual({ label: 'Payment', value: 'Pending' });

@@ -63,7 +63,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
     if (pair.status === 'region') {
       return (
         <>
-          <Pill className="bg-blue-50 text-blue-700">Free in Australia</Pill>
+          <Pill className="bg-blue-50 text-blue-700">{`Free in ${(pair.freeCountries ?? ['Australia']).join(', ')}`}</Pill>
           <Pill className="bg-bg-light text-text-secondary border border-border">Paid elsewhere</Pill>
         </>
       );

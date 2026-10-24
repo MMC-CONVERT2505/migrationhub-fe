@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
-import { PAIRS } from '@/constants/pairs';
 import { migrationPairsService } from '@/api/migrationPairs';
 import { PairCard } from './PairCard';
 import type { Pair } from '@/types';
@@ -31,21 +30,30 @@ export const PairsSection: React.FC = () => {
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
+  // The server is the only source of pairs, plans and prices. A failed load is shown as a failure with a
+  // retry — never papered over with a built-in list, whose links and (missing) plans would be wrong.
   useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setFailed(false);
     migrationPairsService
       .available()
       .then((res) => {
-        const items = extractList<MigrationPairEntity>(res);
-        if (items.length > 0) {
-          setPairs(items.map(apiPairToUiPair));
-        } else {
-          setPairs(PAIRS);
-        }
+        if (live) setPairs(extractList<MigrationPairEntity>(res).map(apiPairToUiPair));
       })
-      .catch(() => setPairs(PAIRS))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (live) setFailed(true);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [attempt]);
 
   const filteredPairs = useMemo(() => {
     switch (activeTab) {
@@ -119,6 +127,18 @@ export const PairsSection: React.FC = () => {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <PairCardSkeleton key={i} />)}
+          </div>
+        ) : failed ? (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <p className="text-sm font-semibold text-text-primary">We couldn&rsquo;t load the migration pairs</p>
+            <p className="mt-1 text-sm text-text-secondary">Please check your connection and try again.</p>
+            <button
+              type="button"
+              onClick={() => setAttempt((n) => n + 1)}
+              className="mt-4 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <>

@@ -23,9 +23,19 @@ export function yesNo(value: boolean | null | undefined, unanswered = '—'): st
   return value == null ? unanswered : value ? 'Yes' : 'No';
 }
 
-/** Whole-dollar price, e.g. "$389". Prices are never shown with decimals. */
-export function formatCurrency(amount: number): string {
-  return `$${Math.round(amount)}`;
+/**
+ * Whole-unit price. No currency: "$389". With one, localised and unambiguous: "A$549", "£189", "₹35,000".
+ * Prices are never shown with decimals.
+ */
+export function formatCurrency(amount: number, currency?: string): string {
+  const whole = Math.round(amount);
+  if (!currency) return `$${whole}`;
+  try {
+    // Indian customers read ₹1,25,000 (lakh grouping); the rest are unambiguous in en-US (A$549, £189, $389).
+    return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(whole);
+  } catch {
+    return `${currency} ${whole.toLocaleString()}`;
+  }
 }
 
 /** Kept for the pay button; identical to formatCurrency now that decimals are gone. */

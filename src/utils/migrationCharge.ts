@@ -6,14 +6,14 @@ interface ChargeInput {
   plan: { basePrice: string | number; currency: string; history: string; isInception?: boolean };
   yearsOverride?: number | null;
   paymentWaived?: boolean;
-  payment?: { amount: string | number; status: string } | null;
+  payment?: { amount: string | number; status: string; currency?: string } | null;
 }
 
 /** What to show under "Total paid": the amount actually charged, never one computed from the plan price. */
 export function chargeSummary(m: ChargeInput): { label: string; value: string } {
   const p = m.payment;
   if (p && /^success$/i.test(p.status)) {
-    return { label: 'Total paid', value: `${m.plan.currency} ${formatCurrency(Number(p.amount)).slice(1)}` };
+    return { label: 'Total paid', value: formatCurrency(Number(p.amount), p.currency || m.plan.currency) };
   }
   if (p) return { label: 'Payment', value: /^pending$/i.test(p.status) ? 'Pending' : p.status };
   if (m.paymentWaived) return { label: 'Charge', value: 'None' };

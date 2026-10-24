@@ -17,10 +17,14 @@ export const useAppStore = create<AppState>()(
       pendingMigration: null,
       selectedPlanId: null,
       selectedYears: null,
+      selectedCountry: null,
       inquiryDetails: null,
       entryLocked: false,
       dedicatedFlow: null,
 
+      // A different country is a different price list row: the extended-years choice no longer applies.
+      setSelectedCountry: (country: string | null) =>
+        set((s) => (s.selectedCountry === country ? {} : { selectedCountry: country, selectedYears: null })),
       setScreen: (screen: Screen) => set({ currentScreen: screen }),
       setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
       setEntryLocked: (locked: boolean) => set({ entryLocked: locked }),
@@ -56,6 +60,7 @@ export const useAppStore = create<AppState>()(
           pendingMigration: null,
           selectedPlanId: null,
           selectedYears: null,
+          selectedCountry: null,
           entryLocked: false,
           dedicatedFlow: null,
           // A finished flow's inquiry must not be attached to the next pair's checkout.
@@ -86,6 +91,7 @@ export const useAppStore = create<AppState>()(
         selectedPair: s.selectedPair,
         selectedPlanId: s.selectedPlanId,
         selectedYears: s.selectedYears,
+        selectedCountry: s.selectedCountry,
         inquiryDetails: s.inquiryDetails,
         entryLocked: s.entryLocked,
         dedicatedFlow: s.dedicatedFlow,

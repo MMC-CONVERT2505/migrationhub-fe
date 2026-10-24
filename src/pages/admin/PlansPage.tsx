@@ -334,6 +334,7 @@ const PlansPage: React.FC = () => {
             />
             <p className="text-xs text-text-secondary mt-0.5">
               Customers see a Historical years selector on the plan page and pay this for each financial year added beyond the plan&apos;s years (15 in total at most).
+              On pairs with a country price list, this switch turns extra years on; the amount per country comes from that list.
             </p>
           </Field>
         ) : (

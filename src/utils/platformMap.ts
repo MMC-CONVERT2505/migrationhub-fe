@@ -17,6 +17,7 @@ export function extractList<T>(res: unknown): T[] {
 }
 import type { MigrationPairEntity, ApiPlan } from '@/types/api';
 import type { Pair, Plan } from '@/types';
+import { PRICED_COUNTRIES } from '@/utils/countryPricing';
 
 // ─── API key → display name ───────────────────────────────────────────────────
 const NORMALIZE: Record<string, string> = {
@@ -35,6 +36,20 @@ export function normalizePlatform(key: string): string {
 }
 
 // ─── MigrationPairEntity → Pair (UI type) ─────────────────────────────────────
+/**
+ * Free / paid / free-in-some-countries. A pair with a country price list is judged by it (the whole-pair
+ * flag means nothing there); one without keeps the flag.
+ */
+function pairBadge(entity: MigrationPairEntity): Pick<Pair, 'status' | 'isFree' | 'freeCountries'> {
+  const rows = entity.planPrices ?? [];
+  if (rows.length === 0) return { status: entity.isFree ? 'free' : 'paid', isFree: entity.isFree ?? false };
+  const free = PRICED_COUNTRIES.filter((c) => rows.some((r) => r.country === c && Number(r.basePrice) === 0));
+  const all = PRICED_COUNTRIES.filter((c) => rows.some((r) => r.country === c));
+  if (free.length === 0) return { status: 'paid', isFree: false };
+  if (free.length === all.length) return { status: 'free', isFree: true };
+  return { status: 'region', isFree: false, freeCountries: [...free] };
+}
+
 export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
   const src = normalizePlatform(entity.source);
   const dst = normalizePlatform(entity.destination);
@@ -51,9 +66,16 @@ export function apiPairToUiPair(entity: MigrationPairEntity): Pair {
     srcLogo:   entity.sourceLogo?.image ?? platformLogo(entity.source),
     dstLogo:   entity.destinationLogo?.image ?? platformLogo(entity.destination),
     count:     '',
-    status:    entity.isFree ? 'free' : 'paid',
-    isFree:    entity.isFree ?? false,
+    ...pairBadge(entity),
     plans:     (entity.plans ?? []).map(apiPlanToUiPlan),
+    planPrices: (entity.planPrices ?? []).map((r) => ({
+      planId: r.planId,
+      country: r.country,
+      currency: r.currency,
+      basePrice: Number(r.basePrice),
+      extraYearPrice: r.extraYearPrice == null ? null : Number(r.extraYearPrice),
+      taxRate: Number(r.taxRate ?? 0),
+    })),
     url:       null,
     toolUrl:   entity.serviceUrl ?? null,
   };

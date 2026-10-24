@@ -18,12 +18,26 @@ export interface Pair {
   status: 'paid' | 'free' | 'region';
   isFree?: boolean;
   plans: Plan[];
+  /** Country price list; when present it, not the plans' own price, prices every order. */
+  planPrices?: PlanPrice[];
+  /** Countries where the pair's cheapest plan costs nothing (sponsored), from the price list. */
+  freeCountries?: string[];
   url: string | null;
   toolUrl: string | null;
   myobBusiness?: boolean;
 }
 
 // ─── Pricing Plan Types ──────────────────────────────────────────────────────
+
+/** One row of the country price list: what a plan costs on a pair for a country. */
+export interface PlanPrice {
+  planId: string;
+  country: string;
+  currency: string;
+  basePrice: number;
+  extraYearPrice: number | null;
+  taxRate: number;
+}
 
 export interface Plan {
   id?: string;
@@ -39,6 +53,8 @@ export interface Plan {
   extraYearPrice?: number | null;
   /** ISO currency code the plan is priced in; absent falls back to DEFAULT_CURRENCY. */
   currency?: string;
+  /** % added on top of the price (e.g. India GST 18); absent/0 = none. */
+  taxRate?: number;
   features: string[];
   popular?: boolean;
 }
@@ -124,12 +140,15 @@ export interface AppState {
   selectedPlanId: string | null;
   /** Operation Team only: total financial years chosen beyond the plan's coverage. */
   selectedYears: number | null;
+  /** Customer country (plain name, e.g. "Australia"): selects the price list row. Single source for the whole flow. */
+  selectedCountry: string | null;
   inquiryDetails: InquiryDetails | null;
   /** True when the user arrived via an external deep link — the home page is then locked. */
   entryLocked: boolean;
   /** Dedicated pair flows only: issued on entry through the Hub, proves this tab came in properly. */
   dedicatedFlow: DedicatedFlow | null;
 
+  setSelectedCountry: (country: string | null) => void;
   setScreen: (screen: Screen) => void;
   setSelectedPair: (pair: Pair | null) => void;
   setEntryLocked: (locked: boolean) => void;

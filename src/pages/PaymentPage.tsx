@@ -9,7 +9,7 @@ import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 import { paymentsService } from '@/api/payments';
 import { ApiError } from '@/api/client';
-import { formatCurrencyCompact } from '@/utils/format';
+import { formatCurrency } from '@/utils/format';
 import { planCurrency, resolveFlowRedirect, SUCCESS_PATH } from '@/constants/migrationFlow';
 
 /** Why the customer is back here after the payment provider sent them away (see /payment/failed). */
@@ -31,7 +31,7 @@ const PaymentPage: React.FC = () => {
   const setPendingMigration = useAppStore((s) => s.setPendingMigration);
 
   // `total` is the plan price plus any extra years the customer chose; the server recomputes it.
-  const { plan, total, extension, extendedYears } = useCheckoutSelection();
+  const { plan, country, total, extension, extendedYears } = useCheckoutSelection();
   const paymentSkipped = usePaymentSkipped(selectedPair?.isFree ?? false, plan);
 
   const [processing, setProcessing] = useState(false);
@@ -44,7 +44,7 @@ const PaymentPage: React.FC = () => {
   const [error, setError] = useState(failureReason ? (FAILURE_LABELS[failureReason] ?? 'Something went wrong with your payment.') : '');
 
   // Missing pair, plan or details (refresh, pasted URL): back to the earliest incomplete step.
-  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails, paymentSkipped, extensionCost: extension });
+  const redirect = resolveFlowRedirect('payment', { pair: selectedPair, planId: selectedPlanId, inquiry: inquiryDetails, paymentSkipped, extensionCost: extension, country });
   if (!selectedPair || !plan || redirect) return <Navigate to={redirect ?? '/'} replace />;
 
   const currency = planCurrency(plan);
@@ -82,7 +82,9 @@ const PaymentPage: React.FC = () => {
         migrationPairId,
         planId,
         ...(extendedYears ? { years: extendedYears } : {}),
-        currency: 'USD',
+        ...(country ? { country } : {}),
+        ...(inquiryDetails?.id ? { inquiryId: inquiryDetails.id } : {}),
+        currency,
         description: `${plan.name} Migration Plan${extendedYears ? ` (${extendedYears} financial years)` : ''}`,
         name: inquiryDetails?.name,
         email: inquiryDetails?.email,
@@ -102,7 +104,7 @@ const PaymentPage: React.FC = () => {
 
   const ctaLabel = paymentSkipped
     ? 'Start migration – payment skipped'
-    : `Pay ${formatCurrencyCompact(total)} ${currency} – Complete Payment`;
+    : `Pay ${formatCurrency(total, currency)} – Complete Payment`;
 
   return (
     <FlowLayout page="payment" widthClass="max-w-xl">

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /payment
+Disallow: /migrations
+
+Sitemap: https://migrationhub.mmcconvert.com/sitemap.xml

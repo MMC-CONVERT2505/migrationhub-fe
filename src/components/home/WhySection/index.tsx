@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TRUST_METRICS } from '@/content/trustMetrics';
 
 const WHY_CARDS = [
   {
@@ -10,7 +11,10 @@ const WHY_CARDS = [
   {
     icon: '⚡',
     title: 'Fast & reliable',
-    description: 'Average migration time of 19 minutes. Our optimised engine handles millions of records with 99.8% accuracy.',
+    description: [
+      TRUST_METRICS.averageMigrationTime ? `Average migration time of ${TRUST_METRICS.averageMigrationTime}.` : null,
+      `Our optimised engine handles millions of records${TRUST_METRICS.dataAccuracy ? ` with ${TRUST_METRICS.dataAccuracy} accuracy` : ''}.`,
+    ].filter(Boolean).join(' '),
   },
   {
     icon: '🧑‍💼',

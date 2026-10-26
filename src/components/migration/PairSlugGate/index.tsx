@@ -3,7 +3,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { CompactFooter } from '@/components/layout/Footer';
 import { Spinner } from '@/components/common/Spinner';
-import { migrationPairsService } from '@/api/migrationPairs';
+import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList, findPairBySlug, uiPairMatchesSlug } from '@/utils/platformMap';
 import { useAppStore } from '@/store/appStore';
 import type { MigrationPairEntity } from '@/types/api';
@@ -91,8 +91,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     setRemote({ slug, status: 'loading', error: '' });
     setResolvedOther(null);
 
-    migrationPairsService
-      .available()
+    getAvailablePairs()
       .then((res) => {
         if (cancelled) return;
         const items = extractList<MigrationPairEntity>(res);

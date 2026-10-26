@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TRUST_METRICS } from '@/content/trustMetrics';
 
 export const Hero: React.FC = () => {
   return (
@@ -42,7 +43,9 @@ export const Hero: React.FC = () => {
                   </svg>
                 ))}
               </div>
-              <p className="text-xs text-text-secondary mt-0.5">Rated 4.9/5 by 600+ accountants</p>
+              {TRUST_METRICS.rating && TRUST_METRICS.firmsServed && (
+                <p className="text-xs text-text-secondary mt-0.5">Rated {TRUST_METRICS.rating}/5 by {TRUST_METRICS.firmsServed} accounting firms</p>
+              )}
             </div>
           </div>
         </motion.div>

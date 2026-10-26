@@ -15,7 +15,7 @@ interface ConnectStepProps {
   onBack?: () => void;
 }
 
-const REGIONS = ['Australia', 'New Zealand', 'United Kingdom', 'United States', 'India', 'UAE', 'Singapore', 'Other'];
+const REGIONS = ['Australia', 'New Zealand', 'United Kingdom', 'United States', 'India', 'United Arab Emirates', 'Singapore', 'Other'];
 const PLANS    = ['Standard', 'Premium', 'Enterprise'];
 
 const INPUT = cn(

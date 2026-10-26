@@ -2,6 +2,8 @@ import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/Spinner';
+import { RouteMeta } from '@/components/common/PageMeta';
+import { HashScroll } from '@/components/common/HashScroll';
 import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
@@ -27,6 +29,7 @@ const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDeta
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
+const NotFoundPage        = React.lazy(() => import('@/pages/NotFoundPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
 const AdminLoginPage      = React.lazy(() => import('@/pages/AdminLoginPage'));
@@ -96,6 +99,8 @@ const SessionResync: React.FC = () => {
 const App: React.FC = () => (
   <RouteBoundary>
   <SessionResync />
+  <HashScroll />
+  <RouteMeta />
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
@@ -158,8 +163,8 @@ const App: React.FC = () => (
         </Route>
       </Route>
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Unknown paths get a real 404 page, not the homepage */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   </Suspense>
   </RouteBoundary>

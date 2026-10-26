@@ -4,12 +4,13 @@ import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/common/Button';
+import { visibleStats, type TrustMetricKey } from '@/content/trustMetrics';
+import { useCatalogueCounts } from '@/hooks/useAvailablePairs';
 
-const STATS = [
-  { value: '50k+', label: 'Migrations completed' },
-  { value: '8+', label: 'Accounting platforms' },
-  { value: '99.9%', label: 'Data accuracy' },
-  { value: '<30 min', label: 'Average migration time' },
+const STAT_ITEMS: Array<{ key: TrustMetricKey; label: string }> = [
+  { key: 'migrationsCompleted', label: 'Migrations completed' },
+  { key: 'dataAccuracy', label: 'Data accuracy' },
+  { key: 'averageMigrationTime', label: 'Average migration time' },
 ];
 
 const VALUES = [
@@ -37,6 +38,13 @@ const VALUES = [
 
 const AboutPage: React.FC = () => {
   const navigate = useNavigate();
+  const counts = useCatalogueCounts();
+  // Platforms come from the catalogue; hidden until it loads (or if it cannot).
+  const stats = [
+    ...visibleStats(STAT_ITEMS.slice(0, 1)),
+    ...(counts ? [{ value: String(counts.platforms), label: 'Accounting platforms' }] : []),
+    ...visibleStats(STAT_ITEMS.slice(1)),
+  ];
 
   return (
     <div className="min-h-screen bg-bg animate-screen-enter">
@@ -72,10 +80,10 @@ const AboutPage: React.FC = () => {
         </section>
 
         {/* Stats */}
-        <section className="py-12 border-y border-border bg-white">
+        {stats.length > 0 && <section className="py-12 border-y border-border bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {STATS.map((stat) => (
+            <div className="flex flex-wrap justify-center gap-x-16 gap-y-8">
+              {stats.map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-3xl sm:text-4xl font-bold text-text-primary">{stat.value}</div>
                   <div className="mt-1 text-sm text-text-tertiary">{stat.label}</div>
@@ -83,7 +91,7 @@ const AboutPage: React.FC = () => {
               ))}
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* Mission */}
         <section className="py-20">

@@ -1,8 +1,9 @@
 import React from 'react';
+import { CONTACT_EMAIL } from '@/constants/links';
 
 /** Privacy policy text, kept as data so the page stays presentational and the structure is testable. */
 
-export const PRIVACY_EMAIL = 'migrations@mmcconvert.com';
+export const PRIVACY_EMAIL = CONTACT_EMAIL;
 export const PRIVACY_EFFECTIVE = '1st Jan 2026';
 export const PRIVACY_UPDATED = '22nd October 2026';
 

@@ -13,12 +13,11 @@ import { usersService } from '@/api/users';
 import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import type { SignUpFormData, AuthError } from '@/types/auth';
+import { joinLine } from '@/components/auth/AuthLayout';
+import { COUNTRY_NAMES } from '@/constants/countries';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COUNTRIES = [
-  'Australia', 'New Zealand', 'United Kingdom', 'United States',
-  'Canada', 'Singapore', 'India', 'UAE', 'South Africa', 'Other',
-];
+const COUNTRIES = [...COUNTRY_NAMES, 'Other'];
 
 const DIAL_CODES: { label: string; value: string }[] = [
   { label: '+61', value: '+61' },   // AU
@@ -207,7 +206,7 @@ const SignUpPage: React.FC = () => {
   return (
     <AuthLayout
       heading="Start migrating your accounting data today"
-      subheading="Create your free account and join 500+ firms who trust MMC Convert for accurate, verified data migrations."
+      subheading={`Create your free account. ${joinLine("accurate, verified data migrations.")}`}
     >
       {/* Header */}
       <div className="mb-6">

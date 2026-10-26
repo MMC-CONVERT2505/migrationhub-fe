@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
-import { migrationPairsService } from '@/api/migrationPairs';
+import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
 import { MAX_PRICING_CARDS, summarisePlans, type PlanSummary } from '@/utils/pricing';
 import { countriesOf, normalizeCountry } from '@/utils/countryPricing';
@@ -29,8 +29,7 @@ export const PricingSection: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    migrationPairsService
-      .available()
+    getAvailablePairs()
       .then((res) => {
         if (cancelled) return;
         setPairs(extractList<MigrationPairEntity>(res).map(apiPairToUiPair));

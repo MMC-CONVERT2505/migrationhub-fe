@@ -1,3 +1,4 @@
+import { currentYear } from '@/utils/copyright';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -135,7 +136,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       {/* Footer */}
       <div className="px-5 py-4 border-t border-border text-center">
         <p className="text-xs text-text-tertiary">
-          © {new Date().getFullYear()} MMC Convert ·{' '}
+          © {currentYear()} MMC Convert ·{' '}
           <Link to="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
           {' · '}
           <Link to="/termsofuse" className="hover:text-text-secondary transition-colors">Terms</Link>

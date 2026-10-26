@@ -4,7 +4,7 @@ export const PLATFORM_LOGOS: Record<string, string> = {
   myob: '/logos/myob.svg',
   freshbooks: '/logos/freshbooks.svg',
   tally: '/logos/tally.svg',
-  zoho: '/logos/zoho.svg',
+  zoho: '/logos/zoho_books.png',
   reckon: '/logos/reckon.svg',
   prosaic: '/logos/prosaic.svg',
 };

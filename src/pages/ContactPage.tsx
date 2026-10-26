@@ -6,12 +6,10 @@ import { Button } from '@/components/common/Button';
 import { contactService } from '@/api/contact';
 import { ApiError } from '@/api/client';
 import type { AuthError } from '@/types/auth';
+import { COUNTRY_NAMES, DIAL_CODE_BY_NAME } from '@/constants/countries';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COUNTRIES = [
-  'Australia', 'New Zealand', 'United Kingdom', 'United States',
-  'Canada', 'Singapore', 'India', 'UAE', 'South Africa', 'Other',
-];
+const COUNTRIES = [...COUNTRY_NAMES, 'Other'];
 
 const DIAL_CODES: { label: string; value: string }[] = [
   { label: '+61', value: '+61' },   // AU
@@ -26,17 +24,7 @@ const DIAL_CODES: { label: string; value: string }[] = [
 
 // Dial code to preselect per country. "Other" is absent on purpose: it leaves the code as-is.
 // Every value must exist in DIAL_CODES. Canada shares +1 with the US.
-const COUNTRY_DIAL_CODE: Record<string, string> = {
-  'Australia': '+61',
-  'New Zealand': '+64',
-  'United Kingdom': '+44',
-  'United States': '+1',
-  'Canada': '+1',
-  'Singapore': '+65',
-  'India': '+91',
-  'UAE': '+971',
-  'South Africa': '+27',
-};
+const COUNTRY_DIAL_CODE = DIAL_CODE_BY_NAME;
 
 interface ContactFormData {
   email: string;

@@ -13,12 +13,10 @@ import { usersService } from '@/api/users';
 import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
 import type { SignUpFormData, AuthError } from '@/types/auth';
+import { COUNTRY_NAMES } from '@/constants/countries';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COUNTRIES = [
-  'Australia', 'New Zealand', 'United Kingdom', 'United States',
-  'Canada', 'Singapore', 'India', 'UAE', 'South Africa', 'Other',
-];
+const COUNTRIES = [...COUNTRY_NAMES, 'Other'];
 
 const DIAL_CODES: { label: string; value: string }[] = [
   { label: '+61', value: '+61' },   // AU

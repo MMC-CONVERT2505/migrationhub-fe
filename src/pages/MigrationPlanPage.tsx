@@ -7,7 +7,7 @@ import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { Spinner } from '@/components/common/Spinner';
 import { dedicatedDetailsPath, dedicatedFreePlan, detailsPathFor, skipsPlanStep } from '@/constants/dedicatedFlow';
-import { migrationPairsService } from '@/api/migrationPairs';
+import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList, findPairBySlug, pairSlug } from '@/utils/platformMap';
 import { findSelectedPlan, planRequired, usesFreePairBenefits } from '@/constants/migrationFlow';
 import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
@@ -109,7 +109,7 @@ const MigrationPlanPage: React.FC = () => {
     setRetrying(true);
     setRetryError('');
     try {
-      const res = await migrationPairsService.available();
+      const res = await getAvailablePairs({ force: true });
       const match = findPairBySlug(extractList<MigrationPairEntity>(res), pairSlug(selectedPair.src, selectedPair.dst));
       if (match) setSelectedPair(apiPairToUiPair(match));
       if (!match || (match.plans ?? []).length === 0) {

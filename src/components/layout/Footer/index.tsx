@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { EXTERNAL_LINKS, CONTACT_EMAIL, CONTACT_PHONE } from '@/constants/links';
+import { copyrightNotice } from '@/utils/copyright';
 import { goToSection } from '@/utils/scroll';
 import { LogoMark } from '@/components/layout/Navbar';
 import { NAV_TEXT_MUTED } from '@/constants/navStyles';
@@ -38,7 +39,7 @@ const LINK_CLASS = `text-sm ${NAV_TEXT_MUTED}`;
 export const CompactFooter: React.FC = () => (
   <footer className="mt-auto border-t border-border bg-white">
     <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center text-xs text-text-secondary">
-      &copy; {new Date().getFullYear()} MMC Convert. All rights reserved.
+      {copyrightNotice()}
     </p>
   </footer>
 );
@@ -97,7 +98,7 @@ export const Footer: React.FC = () => {
         {/* Bottom bar */}
         <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-x-8 gap-y-1 text-sm text-text-tertiary">
-            <p>&copy; {new Date().getFullYear()} MMC Convert. All rights reserved.</p>
+            <p>{copyrightNotice()}</p>
             <a href={`mailto:${CONTACT_EMAIL}`} className={NAV_TEXT_MUTED}>{CONTACT_EMAIL}</a>
             <a href={`tel:${CONTACT_PHONE}`} className={NAV_TEXT_MUTED}>{CONTACT_PHONE}</a>
           </div>

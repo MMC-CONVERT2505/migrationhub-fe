@@ -1,9 +1,10 @@
 import React from 'react';
+import { CONTACT_EMAIL } from '@/constants/links';
 import type { Block, PolicySection } from './privacyPolicy';
 
 /** Migration Hub Terms of Use, as data: the page renders the sections, the table of contents and deep links from this. */
 
-export const TERMS_EMAIL = 'migrations@mmcconvert.com';
+export const TERMS_EMAIL = CONTACT_EMAIL;
 export const TERMS_DATES = 'Effective date: 1st Jan 2026 · Last updated: 22nd October 2026';
 
 const Mail: React.FC = () => (

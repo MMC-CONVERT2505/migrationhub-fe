@@ -6,6 +6,7 @@ import { Button } from '@/components/common/Button';
 import { contactService } from '@/api/contact';
 import { ApiError } from '@/api/client';
 import type { AuthError } from '@/types/auth';
+import { CONTACT_EMAIL } from '@/constants/links';
 import { COUNTRY_NAMES, DIAL_CODE_BY_NAME } from '@/constants/countries';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -169,8 +170,8 @@ const ContactPage: React.FC = () => {
                 <p className="mt-6 text-lg text-text-secondary leading-relaxed">
                   Tell us a little about your company and we&apos;ll get back to you within one
                   business day. Prefer email? Reach us directly at{' '}
-                  <a href="mailto:info@mmcconvert.com" className="text-blue-600 hover:underline">
-                    info@mmcconvert.com
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">
+                    {CONTACT_EMAIL}
                   </a>.
                 </p>
               </div>

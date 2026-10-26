@@ -1,3 +1,4 @@
+import { TRUST_METRICS } from '@/content/trustMetrics';
 import React, { useEffect, useId, useState } from 'react';
 import { GuideTree, safeNodes } from '@/components/migration/GuideTree';
 import type { GuideNode } from '@/types/api';
@@ -24,7 +25,7 @@ const escapeHtml = (text: string): string =>
 const DEFAULT_FAQS: { q: string; a: string }[] = [
   {
     q: 'How long does a migration take?',
-    a: 'Most migrations complete in under 30 minutes. Larger datasets with several years of history can take longer — you can track live progress on the migration screen once it starts.',
+    a: `${TRUST_METRICS.averageMigrationTime ? `Migrations take ${TRUST_METRICS.averageMigrationTime} on average. ` : ''}The time depends on the size of your data and the years of history, and you can track live progress on the migration screen once it starts.`,
   },
   {
     q: 'Is my data safe during the migration?',

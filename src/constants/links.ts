@@ -8,8 +8,6 @@ export const EXTERNAL_LINKS = {
   trustpilot: 'https://www.trustpilot.com/review/mmcconvert.com',
 } as const;
 
-/** Shown on the Trustpilot section and its link. */
-export const TRUSTPILOT_REVIEW_COUNT = '1,200';
-
+/** The one public contact address; the footer, Contact page and legal pages all use it. TODO(owner): confirm it, and whether info@ is also meant to be public. */
 export const CONTACT_EMAIL = 'migrations@mmcconvert.com';
 export const CONTACT_PHONE = '+919926477000';

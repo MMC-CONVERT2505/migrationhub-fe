@@ -111,9 +111,11 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
         const resolved = apiPairToUiPair(match);
         // Inside a dedicated flow another pair must not replace the flow's pair in the store; the guard below
         // sends the visitor back to the flow.
+        // A website deep link to another dedicated pair is a fresh entry, not a way out: it replaces the flow.
         const flowNow = useAppStore.getState().dedicatedFlow;
-        if (!flowNow || flowNow.slug === canonicalSlug(resolved)) setSelectedPair(resolved);
-        setResolvedOther(flowNow && flowNow.slug !== canonicalSlug(resolved) ? resolved : null);
+        const stays = !flowNow || flowNow.slug === canonicalSlug(resolved) || (lockEntry && isDedicatedPair(resolved));
+        if (stays) setSelectedPair(resolved);
+        setResolvedOther(stays ? null : resolved);
         setRemote({ slug, status: 'ready', error: '' });
       })
       .catch(() => {
@@ -134,7 +136,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     return () => {
       cancelled = true;
     };
-  }, [slug, retry, resolvedFromStore, storeMatch, setSelectedPair]);
+  }, [slug, retry, resolvedFromStore, storeMatch, setSelectedPair, lockEntry]);
 
   // Anything resolved for a different slug is stale — hold the loader until the
   // effect has re-run for the slug now in the URL.
@@ -149,9 +151,9 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
   // Dedicated flow (website deep link only): no way out to home or another pair while it is active. The pair the
   // URL named decides (not whatever stale pair sits in the store).
   const urlPair = resolvedOther ?? (storeMatch ? selectedPair : null);
-  const entering = lockEntry && !!urlPair && isDedicatedPair(urlPair) && !dedicatedFlow;
+  const entering = lockEntry && !!urlPair && isDedicatedPair(urlPair) && dedicatedFlow?.slug !== canonicalSlug(urlPair);
   const redirect =
-    status === 'ready' && urlPair
+    status === 'ready' && urlPair && !entering
       ? dedicatedFlowRedirect({ pair: urlPair, flow: dedicatedFlow, urlToken, step })
       : null;
 

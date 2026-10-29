@@ -1,3 +1,4 @@
+import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -149,10 +150,11 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
+    <div className="min-h-screen bg-bg">
       <Navbar />
 
       <main>
+        <Breadcrumbs />
         <section className="relative pt-16 pb-24 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">

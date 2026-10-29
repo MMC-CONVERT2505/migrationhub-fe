@@ -2,13 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { usePageMeta } from '@/components/common/PageMeta';
-import { NOT_FOUND_META } from '@/utils/routeMeta';
+import { NotFoundSEO } from '@/components/seo/SEO';
 
 const NotFoundPage: React.FC = () => {
-  usePageMeta(NOT_FOUND_META);
   return (
     <div className="min-h-screen bg-bg flex flex-col">
+      <NotFoundSEO />
       <Navbar />
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="max-w-md text-center">

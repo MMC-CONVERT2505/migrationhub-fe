@@ -45,7 +45,7 @@ const HomePage: React.FC = () => {
   if (entryLocked && selectedPair) return <Navigate to={pairDetailsPath(selectedPair)} replace />;
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
+    <div className="min-h-screen bg-bg">
       <Navbar />
 
       <main>

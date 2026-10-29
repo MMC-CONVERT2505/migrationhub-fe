@@ -1,4 +1,5 @@
 import { matchPath } from 'react-router-dom';
+import pages from '@/seo/pages.json';
 
 export interface PageMeta {
   title: string;
@@ -6,50 +7,30 @@ export interface PageMeta {
   noindex?: boolean;
 }
 
-const BRAND = 'Migration Hub | MMC Convert';
+export interface PublicPage extends PageMeta {
+  path: string;
+  name: string;
+  source: string[];
+}
 
-/** Titles and descriptions for the public pages; no figures or claims that need an owner's sign-off. */
-const ROUTES: Array<{ path: string; end?: boolean; meta: PageMeta }> = [
-  {
-    path: '/',
-    meta: {
-      title: 'Migration Hub — Powered by MMC Convert',
-      description: 'Move your accounting data between QuickBooks Online, Xero, MYOB, FreshBooks, Tally, ZOHO and more with MMC Convert.',
-    },
-  },
-  {
-    path: '/about',
-    meta: { title: `About | ${BRAND}`, description: 'About Migration Hub and the MMC Convert team behind it.' },
-  },
-  {
-    path: '/contact',
-    meta: { title: `Contact us | ${BRAND}`, description: 'Contact the MMC Convert team about an accounting data migration.' },
-  },
-  {
-    path: '/sign-in',
-    meta: { title: `Sign in | ${BRAND}`, description: 'Sign in to Migration Hub to start or track your accounting data migration.' },
-  },
-  {
-    path: '/privacy',
-    meta: { title: `Privacy Policy | ${BRAND}`, description: 'How Migration Hub collects, uses and protects your information.' },
-  },
-  {
-    path: '/termsofuse',
-    meta: { title: `Terms of Use | ${BRAND}`, description: 'The terms that apply when you use Migration Hub.' },
-  },
-  {
-    path: '/migration/:pairSlug/plan',
-    meta: {
-      title: `Choose your plan | ${BRAND}`,
-      description: 'Choose the plan for your accounting data migration.',
-      noindex: true,
-    },
-  },
-  {
-    path: '/admin/*',
-    meta: { title: `Admin | ${BRAND}`, description: 'Migration Hub administration.', noindex: true },
-  },
+/** Indexable pages: also the prerender and sitemap list (see scripts/). */
+export const PUBLIC_PAGES: PublicPage[] = pages as PublicPage[];
+
+const BRAND = 'MigrationHub | MMC Convert';
+
+/** Known pages that must stay out of search results. Anything not listed here or in PUBLIC_PAGES is noindex too. */
+const PRIVATE_ROUTES: Array<{ path: string; meta: PageMeta }> = [
+  { path: '/sign-in', meta: { title: `Sign in | ${BRAND}`, description: 'Sign in to MigrationHub to start or track your accounting data migration.', noindex: true } },
+  { path: '/migration/:pairSlug/plan', meta: { title: `Choose your plan | ${BRAND}`, description: 'Choose the plan for your accounting data migration.', noindex: true } },
+  { path: '/admin/*', meta: { title: `Admin | ${BRAND}`, description: 'MigrationHub administration.', noindex: true } },
 ];
+
+/** Fallback for every other route (wizard steps, payment, sign-up, tracking, unknown URLs). */
+export const PRIVATE_DEFAULT_META: PageMeta = {
+  title: `${BRAND}`,
+  description: 'MigrationHub by MMC Convert.',
+  noindex: true,
+};
 
 export const NOT_FOUND_META: PageMeta = {
   title: `Page not found | ${BRAND}`,
@@ -57,8 +38,17 @@ export const NOT_FOUND_META: PageMeta = {
   noindex: true,
 };
 
-/** The page's metadata, or null for routes that keep the document defaults. */
+const normalise = (pathname: string): string => {
+  const p = pathname.replace(/\/+$/, '');
+  return p === '' ? '/' : p;
+};
+
+export const publicPage = (pathname: string): PublicPage | undefined => PUBLIC_PAGES.find((p) => p.path === normalise(pathname));
+
+/** The page's metadata, or null for routes that have none of their own. */
 export function routeMeta(pathname: string): PageMeta | null {
-  const hit = ROUTES.find((r) => matchPath({ path: r.path, end: true }, pathname));
+  const pub = publicPage(pathname);
+  if (pub) return pub;
+  const hit = PRIVATE_ROUTES.find((r) => matchPath({ path: r.path, end: true }, pathname));
   return hit ? hit.meta : null;
 }

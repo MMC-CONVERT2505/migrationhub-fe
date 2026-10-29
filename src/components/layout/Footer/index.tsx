@@ -16,10 +16,13 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Product: [
     { label: 'Migrations', section: 'pairs' },
     { label: 'Pricing', section: 'pricing' },
+    { label: 'How it works', to: '/how-it-works' },
+    { label: 'Supported platforms', to: '/supported-platforms' },
     { label: 'Security', href: EXTERNAL_LINKS.security },
   ],
   Company: [
     { label: 'About', to: '/about' },
+    { label: 'MMC Convert website', href: EXTERNAL_LINKS.main },
     { label: 'Blog', href: EXTERNAL_LINKS.blog },
     { label: 'Careers', href: EXTERNAL_LINKS.careers },
   ],

@@ -2,7 +2,7 @@ import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/Spinner';
-import { RouteMeta } from '@/components/common/PageMeta';
+import { RouteSEO } from '@/components/seo/SEO';
 import { HashScroll } from '@/components/common/HashScroll';
 import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -29,6 +29,8 @@ const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDeta
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
+const HowItWorksPage        = React.lazy(() => import('@/pages/HowItWorksPage'));
+const SupportedPlatformsPage = React.lazy(() => import('@/pages/SupportedPlatformsPage'));
 const NotFoundPage        = React.lazy(() => import('@/pages/NotFoundPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
@@ -100,11 +102,13 @@ const App: React.FC = () => (
   <RouteBoundary>
   <SessionResync />
   <HashScroll />
-  <RouteMeta />
+  <RouteSEO />
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/about"     element={<AboutPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/supported-platforms" element={<SupportedPlatformsPage />} />
       <Route path="/contact"   element={<ContactPage />} />
       <Route path="/privacy"   element={<PrivacyPage />} />
       <Route path="/termsofuse" element={<TermsPage />} />

@@ -274,6 +274,9 @@ export interface CreateMigrationRequest {
   inquiryId?: number;
   /** Operation Team only: total financial years, when more than the plan covers. */
   years?: number;
+  /** Operation Team only: exact period (YYYY-MM-DD). Both or neither; never together with `years`. */
+  migrationStartDate?: string;
+  migrationEndDate?: string;
 }
 
 export interface MigrationRecord {

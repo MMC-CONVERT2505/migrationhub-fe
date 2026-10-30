@@ -6,6 +6,7 @@ import { historyLabel } from '@/utils/historyYears';
 import { formatCurrency, yesNo } from '@/utils/format';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
+import { formatDateRange } from '@/utils/dateRange';
 import { useAppStore } from '@/store/appStore';
 import { planCurrency } from '@/constants/migrationFlow';
 import { pairCustomerPath, pairPlanPath } from '@/utils/platformMap';
@@ -22,13 +23,15 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 export const OrderSummary: React.FC = () => {
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
   // Plan, years and amount come from one place so this summary can't disagree with the Pay button.
-  const { pair, plan, country, years, extendedYears, extension, subtotal, tax, total: amountDue, isFree } = useCheckoutSelection();
+  const { pair, plan, country, years, extendedYears, customRange, extension, subtotal, tax, total: amountDue, isFree } = useCheckoutSelection();
   // Operation Team: the plan is paid, but nothing is due at checkout.
   const paymentSkipped = usePaymentSkipped(pair?.isFree ?? false, plan);
   const currency = planCurrency(plan);
   const extraYears = extendedYears !== null && plan?.years != null ? extendedYears - plan.years : 0;
 
-  const dateRange = plan
+  const dateRange = customRange
+    ? formatDateRange(customRange)
+    : plan
     ? formatFinancialRange(calculateMigrationPeriod(inquiryDetails?.financialYearEnd, years ?? plan.years, plan.isInception))
     : null;
 
@@ -53,7 +56,7 @@ export const OrderSummary: React.FC = () => {
         {plan && (
           <>
             <Row label="Plan" value={plan.name} />
-            <Row label="Historical data" value={extendedYears ? historyLabel(extendedYears) : plan.history} />
+            <Row label="Historical data" value={customRange ? 'Custom date range' : extendedYears ? historyLabel(extendedYears) : plan.history} />
             {!isFree && !paymentSkipped && (extension > 0 || tax > 0) && (
               <Row label="Plan price" value={Number(plan.basePrice) === 0 ? 'Free' : formatCurrency(Number(plan.basePrice), currency)} />
             )}

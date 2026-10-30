@@ -101,6 +101,12 @@ export interface KPICard {
 
 export type Screen = 'home' | 'payment' | 'migration' | 'admin';
 
+/** From/To days as YYYY-MM-DD; either may still be empty while the form is being filled. */
+export interface DateRangeSelection {
+  from: string;
+  to: string;
+}
+
 export interface PendingMigration {
   migrationPairId: string;
   planId?: string;
@@ -140,6 +146,8 @@ export interface AppState {
   selectedPlanId: string | null;
   /** Operation Team only: total financial years chosen beyond the plan's coverage. */
   selectedYears: number | null;
+  /** Operation Team only: an exact From/To period instead of years (null = not in use). Never both with selectedYears. */
+  selectedDateRange: DateRangeSelection | null;
   /** Customer country (plain name, e.g. "Australia"): selects the price list row. Single source for the whole flow. */
   selectedCountry: string | null;
   inquiryDetails: InquiryDetails | null;
@@ -164,6 +172,7 @@ export interface AppState {
   setPendingMigration: (data: PendingMigration | null) => void;
   setSelectedPlanId: (planId: string | null) => void;
   setSelectedYears: (years: number | null) => void;
+  setSelectedDateRange: (range: DateRangeSelection | null) => void;
   setInquiryDetails: (data: InquiryDetails | null) => void;
 }
 

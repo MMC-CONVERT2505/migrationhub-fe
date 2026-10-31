@@ -8,6 +8,7 @@ import {
   type CleanerGroup,
   type CleanerPreview,
   type CleanerRow,
+  type CleanerRunner,
   type CleanupLogEntry,
   type RemovalCounts,
 } from '@/api/adminMigrationCleaner';
@@ -85,8 +86,10 @@ const totalRows = (c: RemovalCounts) => Object.values(c).reduce((a, b) => a + b,
 const errMsg = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 
 const MigrationCleanerPage: React.FC = () => {
-  const { can } = usePermissions();
+  const { can, isAdminAccount } = usePermissions();
   const canRunIt = can('migration-cleaner.run');
+  // Delete past the safety rules: offered to admin accounts only (the server enforces it too).
+  const [forceOn, setForceOn] = useState(false);
 
   const [mode, setMode] = useState<CleanerAction>('SOFT_DELETE');
   const [group, setGroup] = useState<CleanerGroup | 'all'>('all');
@@ -144,10 +147,12 @@ const MigrationCleanerPage: React.FC = () => {
   }, []);
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  const changeMode = (m: CleanerAction) => { setMode(m); setSelected(new Set()); setCapNote(''); };
+  const changeMode = (m: CleanerAction) => { setMode(m); setForceOn(false); setSelected(new Set()); setCapNote(''); };
+  const force = forceOn && mode === 'HARD_DELETE' && isAdminAccount;
+  const toggleForce = (on: boolean) => { setForceOn(on); setSelected(new Set()); setCapNote(''); };
   const changeGroup = (g: CleanerGroup | 'all') => { setGroup(g); setSkip(0); setSelected(new Set()); setCapNote(''); };
 
-  const pageAllowed = useMemo(() => rows.filter((r) => canRun(r, mode)), [rows, mode]);
+  const pageAllowed = useMemo(() => rows.filter((r) => canRun(r, mode, force)), [rows, mode, force]);
   const pageAllSelected = pageAllowed.length > 0 && pageAllowed.every((r) => selected.has(r.id));
 
   const toggleOne = (id: string) =>
@@ -165,6 +170,7 @@ const MigrationCleanerPage: React.FC = () => {
         search: query || undefined,
         group: group === 'all' ? undefined : group,
         action: mode,
+        ...(force && { force }),
       });
       const ids = res.ids.slice(0, SELECTION_LIMIT);
       setSelected(new Set(ids));
@@ -191,7 +197,7 @@ const MigrationCleanerPage: React.FC = () => {
       <div role="note" className="mt-4 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900 leading-relaxed">
         <strong>Soft delete and restore can be undone. Hard delete and purge cannot.</strong> Running and recently active
         migrations and ones with an open help request are refused automatically; so are hard deletes of ones with a settled
-        payment, an App Store order or a Karbon work item. Nothing here removes data held by the migration tool itself.
+        payment, an App Store order or a Karbon work item (an admin account can override this for a hard delete). Nothing here removes data held by the migration tool itself.
         Every action is recorded permanently below.
       </div>
 
@@ -218,6 +224,21 @@ const MigrationCleanerPage: React.FC = () => {
             </div>
             <p className="text-xs text-text-secondary flex-1 min-w-[16rem]">{MODES[mode].blurb}</p>
           </div>
+          {mode === 'HARD_DELETE' && isAdminAccount && canRunIt && (
+            <label className="flex items-start gap-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <input
+                type="checkbox"
+                checked={forceOn}
+                onChange={(e) => toggleForce(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <strong>Delete exactly what I select, ignoring the safety rules (admin only).</strong> Running migrations, ones
+                with an open help request, a settled payment, an App Store order or a Karbon work item can then be deleted.
+                Payments are never deleted. The ignored rules are recorded in the log.
+              </span>
+            </label>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
@@ -281,21 +302,22 @@ const MigrationCleanerPage: React.FC = () => {
                     aria-label="Select every removable migration on this page"
                     checked={pageAllSelected}
                     disabled={!canRunIt || pageAllowed.length === 0}
-                    onChange={() => setSelected((s) => togglePage(s, rows, mode))}
+                    onChange={() => setSelected((s) => togglePage(s, rows, mode, force))}
                   />
                 </th>
-                {['Migration', 'Customer', 'Status', 'Updated', 'Result'].map((h) => (
+                {['Migration', 'Run by', 'Customer', 'Status', 'Updated', 'Result'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading && rows.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-text-secondary">Loading…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-text-secondary">Loading…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-text-secondary">No migrations match.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-text-secondary">No migrations match.</td></tr>
               ) : rows.map((r) => {
-                const ok = canRun(r, mode);
+                const ok = canRun(r, mode, force);
+                const rule = blockedBy(r, mode)[0];
                 const meta = statusMeta(r.status);
                 return (
                   <tr key={r.id} className={`border-b border-border last:border-0 ${ok ? '' : 'bg-bg-light/60'}`}>
@@ -312,6 +334,9 @@ const MigrationCleanerPage: React.FC = () => {
                       <div className="font-mono text-xs text-text-primary">{r.id}</div>
                       <div className="text-[11px] text-text-secondary">{r.pair}</div>
                     </td>
+                    <td className="px-4 py-3 max-w-[200px]">
+                      <RunnerCell runner={r.runner} />
+                    </td>
                     <td className="px-4 py-3 max-w-[220px]">
                       <div className="text-xs text-text-primary truncate">{r.customer ?? '—'}</div>
                       <div className="text-[11px] text-text-secondary truncate">{r.email ?? ''}</div>
@@ -323,7 +348,9 @@ const MigrationCleanerPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{fmt(r.updatedAt)}</td>
                     <td className="px-4 py-3 text-xs max-w-[280px]">
-                      {ok ? (
+                      {ok && force && rule ? (
+                        <span className="text-red-700 font-medium" title={blockedBy(r, mode).join(' ')}>Will be deleted anyway: {rule}</span>
+                      ) : ok ? (
                         <span className="text-green-700 font-medium">Can be {MODES[mode].done}</span>
                       ) : (
                         <span className="text-text-secondary" title={blockedBy(r, mode).join(' ')}>{blockedBy(r, mode)[0]}</span>
@@ -370,12 +397,31 @@ const MigrationCleanerPage: React.FC = () => {
       {reviewing && (
         <ReviewModal
           action={mode}
+          force={force}
           ids={[...selected]}
           onClose={() => setReviewing(false)}
           onDone={done}
         />
       )}
     </motion.div>
+  );
+};
+
+const RUNNER_BADGE: Record<CleanerRunner['type'], { label: string; cls: string }> = {
+  OP_TEAM: { label: 'Operation Team', cls: 'bg-indigo-50 text-indigo-700' },
+  DEVELOPER: { label: 'Developer', cls: 'bg-purple-50 text-purple-700' },
+  CUSTOMER: { label: 'Customer', cls: 'bg-bg-light text-text-secondary border border-border' },
+};
+
+/** Role badge, then the person's name and email: who ran the migration. */
+const RunnerCell: React.FC<{ runner: CleanerRunner }> = ({ runner }) => {
+  const b = RUNNER_BADGE[runner.type];
+  return (
+    <div>
+      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${b.cls}`}>{b.label}</span>
+      <div className="mt-1 text-xs text-text-primary truncate" title={runner.name ?? ''}>{runner.name ?? '—'}</div>
+      <div className="text-[11px] text-text-secondary truncate" title={runner.email ?? ''}>{runner.email ?? ''}</div>
+    </div>
   );
 };
 
@@ -404,10 +450,11 @@ const OutcomeBanner: React.FC<{ outcome: CleanerExecuteResponse; onClose: () => 
 
 const ReviewModal: React.FC<{
   action: CleanerAction;
+  force: boolean;
   ids: string[];
   onClose: () => void;
   onDone: (r: CleanerExecuteResponse) => void;
-}> = ({ action, ids, onClose, onDone }) => {
+}> = ({ action, force, ids, onClose, onDone }) => {
   const [preview, setPreview] = useState<CleanerPreview | null>(null);
   const [error, setError] = useState('');
   const [typed, setTyped] = useState('');
@@ -415,14 +462,14 @@ const ReviewModal: React.FC<{
 
   useEffect(() => {
     let live = true;
-    migrationCleanerService.preview(ids, action)
+    migrationCleanerService.preview(ids, action, force)
       .then((p) => { if (live) setPreview(p); })
       .catch((e) => { if (live) setError(errMsg(e, 'Could not prepare the review.')); });
     return () => { live = false; };
-  }, [ids, action]);
+  }, [ids, action, force]);
 
   const eligible = useMemo(() => preview?.items.filter((i) => i.eligible) ?? [], [preview]);
-  const phrase = confirmPhrase(action, eligible.length);
+  const phrase = confirmPhrase(action, eligible.length, force);
   const rowTotal = eligible.reduce((a, i) => a + totalRows(i.counts), 0);
   const matches = eligible.length > 0 && (!needsPhrase(action) || typed.trim() === phrase);
 
@@ -430,7 +477,7 @@ const ReviewModal: React.FC<{
     if (!matches || running) return;
     setRunning(true); setError('');
     try {
-      onDone(await migrationCleanerService.execute(eligible.map((i) => i.id), action, needsPhrase(action) ? typed.trim() : undefined));
+      onDone(await migrationCleanerService.execute(eligible.map((i) => i.id), action, needsPhrase(action) ? typed.trim() : undefined, force));
     } catch (e) {
       setError(errMsg(e, 'The request failed. Check the Recent removals list before trying again.'));
       setRunning(false);
@@ -460,6 +507,9 @@ const ReviewModal: React.FC<{
                         <span className="text-text-secondary">{action === 'SOFT_DELETE' ? 'Will be hidden. Nothing removed.' : 'Will be visible again.'}</span>
                       ) : i.eligible ? (
                         <span className="text-text-secondary">
+                          {force && i.overridden && i.overridden.length > 0 && (
+                            <span className="block text-red-700 font-medium">Ignoring: {i.overridden.join(' ')}</span>
+                          )}
                           {i.counts.logs} logs · {i.counts.webhookEvents} events · {i.counts.outboundCalls} calls · {i.counts.connectors} connections
                           {i.counts.reviewRequests > 0 && ` · ${i.counts.reviewRequests} help requests`}
                         </span>

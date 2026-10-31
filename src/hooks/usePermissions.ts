@@ -46,5 +46,8 @@ export function usePermissions() {
     [isSuperAdmin, permissions],
   );
 
-  return { can, permissions, roles: payload?.roles ?? [], isSuperAdmin };
+  // A real admin account (not a role that happens to carry every permission): some actions are theirs alone.
+  const isAdminAccount = payload?.type === 'admin';
+
+  return { can, permissions, roles: payload?.roles ?? [], isSuperAdmin, isAdminAccount };
 }

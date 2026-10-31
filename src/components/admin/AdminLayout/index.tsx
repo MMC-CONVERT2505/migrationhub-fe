@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
 import { usePermissions } from '@/hooks/usePermissions';
+import { permissionForPath } from '@/utils/adminAccess';
 import { NAV_TEXT } from '@/constants/navStyles';
 
 interface NavItem {
@@ -176,9 +177,12 @@ export const AdminLayout: React.FC = () => {
   const { pathname } = useLocation();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.to === '/admin/permissions' && !can('permissions.read')) return false;
-    return true;
+    const needed = permissionForPath(item.to);
+    return !needed || can(needed);
   });
+  // Hiding a nav item is not enough: a typed or bookmarked URL must be refused too.
+  const neededHere = permissionForPath(pathname);
+  const allowedHere = !neededHere || can(neededHere);
 
   return (
   <div className="min-h-screen bg-bg">
@@ -232,7 +236,16 @@ export const AdminLayout: React.FC = () => {
       {/* Page content */}
       <main className="flex-1 p-6 pb-20 md:pb-6 min-w-0">
         <ErrorBoundary resetKey={pathname}>
-          <Outlet />
+          {allowedHere ? (
+            <Outlet />
+          ) : (
+            <div role="alert" className="max-w-md mx-auto mt-16 text-center">
+              <h1 className="text-xl font-bold text-text-primary mb-2">Access denied</h1>
+              <p className="text-sm text-text-secondary">
+                Your role doesn&apos;t include permission to view this section. Contact your administrator if you need it.
+              </p>
+            </div>
+          )}
         </ErrorBoundary>
       </main>
     </div>

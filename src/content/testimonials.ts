@@ -10,33 +10,35 @@ export interface Testimonial {
   verified: boolean;
 }
 
-// TODO(owner): confirm every review below is genuine and the Verified label is accurate.
+// Copied word for word from the 5-star reviews on https://www.trustpilot.com/review/mmcconvert.com (Oct 2026).
+// `path` carries the review's own title (there is no migration pair to show) and `timeAgo` its date.
+// `verified` stays false until the owner confirms the "Verified" label is accurate for Trustpilot.
 export const TESTIMONIALS: Testimonial[] = [
   {
-    initial: 'S',
-    name: 'Sarah M.',
-    path: 'QuickBooks Desktop → QuickBooks Online',
-    timeAgo: '2 weeks ago',
-    text: 'Daily updates kept us informed at every step. The transition was smooth, stress-free, and every query got a fast, personal response.',
-    supportedPair: false, // not an offered pair; TODO(owner)
+    initial: 'C',
+    name: 'Cameron Day-Lewis',
+    path: 'MMC made the whole process so easy',
+    timeAgo: 'Oct 24, 2026',
+    text: 'MMC made the whole process so easy, from the first chat to final migration.',
+    supportedPair: true,
+    verified: false,
+  },
+  {
+    initial: 'G',
+    name: 'George Kairinos',
+    path: 'MMC Convert were fantastic!!!',
+    timeAgo: 'Oct 23, 2026',
+    text: 'Great, speedy and constant communication throughout the migration process',
+    supportedPair: true,
     verified: false,
   },
   {
     initial: 'D',
-    name: 'David T.',
-    path: 'Sage → QuickBooks Online',
-    timeAgo: '1 month ago',
-    text: 'Handled our migration with real professionalism. Completed efficiently with no complications — we’d gladly use them again.',
-    supportedPair: false, // not an offered pair; TODO(owner)
-    verified: false,
-  },
-  {
-    initial: 'B',
-    name: 'Bill R.',
-    path: 'Reckon Accounts → Reckon One',
-    timeAgo: '3 weeks ago',
-    text: 'Years of workbooks migrated accurately and quickly. Communication and progress reporting throughout were excellent.',
-    supportedPair: false, // not an offered pair; TODO(owner)
+    name: 'Donna King',
+    path: 'MMC Convert always deliver on time',
+    timeAgo: 'Oct 14, 2026',
+    text: 'MMC Convert always deliver on time, they let me know each day where they were up to in the migration',
+    supportedPair: true,
     verified: false,
   },
 ];

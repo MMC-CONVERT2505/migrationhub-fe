@@ -14,10 +14,10 @@ export const TRUST_METRICS = {
   averageMigrationTime: null as string | null,
   // TODO(owner): accounting firms served, e.g. "500+"
   firmsServed: null as string | null,
-  // TODO(owner): Trustpilot rating out of 5, e.g. "4.8"
-  rating: null as string | null,
-  // TODO(owner): Trustpilot review count, e.g. "1,200"
-  reviewCount: null as string | null,
+  // Read from https://www.trustpilot.com/review/mmcconvert.com on 31 Oct 2026 (TrustScore 4.8, 1,218 reviews).
+  // TODO(owner): refresh these when the Trustpilot page changes.
+  rating: '4.8' as string | null,
+  reviewCount: '1,218' as string | null,
   // TODO(owner): years of conversion experience, e.g. "12+ yrs"
   yearsExperience: null as string | null,
   // TODO(owner): share who would recommend, e.g. "98%"

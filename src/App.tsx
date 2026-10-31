@@ -51,7 +51,7 @@ const MigrationReviewDetailPage = React.lazy(() => import('@/pages/admin/Migrati
 const ReportsPage         = React.lazy(() => import('@/pages/admin/ReportsPage'));
 const InquiriesPage       = React.lazy(() => import('@/pages/admin/InquiriesPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
-const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
+const CreateUserPage   = React.lazy(() => import('@/pages/admin/CreateUserPage'));
 const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
 const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
 const FaqsPage            = React.lazy(() => import('@/pages/admin/FaqsPage'));
@@ -142,7 +142,7 @@ const App: React.FC = () => (
         <Route element={<AdminLayout />}>
           <Route index                    element={<AdminDashboard />} />
           <Route path="users"            element={<UsersPage />} />
-          <Route path="users/create"     element={<CreateSubUserPage />} />
+          <Route path="users/create"     element={<CreateUserPage />} />
           <Route path="roles"            element={<RolesPage />} />
           <Route path="permissions"      element={<PermissionsPage />} />
           <Route path="migration-pairs"  element={<MigrationPairsPage />} />

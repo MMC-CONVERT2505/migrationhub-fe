@@ -7,6 +7,8 @@ import {
   type PaymentStatus,
   adminMigrationsService,
   type AdminMigrationDetail,
+  runnerRoleLabel,
+  isNamedRunner,
 } from '@/api/adminMigrations';
 import { ApiError } from '@/api/client';
 import { yesNo } from '@/utils/format';
@@ -345,9 +347,9 @@ const MigrationDetailPage: React.FC = () => {
               <Row
                 label="Migration runner"
                 value={
-                  m.runner?.type === 'OP_TEAM'
-                    ? `${m.runner.name} (Operation Team${m.runner.removed ? ', removed' : ''})`
-                    : 'Guest'
+                  isNamedRunner(m.runner)
+                    ? `${m.runner.name} (${runnerRoleLabel(m.runner)}${m.runner.removed ? ', removed' : ''})`
+                    : 'Customer'
                 }
               />
               <Row

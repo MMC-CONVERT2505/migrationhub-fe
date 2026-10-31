@@ -53,15 +53,27 @@ export interface MigrationCustomer {
   country: string | null;
 }
 
-/** Who ran the migration: an Operation Team member signed in (via the normal Sign in) with the OP_TEAM role, otherwise a guest. */
+/** Who ran the migration: an Operation Team member, a Developer (both signed in), or otherwise a Customer (end user or guest). */
 export interface MigrationRunner {
-  type: 'GUEST' | 'OP_TEAM';
+  type: 'CUSTOMER' | 'OP_TEAM' | 'DEVELOPER';
   id: number | null;
   name: string;
   email: string | null;
+  /** Role held when the migration was created (e.g. OP_TEAM); null for customers. */
+  role?: string | null;
   /** The operator's account no longer exists; name/email are the creation-time snapshot. */
   removed: boolean;
 }
+
+const RUNNER_ROLE_LABEL: Record<string, string> = { OP_TEAM: 'Operation Team', DEVELOPER: 'Developer' };
+
+/** Readable role of the person who ran a migration (role is stored as the role code). */
+export const runnerRoleLabel = (r: Pick<MigrationRunner, 'type' | 'role'>): string =>
+  RUNNER_ROLE_LABEL[r.type] ?? (r.role && RUNNER_ROLE_LABEL[r.role]) ?? 'Customer';
+
+/** Whether a named person (Operation Team member or Developer) ran it, rather than a customer. */
+export const isNamedRunner = (r?: Pick<MigrationRunner, 'type'> | null): boolean =>
+  r?.type === 'OP_TEAM' || r?.type === 'DEVELOPER';
 
 export interface AdminMigrationListItem {
   id: string;

@@ -1,3 +1,4 @@
+import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -6,12 +7,11 @@ import { Button } from '@/components/common/Button';
 import { contactService } from '@/api/contact';
 import { ApiError } from '@/api/client';
 import type { AuthError } from '@/types/auth';
+import { CONTACT_EMAIL } from '@/constants/links';
+import { COUNTRY_NAMES, DIAL_CODE_BY_NAME } from '@/constants/countries';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COUNTRIES = [
-  'Australia', 'New Zealand', 'United Kingdom', 'United States',
-  'Canada', 'Singapore', 'India', 'UAE', 'South Africa', 'Other',
-];
+const COUNTRIES = [...COUNTRY_NAMES, 'Other'];
 
 const DIAL_CODES: { label: string; value: string }[] = [
   { label: '+61', value: '+61' },   // AU
@@ -26,17 +26,7 @@ const DIAL_CODES: { label: string; value: string }[] = [
 
 // Dial code to preselect per country. "Other" is absent on purpose: it leaves the code as-is.
 // Every value must exist in DIAL_CODES. Canada shares +1 with the US.
-const COUNTRY_DIAL_CODE: Record<string, string> = {
-  'Australia': '+61',
-  'New Zealand': '+64',
-  'United Kingdom': '+44',
-  'United States': '+1',
-  'Canada': '+1',
-  'Singapore': '+65',
-  'India': '+91',
-  'UAE': '+971',
-  'South Africa': '+27',
-};
+const COUNTRY_DIAL_CODE = DIAL_CODE_BY_NAME;
 
 interface ContactFormData {
   email: string;
@@ -160,10 +150,11 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
+    <div className="min-h-screen bg-bg">
       <Navbar />
 
       <main>
+        <Breadcrumbs />
         <section className="relative pt-16 pb-24 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
@@ -181,8 +172,8 @@ const ContactPage: React.FC = () => {
                 <p className="mt-6 text-lg text-text-secondary leading-relaxed">
                   Tell us a little about your company and we&apos;ll get back to you within one
                   business day. Prefer email? Reach us directly at{' '}
-                  <a href="mailto:info@mmcconvert.com" className="text-blue-600 hover:underline">
-                    info@mmcconvert.com
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">
+                    {CONTACT_EMAIL}
                   </a>.
                 </p>
               </div>

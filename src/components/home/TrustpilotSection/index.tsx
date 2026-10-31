@@ -1,42 +1,21 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { EXTERNAL_LINKS, TRUSTPILOT_REVIEW_COUNT } from '@/constants/links';
+import { EXTERNAL_LINKS } from '@/constants/links';
+import { TRUST_METRICS, visibleStats } from '@/content/trustMetrics';
+import { visibleTestimonials } from '@/content/testimonials';
 
 const TRUSTPILOT_GREEN = '#00B67A';
 const STAR_PATH =
   'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
 
-const STATS = [
-  { value: '100,000+', label: 'conversions completed' },
-  { value: TRUSTPILOT_REVIEW_COUNT, label: 'Trustpilot reviews' },
-  { value: '12+ yrs', label: 'conversion expertise' },
-  { value: '98%', label: 'would recommend' },
-];
+const STATS = visibleStats([
+  { key: 'migrationsCompleted', label: 'conversions completed' },
+  { key: 'reviewCount', label: 'reviews on Trustpilot' },
+  { key: 'yearsExperience', label: 'conversion expertise' },
+  { key: 'wouldRecommend', label: 'would recommend' },
+]);
 
-// Reviews copied word for word from https://www.trustpilot.com/review/mmcconvert.com (5-star, Oct 2026).
-const REVIEWS = [
-  {
-    initial: 'C',
-    name: 'Cameron Day-Lewis',
-    title: 'MMC made the whole process so easy',
-    date: 'Oct 24, 2026',
-    text: 'MMC made the whole process so easy, from the first chat to final migration.',
-  },
-  {
-    initial: 'G',
-    name: 'George Kairinos',
-    title: 'MMC Convert were fantastic!!!',
-    date: 'Oct 23, 2026',
-    text: 'Great, speedy and constant communication throughout the migration process',
-  },
-  {
-    initial: 'D',
-    name: 'Donna King',
-    title: 'MMC Convert always deliver on time',
-    date: 'Oct 14, 2026',
-    text: 'MMC Convert always deliver on time, they let me know each day where they were up to in the migration',
-  },
-];
+const REVIEWS = visibleTestimonials();
 
 /** Trustpilot-style row of green star tiles. */
 const StarTiles: React.FC<{ size?: number; count?: number }> = ({ size = 28, count = 5 }) => (
@@ -81,18 +60,26 @@ export const TrustpilotSection: React.FC = () => {
             Trusted by accountants &amp; businesses worldwide
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
-            Rated excellent on Trustpilot
+            {TRUST_METRICS.rating ? 'Rated excellent on Trustpilot' : 'What our customers say'}
           </h2>
 
           {/* Rating line */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-text-secondary">
-            <StarTiles size={28} />
-            <span className="font-bold text-text-primary">4.8 / 5</span>
-            <span className="text-border">|</span>
-            <span>
-              Based on <span className="font-semibold text-text-primary">{TRUSTPILOT_REVIEW_COUNT} reviews</span>
-            </span>
-            <span className="text-border">|</span>
+            {TRUST_METRICS.rating && (
+              <>
+                <StarTiles size={28} />
+                <span className="font-bold text-text-primary">{TRUST_METRICS.rating} / 5</span>
+                <span className="text-border">|</span>
+              </>
+            )}
+            {TRUST_METRICS.reviewCount && (
+              <>
+                <span>
+                  Based on <span className="font-semibold text-text-primary">{TRUST_METRICS.reviewCount} reviews</span>
+                </span>
+                <span className="text-border">|</span>
+              </>
+            )}
             <span className="inline-flex items-center gap-1.5">
               <span
                 className="inline-flex items-center justify-center w-5 h-5 rounded text-white text-xs font-bold"
@@ -102,14 +89,12 @@ export const TrustpilotSection: React.FC = () => {
               </span>
               <span className="font-semibold text-text-primary">Trustpilot</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-green-600">
-              <CheckIcon /> Reviews from Trustpilot
-            </span>
+            {/* TODO(owner): confirm the rating is Trustpilot-verified before showing this label. */}
           </div>
         </motion.div>
 
         {/* Stats */}
-        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {STATS.length > 0 && <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
           {STATS.map((s, i) => (
             <motion.div
               key={s.label}
@@ -125,10 +110,10 @@ export const TrustpilotSection: React.FC = () => {
               <div className="mt-1.5 text-xs text-text-tertiary">{s.label}</div>
             </motion.div>
           ))}
-        </div>
+        </div>}
 
         {/* Review cards */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {REVIEWS.length > 0 && <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           {REVIEWS.map((review, i) => (
             <motion.div
               key={review.name}
@@ -148,16 +133,18 @@ export const TrustpilotSection: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-text-primary">{review.name}</p>
-                  <p className="text-xs text-text-tertiary">{review.title}</p>
-                  <p className="text-xs text-text-tertiary mt-0.5">{review.date}</p>
+                  <p className="text-xs text-text-tertiary">{review.path}</p>
+                  <p className="text-xs text-text-tertiary mt-0.5">{review.timeAgo}</p>
                 </div>
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 whitespace-nowrap">
-                  <CheckIcon className="w-3 h-3" /> Trustpilot
-                </span>
+                {review.verified && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 whitespace-nowrap">
+                    <CheckIcon className="w-3 h-3" /> Verified
+                  </span>
+                )}
               </div>
             </motion.div>
           ))}
-        </div>
+        </div>}
 
         {/* CTA */}
         <div className="mt-8 text-center">
@@ -167,7 +154,7 @@ export const TrustpilotSection: React.FC = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-5 py-3 bg-white border border-border rounded-lg text-sm font-semibold text-text-primary hover:border-border-medium hover:shadow-card transition-all duration-150"
           >
-            Read all {TRUSTPILOT_REVIEW_COUNT} reviews on Trustpilot
+            {TRUST_METRICS.reviewCount ? `Read all ${TRUST_METRICS.reviewCount} reviews on Trustpilot` : 'Read our reviews on Trustpilot'}
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
             </svg>

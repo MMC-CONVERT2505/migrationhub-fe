@@ -19,6 +19,7 @@ import { pairPlanPath } from '@/utils/platformMap';
 import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
 import { hasPriceList, normalizeCountry, offeredCountries, validCountry } from '@/utils/countryPricing';
+import { COUNTRY_LABELS, DIAL_CODE_BY_LABEL } from '@/constants/countries';
 import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit } from '@/utils/inquiryContact';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
@@ -28,24 +29,11 @@ import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 const AUSTRALIA = 'Australia (AUD)';
 const NEW_ZEALAND = 'New Zealand (NZD)';
 
-const COUNTRIES = [
-  AUSTRALIA, NEW_ZEALAND, 'United Kingdom (GBP)', 'United States (USD)',
-  'Canada (CAD)', 'Singapore (SGD)', 'India (INR)', 'United Arab Emirates (AED)', 'South Africa (ZAR)',
-];
+const COUNTRIES = COUNTRY_LABELS;
 
 // International dial code per country, keyed by the same labels the country selector
 // shows so the two can never drift. Every country in COUNTRIES must appear here.
-const COUNTRY_DIAL_CODE: Record<string, string> = {
-  [AUSTRALIA]: '+61',
-  [NEW_ZEALAND]: '+64',
-  'United Kingdom (GBP)': '+44',
-  'United States (USD)': '+1',
-  'Canada (CAD)': '+1',
-  'Singapore (SGD)': '+65',
-  'India (INR)': '+91',
-  'United Arab Emirates (AED)': '+971',
-  'South Africa (ZAR)': '+27',
-};
+const COUNTRY_DIAL_CODE = DIAL_CODE_BY_LABEL;
 
 // Selectable dial codes, derived from the map so the list can never offer a code no
 // country maps to. Deduped (US and CA share +1) and ordered numerically.

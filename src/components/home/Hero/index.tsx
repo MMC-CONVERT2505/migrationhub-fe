@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TRUST_METRICS } from '@/content/trustMetrics';
 
 export const Hero: React.FC = () => {
   return (
@@ -7,13 +8,14 @@ export const Hero: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-10 min-[769px]:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-14">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          // The hero is the first paint (and the LCP): ship it visible in the prerendered HTML instead of fading it in.
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="min-w-0"
         >
           <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
-            Move your accounting data{' '}
+            MigrationHub: move your accounting data{' '}
             <span className="text-blue-600">right now</span>
             , in minutes
           </h1>
@@ -42,7 +44,9 @@ export const Hero: React.FC = () => {
                   </svg>
                 ))}
               </div>
-              <p className="text-xs text-text-secondary mt-0.5">Rated 4.9/5 by 600+ accountants</p>
+              {TRUST_METRICS.rating && TRUST_METRICS.firmsServed && (
+                <p className="text-xs text-text-secondary mt-0.5">Rated {TRUST_METRICS.rating}/5 by {TRUST_METRICS.firmsServed} accounting firms</p>
+              )}
             </div>
           </div>
         </motion.div>

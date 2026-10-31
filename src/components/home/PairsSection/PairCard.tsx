@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { platformDisplayName, pairDisplayName } from '@/utils/platformName';
 import { cn } from '@/utils/format';
 import { pairDetailsPath } from '@/utils/platformMap';
@@ -47,17 +47,7 @@ const Pill: React.FC<{ className: string; children: React.ReactNode }> = ({ clas
 );
 
 export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
-  const navigate = useNavigate();
   const setSelectedPair = useAppStore((s) => s.setSelectedPair);
-
-  const handleClick = () => {
-    if (pair.url) {
-      window.open(pair.url, '_blank', 'noopener,noreferrer');
-    } else {
-      setSelectedPair(pair);
-      navigate(pairDetailsPath(pair));
-    }
-  };
 
   const renderBadges = () => {
     if (pair.status === 'region') {
@@ -81,6 +71,8 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         ? { label: 'Start free →', cls: 'text-green-600' }
         : { label: 'See pricing →', cls: 'text-blue-600' };
 
+  const actionName = action.label.replace(/\s*→$/, '');
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -88,9 +80,9 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
       viewport={{ once: true }}
       transition={{ delay: (index % 3) * 0.08 }}
       whileHover={{ y: -2 }}
-      onClick={handleClick}
       className={cn(
-        'group bg-white border border-border rounded-xl p-5 cursor-pointer',
+        'group relative bg-white border border-border rounded-xl p-5 cursor-pointer',
+        'focus-within:ring-2 focus-within:ring-blue-600 focus-within:ring-offset-2',
         'hover:border-border-medium hover:shadow-card-hover transition-all duration-200',
         'flex flex-col',
       )}
@@ -104,7 +96,29 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         <PairLogoBox logo={pair.dstLogo} abbr={pair.dstAbbr} name={platformDisplayName(pair.dst)} color={pair.dstColor} />
       </div>
 
-      <p className="mt-3 text-sm font-semibold text-text-primary">{pairDisplayName(pair)}</p>
+      <p className="mt-3 text-sm font-semibold text-text-primary">
+        {/* The whole card is the link's hit area (::after); one link keeps tab order and screen-reader lists clean. */}
+        {pair.url ? (
+          <a
+            href={pair.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${pairDisplayName(pair)}: ${actionName} (opens in a new tab)`}
+            className="outline-none after:absolute after:inset-0 after:content-['']"
+          >
+            {pairDisplayName(pair)}
+          </a>
+        ) : (
+          <Link
+            to={pairDetailsPath(pair)}
+            onClick={() => setSelectedPair(pair)}
+            aria-label={`${pairDisplayName(pair)}: ${actionName}`}
+            className="outline-none after:absolute after:inset-0 after:content-['']"
+          >
+            {pairDisplayName(pair)}
+          </Link>
+        )}
+      </p>
 
       {/* MYOB Business note */}
       {pair.myobBusiness && (
@@ -121,7 +135,7 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         <span className="text-xs text-text-tertiary">
           {pair.count ? `${pair.count} completed` : ''}
         </span>
-        <span className={cn('text-sm font-semibold', action.cls)}>{action.label}</span>
+        <span aria-hidden className={cn('text-sm font-semibold', action.cls)}>{action.label}</span>
       </div>
     </motion.div>
   );

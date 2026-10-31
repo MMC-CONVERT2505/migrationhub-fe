@@ -40,6 +40,19 @@ describe('togglePage', () => {
   });
 });
 
+describe('force (admin hard delete past the rules)', () => {
+  it('makes every row selectable, but only for hard delete', () => {
+    expect(canRun(rows[2], 'HARD_DELETE')).toBe(false);
+    expect(canRun(rows[2], 'HARD_DELETE', true)).toBe(true);
+    expect(canRun(rows[2], 'PURGE', true)).toBe(false);
+    expect([...togglePage(new Set(), rows, 'HARD_DELETE', true)].sort()).toEqual(['a', 'b', 'c']);
+  });
+  it('has its own phrase', () => {
+    expect(confirmPhrase('HARD_DELETE', 4, true)).toBe('FORCE HARD DELETE 4');
+    expect(confirmPhrase('HARD_DELETE', 4)).toBe('HARD DELETE 4');
+  });
+});
+
 describe('confirmation', () => {
   it('builds the phrase the server expects', () => {
     expect(confirmPhrase('HARD_DELETE', 12)).toBe('HARD DELETE 12');

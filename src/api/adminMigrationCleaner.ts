@@ -13,6 +13,14 @@ export interface RemovalCounts {
   reviewRequests: number;
 }
 
+/** Who ran a migration: an Operation Team member, a Developer, or otherwise the customer. */
+export interface CleanerRunner {
+  type: 'OP_TEAM' | 'DEVELOPER' | 'CUSTOMER';
+  role: string | null;
+  name: string | null;
+  email: string | null;
+}
+
 export interface CleanerRow {
   id: string;
   status: MigrationStatus;
@@ -26,7 +34,7 @@ export interface CleanerRow {
   customer: string | null;
   email: string | null;
   entity: string | null;
-  runner: { name: string; role: string | null } | null;
+  runner: CleanerRunner;
   /** What each action may do to this row right now, and why not. */
   can: Record<CleanerAction, boolean>;
   blockedBy: Record<CleanerAction, string[]>;
@@ -52,6 +60,8 @@ export interface CleanerPreviewItem {
   status: MigrationStatus | null;
   eligible: boolean;
   reasons: string[];
+  /** Forced only: the safety rules that are being ignored for this row. */
+  overridden?: string[];
   counts: RemovalCounts;
 }
 
@@ -59,6 +69,7 @@ export interface CleanerPreview {
   action: CleanerAction;
   eligible: number;
   refused: number;
+  force?: boolean;
   confirmationPhrase: string;
   items: CleanerPreviewItem[];
 }
@@ -104,7 +115,7 @@ export const migrationCleanerService = {
       .then((r) => r.data),
 
   /** Every id the filter matches that `action` may run on (the server caps it). */
-  matchingIds: (params: CleanerSearchParams & { action: CleanerAction }) =>
+  matchingIds: (params: CleanerSearchParams & { action: CleanerAction; force?: boolean }) =>
     apiClient
       .get<{ ids: string[]; matched: number; capped: boolean; cap: number }>(
         '/admin/migration-cleaner/matching-ids',
@@ -112,15 +123,15 @@ export const migrationCleanerService = {
       )
       .then((r) => r.data),
 
-  preview: (ids: string[], action: CleanerAction) =>
+  preview: (ids: string[], action: CleanerAction, force = false) =>
     apiClient
-      .post<CleanerPreview>('/admin/migration-cleaner/preview', { ids, action })
+      .post<CleanerPreview>('/admin/migration-cleaner/preview', { ids, action, ...(force && { force }) })
       .then((r) => r.data),
 
   /** `confirm` is required for PURGE and HARD_DELETE only. */
-  execute: (ids: string[], action: CleanerAction, confirm?: string) =>
+  execute: (ids: string[], action: CleanerAction, confirm?: string, force = false) =>
     apiClient
-      .post<CleanerExecuteResponse>('/admin/migration-cleaner/execute', { ids, action, confirm })
+      .post<CleanerExecuteResponse>('/admin/migration-cleaner/execute', { ids, action, confirm, ...(force && { force }) })
       .then((r) => r.data),
 
   history: (skip = 0, take = 30) =>

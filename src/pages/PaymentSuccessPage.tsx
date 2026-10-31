@@ -15,6 +15,7 @@ import { readySummaryRows } from '@/utils/readySummary';
 import { effectiveYears, extensionCost, historyLabel } from '@/utils/historyYears';
 import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
 import { calculateMigrationPeriod, formatFinancialRange } from '@/utils/financialYear';
+import { effectiveDateRange, formatDateRange, isValidDateRange } from '@/utils/dateRange';
 import { findSelectedPlan, isFreeSelection, planCurrency, resolveFlowRedirect } from '@/constants/migrationFlow';
 import type { PendingMigration } from '@/types';
 import type { UserMigration } from '@/types/api';
@@ -101,6 +102,7 @@ const PaymentSuccessPage: React.FC = () => {
       country: s.selectedCountry,
       inquiry: s.inquiryDetails,
       selectedYears: s.selectedYears,
+      selectedDateRange: s.selectedDateRange,
     };
   });
   const { pair, plan } = snap;
@@ -110,9 +112,13 @@ const PaymentSuccessPage: React.FC = () => {
   // Extra historical years chosen on the plan page (null = the plan's own coverage). What the customer
   // paid for rides on the pending migration, so it survives the payment redirect.
   const planYears = plan?.years ?? null;
-  const years = effectiveYears(plan, (pending?.planId === plan?.id ? pending?.years : undefined) ?? snap.selectedYears, isOperationTeam);
+  // Operation Team only: an exact From/To period instead of years. A range someone picked but may no longer use (role
+  // lost mid-flow) is not dropped silently: creation is stopped with a message instead (see triggerCreate).
+  const customRange = effectiveDateRange(snap.selectedDateRange, isOperationTeam);
+  const rangeNotAllowed = !isOperationTeam && isValidDateRange(snap.selectedDateRange);
+  const years = customRange ? null : effectiveYears(plan, (pending?.planId === plan?.id ? pending?.years : undefined) ?? snap.selectedYears, isOperationTeam);
   const extendedYears = years != null && planYears != null && years > planYears ? years : null;
-  const extension = extensionCost(plan, years, isOperationTeam);
+  const extension = customRange ? 0 : extensionCost(plan, years, isOperationTeam);
   // Financial-year-end is persisted in the store (sessionStorage) so it survives
   // the Razorpay redirect; snapshot it once for the page lifecycle.
   const financialYearEnd = snap.inquiry?.financialYearEnd ?? null;
@@ -129,7 +135,9 @@ const PaymentSuccessPage: React.FC = () => {
   const noPayment = isFree || operationTeamSkip;
   const currency = planCurrency(plan);
 
-  const dateRange = plan
+  const dateRange = customRange
+    ? formatDateRange(customRange)
+    : plan
     ? formatFinancialRange(calculateMigrationPeriod(financialYearEnd, extendedYears ?? plan.years, plan.isInception))
     : null;
 
@@ -167,6 +175,14 @@ const PaymentSuccessPage: React.FC = () => {
   // ── Create migration (countdown, "Start migration", or a payment-verification retry) ──
   const triggerCreate = useCallback(async (verifying = false) => {
     if (calledRef.current) return;
+    // A custom period was chosen but this session is no longer the Operation Team's: stop here. Starting without it
+    // would quietly migrate the plan's default period instead of the one that was asked for.
+    if (rangeNotAllowed) {
+      if (useAppStore.getState().dedicatedFlow) useAppStore.getState().endDedicatedFlow();
+      setApiError('Your Operation Team access has ended, so the custom date range cannot be used. Sign in again as the Operation Team to continue.');
+      setStage('error');
+      return;
+    }
     calledRef.current = true;
     if (!verifying) setStage('creating');
 
@@ -176,7 +192,8 @@ const PaymentSuccessPage: React.FC = () => {
         ...(migPairId ? { migrationPairId: migPairId } : {}),
         ...(planId ? { planId } : {}),
         ...(resolvedInquiryId ? { inquiryId: resolvedInquiryId } : {}),
-        ...(extendedYears ? { years: extendedYears } : {}),
+        // Years or an exact period, never both; the server decides who may use the period.
+        ...(customRange ? { migrationStartDate: customRange.from, migrationEndDate: customRange.to } : extendedYears ? { years: extendedYears } : {}),
       });
 
       localStorage.removeItem(PENDING_MIGRATION_LS_KEY);
@@ -217,7 +234,7 @@ const PaymentSuccessPage: React.FC = () => {
       setApiError(err instanceof ApiError ? err.message : 'Migration could not be queued. Please contact support.');
       setStage('error');
     }
-  }, [paymentId, migPairId, planId, resolvedInquiryId, extendedYears, pair, resetMigration, navigate]);
+  }, [paymentId, migPairId, planId, resolvedInquiryId, extendedYears, customRange, rangeNotAllowed, pair, resetMigration, navigate]);
 
   // ── Verifying: re-check a still-settling payment until it confirms or we give up ──
   useEffect(() => {
@@ -341,7 +358,7 @@ const PaymentSuccessPage: React.FC = () => {
             <dl>
               {readySummaryRows({
                 inquiry: snap.inquiry,
-                history: extendedYears ? historyLabel(extendedYears) : plan?.history,
+                history: customRange ? 'Custom date range' : extendedYears ? historyLabel(extendedYears) : plan?.history,
                 financialYearEnd,
                 dateRange,
               }).map((r) => (

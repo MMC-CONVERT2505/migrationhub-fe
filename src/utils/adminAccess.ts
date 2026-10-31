@@ -22,6 +22,7 @@ const PATH_PERMISSION: Record<string, string> = {
   '/admin/contacts': 'admin.read',
   '/admin/inquiries': 'admin.read',
   '/admin/faqs': 'faq.read',
+  '/admin/settings': 'migration-cleaner.read',
   '/admin/faqs/new': 'faq.write',
 };
 

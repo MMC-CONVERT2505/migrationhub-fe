@@ -8,32 +8,33 @@ const STAR_PATH =
 
 const STATS = [
   { value: '100,000+', label: 'conversions completed' },
-  { value: '800+', label: '5-star reviews' },
+  { value: TRUSTPILOT_REVIEW_COUNT, label: 'Trustpilot reviews' },
   { value: '12+ yrs', label: 'conversion expertise' },
   { value: '98%', label: 'would recommend' },
 ];
 
+// Reviews copied word for word from https://www.trustpilot.com/review/mmcconvert.com (5-star, Oct 2026).
 const REVIEWS = [
   {
-    initial: 'S',
-    name: 'Sarah M.',
-    path: 'QuickBooks Desktop → QuickBooks Online',
-    timeAgo: '2 weeks ago',
-    text: 'Daily updates kept us informed at every step. The transition was smooth, stress-free, and every query got a fast, personal response.',
+    initial: 'C',
+    name: 'Cameron Day-Lewis',
+    title: 'MMC made the whole process so easy',
+    date: 'Oct 24, 2026',
+    text: 'MMC made the whole process so easy, from the first chat to final migration.',
+  },
+  {
+    initial: 'G',
+    name: 'George Kairinos',
+    title: 'MMC Convert were fantastic!!!',
+    date: 'Oct 23, 2026',
+    text: 'Great, speedy and constant communication throughout the migration process',
   },
   {
     initial: 'D',
-    name: 'David T.',
-    path: 'Sage → QuickBooks Online',
-    timeAgo: '1 month ago',
-    text: 'Handled our migration with real professionalism. Completed efficiently with no complications — we’d gladly use them again.',
-  },
-  {
-    initial: 'B',
-    name: 'Bill R.',
-    path: 'Reckon Accounts → Reckon One',
-    timeAgo: '3 weeks ago',
-    text: 'Years of workbooks migrated accurately and quickly. Communication and progress reporting throughout were excellent.',
+    name: 'Donna King',
+    title: 'MMC Convert always deliver on time',
+    date: 'Oct 14, 2026',
+    text: 'MMC Convert always deliver on time, they let me know each day where they were up to in the migration',
   },
 ];
 
@@ -89,7 +90,7 @@ export const TrustpilotSection: React.FC = () => {
             <span className="font-bold text-text-primary">4.8 / 5</span>
             <span className="text-border">|</span>
             <span>
-              Based on <span className="font-semibold text-text-primary">{TRUSTPILOT_REVIEW_COUNT}+ reviews</span>
+              Based on <span className="font-semibold text-text-primary">{TRUSTPILOT_REVIEW_COUNT} reviews</span>
             </span>
             <span className="text-border">|</span>
             <span className="inline-flex items-center gap-1.5">
@@ -102,7 +103,7 @@ export const TrustpilotSection: React.FC = () => {
               <span className="font-semibold text-text-primary">Trustpilot</span>
             </span>
             <span className="inline-flex items-center gap-1 text-green-600">
-              <CheckIcon /> Verified on Trustpilot
+              <CheckIcon /> Reviews from Trustpilot
             </span>
           </div>
         </motion.div>
@@ -147,11 +148,11 @@ export const TrustpilotSection: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-text-primary">{review.name}</p>
-                  <p className="text-xs text-text-tertiary">{review.path}</p>
-                  <p className="text-xs text-text-tertiary mt-0.5">{review.timeAgo}</p>
+                  <p className="text-xs text-text-tertiary">{review.title}</p>
+                  <p className="text-xs text-text-tertiary mt-0.5">{review.date}</p>
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 whitespace-nowrap">
-                  <CheckIcon className="w-3 h-3" /> Verified
+                  <CheckIcon className="w-3 h-3" /> Trustpilot
                 </span>
               </div>
             </motion.div>

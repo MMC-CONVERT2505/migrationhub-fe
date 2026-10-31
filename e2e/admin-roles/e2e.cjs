@@ -93,6 +93,37 @@ async function login(browser, email) {
     calls = await (await fetch(API + '/__clean-calls')).json();
     check('[cleaner] restore sent RESTORE for that id', calls.length === 2 && calls[1].action === 'RESTORE' && calls[1].ids.join() === '10000002', JSON.stringify(calls[1]));
 
+    // --- Who ran each migration
+    { const t = await page.locator('table').first().innerText();
+      check('[cleaner] list has a Run by column', /run by/i.test(t));
+      const row = (id) => page.locator('table').first().locator('tbody tr', { hasText: id });
+      const r1 = await row('10000001').innerText(), r2 = await row('10000002').innerText(), r4 = await row('10000004').innerText();
+      check('[cleaner] Operation Team run shows the role, name and email', /Operation Team/.test(r1) && /Olive Ops/.test(r1) && /olive@x\.com/.test(r1), r1.replace(/\s+/g, ' '));
+      check('[cleaner] Developer run shows the role, name and email', /Developer/.test(r2) && /Dev Dan/.test(r2) && /dan@x\.com/.test(r2), r2.replace(/\s+/g, ' '));
+      check('[cleaner] customer run shows Customer with their email', /Customer/.test(r4) && /10000004@c\.com/.test(r4), r4.replace(/\s+/g, ' ')); }
+
+    // --- Force delete: admin accounts only, hard delete only
+    await page.getByRole('radio', { name: 'Soft delete' }).click();
+    check('[cleaner] the force option is not offered for soft delete', (await page.getByText(/ignoring the safety rules/).count()) === 0);
+    await page.getByRole('radio', { name: 'Hard delete' }).click();
+    const forceBox = page.getByLabel(/Delete exactly what I select/);
+    check('[cleaner] an admin sees the force option under Hard delete, off by default', (await forceBox.count()) === 1 && !(await forceBox.isChecked()));
+    check('[cleaner] without force the running migration is still refused', await box('10000004').isDisabled());
+    await forceBox.check();
+    check('[cleaner] with force the running migration becomes selectable and says it will be deleted anyway', await box('10000004').isEnabled() && /deleted anyway/.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
+    await box('10000004').check(); await page.getByRole('button', { name: /^Review/ }).click();
+    { const d = page.getByRole('dialog'); await d.getByText(/can be hard deleted/).waitFor();
+      check('[cleaner] review shows which rule is being ignored', /Ignoring:.*running/.test(await d.innerText()));
+      const go = d.getByRole('button', { name: /^Hard delete 1$/ });
+      await d.getByLabel(/To confirm, type/).fill('HARD DELETE 1');
+      check('[cleaner] the ordinary phrase is not enough for a forced delete', await go.isDisabled());
+      await d.getByLabel(/To confirm, type/).fill('FORCE HARD DELETE 1');
+      check('[cleaner] the FORCE phrase turns it on', await go.isEnabled());
+      await go.click(); await page.getByRole('status').filter({ hasText: /hard deleted/ }).waitFor();
+      const fc = await (await fetch(API + '/__clean-calls')).json(); const last = fc[fc.length - 1];
+      check('[cleaner] request carries force and the FORCE phrase', last.force === true && last.action === 'HARD_DELETE' && last.confirm === 'FORCE HARD DELETE 1' && last.ids.join() === '10000004', JSON.stringify(last)); }
+    check('[cleaner] switching mode switches force off again', await (async () => { await page.getByRole('radio', { name: 'Soft delete' }).click(); await page.getByRole('radio', { name: 'Hard delete' }).click(); return !(await page.getByLabel(/Delete exactly what I select/).isChecked()); })());
+
     // --- Hard delete: typed phrase required
     await page.getByRole('radio', { name: 'Hard delete' }).click();
     await box('10000001').check(); await box('10000002').check();
@@ -106,7 +137,7 @@ async function login(browser, email) {
     check('[cleaner] the exact phrase turns it on', await confirm.isEnabled());
     await confirm.click(); await page.getByRole('status').filter({ hasText: /hard deleted/ }).waitFor();
     calls = await (await fetch(API + '/__clean-calls')).json();
-    check('[cleaner] sent HARD_DELETE with the typed confirmation', calls[2].action === 'HARD_DELETE' && calls[2].confirm === 'HARD DELETE 2' && calls[2].ids.length === 2, JSON.stringify(calls[2]));
+    check('[cleaner] sent HARD_DELETE with the typed confirmation', (() => { const c = calls.filter((x) => x.action === 'HARD_DELETE' && !x.force).pop(); return !!c && c.confirm === 'HARD DELETE 2' && c.ids.length === 2; })(), JSON.stringify(calls.slice(-1)));
     await page.waitForFunction(() => !document.querySelector('table').innerText.includes('10000001'), null, { timeout: 8000 }).catch(() => {});
     check('[cleaner] the hard-deleted rows are gone from the list', (await page.locator('table').first().locator('tbody tr', { hasText: '10000001' }).count()) === 0);
     const hist = await page.locator('section', { hasText: 'Recent removals' }).innerText();
@@ -118,6 +149,7 @@ async function login(browser, email) {
   { await fetch(API + '/__clean-reset');
     const { ctx, page } = await login(browser, 'reader@x.com'); await page.waitForURL(/\/admin$/, { timeout: 10000 });
     await page.goto(`${APP}/admin/settings/migration-cleaner`); await page.waitForSelector('h1:has-text("Migration Cleaner")');
+    check('[cleaner] a read-only role never sees the force option', (await page.getByLabel(/Delete exactly what I select/).count()) === 0);
     check('[cleaner] a read-only role can look but has no Review button and no checkboxes enabled', (await page.getByRole('button', { name: /^Review/ }).count()) === 0 && await page.getByLabel('Select migration 10000002').isDisabled() && /search but not remove/.test(await page.locator('body').innerText()));
     await ctx.close(); }
 

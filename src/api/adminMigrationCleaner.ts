@@ -122,8 +122,8 @@ export const migrationCleanerService = {
       .get<CleanerSearchResponse>('/admin/migration-cleaner/search', { params, signal })
       .then((r) => r.data),
 
-  /** Every id the filter matches that `action` may run on (the server caps it). */
-  matchingIds: (params: CleanerSearchParams & { action: CleanerAction; force?: boolean }) =>
+  /** Every id the filter matches, whatever its status or age (the server caps it). */
+  matchingIds: (params: CleanerSearchParams) =>
     apiClient
       .get<{ ids: string[]; matched: number; capped: boolean; cap: number }>(
         '/admin/migration-cleaner/matching-ids',

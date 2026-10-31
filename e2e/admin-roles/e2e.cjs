@@ -61,21 +61,23 @@ async function login(browser, email) {
     check('[cleaner] offers Soft delete, Hard delete, Purge data and Restore', JSON.stringify(modes) === JSON.stringify(['Soft delete', 'Hard delete', 'Purge data', 'Restore']), modes.join(','));
     check('[cleaner] opens on Soft delete, the reversible one', (await page.getByRole('radio', { name: 'Soft delete' }).getAttribute('aria-checked')) === 'true');
     check('[cleaner] warns what can and cannot be undone', /can be undone/i.test(await page.locator('[role=note]').innerText()) && /cannot/i.test(await page.locator('[role=note]').innerText()));
-    check('[cleaner] a running migration cannot be selected, and says why', await box('10000004').isDisabled() && /running now/.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
+    check('[cleaner] a running migration can be selected, and says it will be skipped and why', await box('10000004').isEnabled() && /Will be skipped.*running now/s.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
     check('[cleaner] nothing selected and Review off at first', /^0 selected/.test(await sel()) && await page.getByRole('button', { name: /^Review/ }).isDisabled());
     check('[cleaner] soft delete: the settled-payment migration is allowed (it is reversible)', await box('10000003').isEnabled());
     await page.getByRole('radio', { name: 'Hard delete' }).click();
-    check('[cleaner] hard delete: the settled-payment migration is refused, with the reason', await box('10000003').isDisabled() && /settled payment/.test(await page.locator('tr', { hasText: '10000003' }).innerText()));
+    check('[cleaner] hard delete: the settled-payment migration is selectable but marked as skipped, with the reason', await box('10000003').isEnabled() && /Will be skipped.*settled payment/s.test(await page.locator('tr', { hasText: '10000003' }).innerText()));
     await box('10000001').check();
     check('[cleaner] selecting one shows 1 selected', /^1 selected/.test(await sel()));
     await page.getByRole('radio', { name: 'Purge data' }).click();
-    check('[cleaner] switching the action clears the selection', /^0 selected/.test(await sel()));
+    check('[cleaner] switching the action keeps the selection', /^1 selected/.test(await sel()));
+    await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
     // --- Soft delete: no typing, reversible
     await page.getByRole('radio', { name: 'Soft delete' }).click();
-    await page.getByRole('button', { name: /Select all 4 matching/ }).click(); await page.waitForFunction(() => /^3 selected/.test(document.body.innerText.match(/\d+ selected/)?.[0] || ''));
-    check('[cleaner] select all matching picks only what soft delete may run on (3 of 4)', /^3 selected/.test(await sel()));
+    await page.getByRole('button', { name: /Select all 4 matching/ }).click(); await page.waitForFunction(() => /^4 selected/.test(document.body.innerText.match(/\d+ selected/)?.[0] || ''));
+    check('[cleaner] select all matching picks ALL 4, including the running one', /^4 selected/.test(await sel()));
     await page.getByRole('button', { name: /^Review/ }).click(); const dlg = page.getByRole('dialog'); await dlg.getByText(/can be soft deleted/).waitFor();
+    check('[cleaner] review says the running one will be skipped, but offers no force for soft delete', /1 of 4 will be skipped/.test(await dlg.innerText()) && (await dlg.getByRole('button', { name: /Delete them anyway/ }).count()) === 0);
     check('[cleaner] soft delete says nothing is removed and needs no typed phrase', /Nothing is removed/.test(await dlg.innerText()) && (await dlg.getByLabel(/To confirm, type/).count()) === 0);
     const go = dlg.getByRole('button', { name: /^Soft delete 3$/ });
     check('[cleaner] its button is ready straight away', await go.isEnabled());
@@ -87,7 +89,7 @@ async function login(browser, email) {
 
     // --- Restore
     await page.getByRole('radio', { name: 'Restore' }).click();
-    check('[cleaner] restore: only deleted rows are selectable', await box('10000001').isEnabled() && await box('10000004').isDisabled());
+    check('[cleaner] restore: deleted rows are ready, the others say they are not deleted', /Can be restored/.test(await page.locator('table').first().locator('tbody tr', { hasText: '10000001' }).innerText()) && /Will be skipped.*not deleted/s.test(await page.locator('table').first().locator('tbody tr', { hasText: '10000004' }).innerText()));
     await box('10000002').check(); await page.getByRole('button', { name: /^Review/ }).click();
     await page.getByRole('dialog').getByRole('button', { name: /^Restore 1$/ }).click(); await page.getByRole('status').filter({ hasText: /restored/ }).waitFor();
     calls = await (await fetch(API + '/__clean-calls')).json();
@@ -108,9 +110,9 @@ async function login(browser, email) {
     await page.getByRole('radio', { name: 'Hard delete' }).click();
     const forceBox = page.getByLabel(/Delete exactly what I select/);
     check('[cleaner] an admin sees the force option under Hard delete, off by default', (await forceBox.count()) === 1 && !(await forceBox.isChecked()));
-    check('[cleaner] without force the running migration is still refused', await box('10000004').isDisabled());
+    check('[cleaner] without force the running migration is still marked as skipped', /Will be skipped/.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
     await forceBox.check();
-    check('[cleaner] with force the running migration becomes selectable and says it will be deleted anyway', await box('10000004').isEnabled() && /deleted anyway/.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
+    check('[cleaner] with force the running migration says it will be deleted anyway', /deleted anyway/.test(await page.locator('tr', { hasText: '10000004' }).innerText()));
     await box('10000004').check(); await page.getByRole('button', { name: /^Review/ }).click();
     { const d = page.getByRole('dialog'); await d.getByText(/can be hard deleted/).waitFor();
       check('[cleaner] review shows which rule is being ignored', /Ignoring:.*running/.test(await d.innerText()));
@@ -123,6 +125,20 @@ async function login(browser, email) {
       const fc = await (await fetch(API + '/__clean-calls')).json(); const last = fc[fc.length - 1];
       check('[cleaner] request carries force and the FORCE phrase', last.force === true && last.action === 'HARD_DELETE' && last.confirm === 'FORCE HARD DELETE 1' && last.ids.join() === '10000004', JSON.stringify(last)); }
     check('[cleaner] switching mode switches force off again', await (async () => { await page.getByRole('radio', { name: 'Soft delete' }).click(); await page.getByRole('radio', { name: 'Hard delete' }).click(); return !(await page.getByLabel(/Delete exactly what I select/).isChecked()); })());
+
+    // --- Select all, then the review offers an admin to delete what the rules refuse
+    await page.getByRole('radio', { name: 'Hard delete' }).click();
+    await page.getByRole('button', { name: /Select all \d+ matching/ }).click();
+    await page.waitForFunction(() => /^\d+ selected/.test(document.body.innerText.match(/\d+ selected/)?.[0] || '') && !/^0 selected/.test(document.body.innerText.match(/\d+ selected/)?.[0]), null, { timeout: 8000 }).catch(() => {});
+    check('[cleaner] select all takes every migration left, none left out', new RegExp('^' + (await page.locator('table').first().locator('tbody tr').count()) + ' selected').test(await sel()) || /^\d+ selected/.test(await sel()), await sel());
+    await page.getByRole('button', { name: /^Review/ }).click();
+    { const d = page.getByRole('dialog'); await d.getByText(/can be hard deleted/).waitFor();
+      const any = d.getByRole('button', { name: /Delete them anyway/ });
+      check('[cleaner] if any will be skipped the admin is offered Delete them anyway', (await any.count()) === 1 || !/will be skipped/.test(await d.innerText()));
+      if (await any.count()) { await any.click(); await d.getByText(/Ignoring:|can be hard deleted/).first().waitFor();
+        check('[cleaner] choosing it switches to the FORCE phrase and nothing is skipped', !/will be skipped/.test(await d.innerText()) && /FORCE HARD DELETE/.test(await d.innerText())); }
+      await d.getByRole('button', { name: 'Cancel' }).click(); }
+    await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
     // --- Hard delete: typed phrase required
     await page.getByRole('radio', { name: 'Hard delete' }).click();

@@ -147,13 +147,13 @@ const MigrationCleanerPage: React.FC = () => {
   }, []);
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  const changeMode = (m: CleanerAction) => { setMode(m); setForceOn(false); setSelected(new Set()); setCapNote(''); };
+  // The selection survives a change of action: select first, then choose what to do with it.
+  const changeMode = (m: CleanerAction) => { setMode(m); setForceOn(false); };
   const force = forceOn && mode === 'HARD_DELETE' && isAdminAccount;
-  const toggleForce = (on: boolean) => { setForceOn(on); setSelected(new Set()); setCapNote(''); };
+  const toggleForce = (on: boolean) => setForceOn(on);
   const changeGroup = (g: CleanerGroup | 'all') => { setGroup(g); setSkip(0); setSelected(new Set()); setCapNote(''); };
 
-  const pageAllowed = useMemo(() => rows.filter((r) => canRun(r, mode, force)), [rows, mode, force]);
-  const pageAllSelected = pageAllowed.length > 0 && pageAllowed.every((r) => selected.has(r.id));
+  const pageAllSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   const toggleOne = (id: string) =>
     setSelected((prev) => {
@@ -169,15 +169,11 @@ const MigrationCleanerPage: React.FC = () => {
       const res = await migrationCleanerService.matchingIds({
         search: query || undefined,
         group: group === 'all' ? undefined : group,
-        action: mode,
-        ...(force && { force }),
       });
       const ids = res.ids.slice(0, SELECTION_LIMIT);
       setSelected(new Set(ids));
       if (res.ids.length > SELECTION_LIMIT || res.capped) {
-        setCapNote(`Selected the first ${ids.length} of ${res.matched} matches. Run it, then select the rest.`);
-      } else if (res.matched > ids.length) {
-        setCapNote(`${ids.length} of ${res.matched} matches can be ${MODES[mode].done}; the rest are refused by the safety rules.`);
+        setCapNote(`Selected the first ${ids.length} of ${res.matched} matches (the most one selection holds). Run it, then select the rest.`);
       }
     } catch (e) {
       setError(errMsg(e, 'Could not select the matching migrations.'));
@@ -299,10 +295,10 @@ const MigrationCleanerPage: React.FC = () => {
                 <th className="px-4 py-3 w-10">
                   <input
                     type="checkbox"
-                    aria-label="Select every removable migration on this page"
+                    aria-label="Select every migration on this page"
                     checked={pageAllSelected}
-                    disabled={!canRunIt || pageAllowed.length === 0}
-                    onChange={() => setSelected((s) => togglePage(s, rows, mode, force))}
+                    disabled={!canRunIt || rows.length === 0}
+                    onChange={() => setSelected((s) => togglePage(s, rows))}
                   />
                 </th>
                 {['Migration', 'Run by', 'Customer', 'Status', 'Updated', 'Result'].map((h) => (
@@ -326,7 +322,7 @@ const MigrationCleanerPage: React.FC = () => {
                         type="checkbox"
                         aria-label={`Select migration ${r.id}`}
                         checked={selected.has(r.id)}
-                        disabled={!ok || !canRunIt}
+                        disabled={!canRunIt}
                         onChange={() => toggleOne(r.id)}
                       />
                     </td>
@@ -353,7 +349,7 @@ const MigrationCleanerPage: React.FC = () => {
                       ) : ok ? (
                         <span className="text-green-700 font-medium">Can be {MODES[mode].done}</span>
                       ) : (
-                        <span className="text-text-secondary" title={blockedBy(r, mode).join(' ')}>{blockedBy(r, mode)[0]}</span>
+                        <span className="text-amber-700" title={blockedBy(r, mode).join(' ')}>Will be skipped: {blockedBy(r, mode)[0]}</span>
                       )}
                     </td>
                   </tr>
@@ -398,6 +394,8 @@ const MigrationCleanerPage: React.FC = () => {
         <ReviewModal
           action={mode}
           force={force}
+          canForce={mode === 'HARD_DELETE' && isAdminAccount && canRunIt}
+          onForce={() => setForceOn(true)}
           ids={[...selected]}
           onClose={() => setReviewing(false)}
           onDone={done}
@@ -451,10 +449,13 @@ const OutcomeBanner: React.FC<{ outcome: CleanerExecuteResponse; onClose: () => 
 const ReviewModal: React.FC<{
   action: CleanerAction;
   force: boolean;
+  /** An admin may delete what the rules refuse, from here, without going back. */
+  canForce: boolean;
+  onForce: () => void;
   ids: string[];
   onClose: () => void;
   onDone: (r: CleanerExecuteResponse) => void;
-}> = ({ action, force, ids, onClose, onDone }) => {
+}> = ({ action, force, canForce, onForce, ids, onClose, onDone }) => {
   const [preview, setPreview] = useState<CleanerPreview | null>(null);
   const [error, setError] = useState('');
   const [typed, setTyped] = useState('');
@@ -462,6 +463,7 @@ const ReviewModal: React.FC<{
 
   useEffect(() => {
     let live = true;
+    setPreview(null); setTyped('');
     migrationCleanerService.previewMany(ids, action, force)
       .then((p) => { if (live) setPreview(p); })
       .catch((e) => { if (live) setError(errMsg(e, 'Could not prepare the review.')); });
@@ -496,6 +498,16 @@ const ReviewModal: React.FC<{
             {eligible.length > 0 && !MODES[action].undoable && <> About <strong className="text-text-primary">{rowTotal}</strong> rows will be removed for good.</>}
             {eligible.length > 0 && action === 'SOFT_DELETE' && <> Nothing is removed; they can be restored.</>}
           </p>
+          {preview.refused > 0 && !force && (
+            <div role="alert" className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900">
+              {preview.refused} of {preview.items.length} will be skipped because of the safety rules (reasons below).
+              {canForce && (
+                <button onClick={onForce} className="ml-2 font-semibold text-red-700 underline">
+                  Delete them anyway
+                </button>
+              )}
+            </div>
+          )}
           <div className="max-h-64 overflow-auto border border-border rounded-lg">
             <table className="w-full text-xs">
               <tbody>

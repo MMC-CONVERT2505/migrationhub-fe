@@ -6,14 +6,12 @@ export const canRun = (row: CleanerRow, action: CleanerAction, force = false): b
 
 export const blockedBy = (row: CleanerRow, action: CleanerAction): string[] => row.blockedBy[action];
 
-/** Selection after the page is toggled: only rows the action may run on are ever added. */
-export function togglePage(
-  selected: ReadonlySet<string>,
-  rows: CleanerRow[],
-  action: CleanerAction,
-  force = false,
-): Set<string> {
-  const eligible = rows.filter((r) => canRun(r, action, force)).map((r) => r.id);
+/**
+ * Selection after the page is toggled: every row on it, whatever its status. The rules are applied at the
+ * review and again when removing, so a migration they refuse is reported and skipped there.
+ */
+export function togglePage(selected: ReadonlySet<string>, rows: CleanerRow[]): Set<string> {
+  const eligible = rows.map((r) => r.id);
   const next = new Set(selected);
   const allIn = eligible.length > 0 && eligible.every((id) => next.has(id));
   for (const id of eligible) allIn ? next.delete(id) : next.add(id);

@@ -27,16 +27,15 @@ describe('canRun', () => {
 });
 
 describe('togglePage', () => {
-  it('selects only the rows the action may run on', () => {
-    expect([...togglePage(new Set(), rows, 'PURGE')].sort()).toEqual(['a', 'b']);
-    expect([...togglePage(new Set(), rows, 'HARD_DELETE')]).toEqual(['a']);
-    expect([...togglePage(new Set(), rows, 'RESTORE')]).toEqual(['c']);
+  it('selects every row on the page whatever its status', () => {
+    expect([...togglePage(new Set(), rows)].sort()).toEqual(['a', 'b', 'c']);
+    expect([...togglePage(new Set(), [row('z', {})])]).toEqual(['z']);
   });
-  it('clears them when they are all selected already, keeping other pages', () => {
-    expect([...togglePage(new Set(['a', 'b', 'other-page']), rows, 'PURGE')]).toEqual(['other-page']);
+  it('clears the page when it is all selected already, keeping other pages', () => {
+    expect([...togglePage(new Set(['a', 'b', 'c', 'other-page']), rows)]).toEqual(['other-page']);
   });
-  it('does nothing when nothing on the page is allowed', () => {
-    expect(togglePage(new Set(['x']), [row('z', {})], 'PURGE').size).toBe(1);
+  it('tops up a partly selected page', () => {
+    expect([...togglePage(new Set(['a']), rows)].sort()).toEqual(['a', 'b', 'c']);
   });
 });
 
@@ -58,11 +57,10 @@ describe('chunk', () => {
 });
 
 describe('force (admin hard delete past the rules)', () => {
-  it('makes every row selectable, but only for hard delete', () => {
+  it('makes every row runnable, but only for hard delete', () => {
     expect(canRun(rows[2], 'HARD_DELETE')).toBe(false);
     expect(canRun(rows[2], 'HARD_DELETE', true)).toBe(true);
     expect(canRun(rows[2], 'PURGE', true)).toBe(false);
-    expect([...togglePage(new Set(), rows, 'HARD_DELETE', true)].sort()).toEqual(['a', 'b', 'c']);
   });
   it('has its own phrase', () => {
     expect(confirmPhrase('HARD_DELETE', 4, true)).toBe('FORCE HARD DELETE 4');

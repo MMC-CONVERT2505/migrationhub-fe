@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CleanerAction, CleanerRow } from '@/api/adminMigrationCleaner';
-import { blockedBy, canRun, confirmPhrase, needsPhrase, togglePage } from '../cleanerSelection';
+import { BATCH_SIZE, SELECTION_LIMIT, blockedBy, canRun, chunk, confirmPhrase, needsPhrase, togglePage } from '../cleanerSelection';
 
 const row = (id: string, can: Partial<Record<CleanerAction, boolean>>): CleanerRow => {
   const full = { PURGE: false, SOFT_DELETE: false, HARD_DELETE: false, RESTORE: false, ...can };
@@ -37,6 +37,23 @@ describe('togglePage', () => {
   });
   it('does nothing when nothing on the page is allowed', () => {
     expect(togglePage(new Set(['x']), [row('z', {})], 'PURGE').size).toBe(1);
+  });
+});
+
+describe('chunk', () => {
+  it('splits 369 ids into batches the server accepts, losing none', () => {
+    const ids = Array.from({ length: 369 }, (_, i) => String(i));
+    const parts = chunk(ids);
+    expect(parts.map((p) => p.length)).toEqual([200, 169]);
+    expect(parts.flat()).toEqual(ids);
+    expect(Math.max(...parts.map((p) => p.length))).toBeLessThanOrEqual(BATCH_SIZE);
+  });
+  it('handles empty and exact multiples', () => {
+    expect(chunk([])).toEqual([]);
+    expect(chunk(Array.from({ length: 400 }, (_, i) => i)).map((p) => p.length)).toEqual([200, 200]);
+  });
+  it('lets one selection hold far more than a batch', () => {
+    expect(SELECTION_LIMIT).toBeGreaterThanOrEqual(369);
   });
 });
 

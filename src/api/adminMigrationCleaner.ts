@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { MigrationStatus, OrderSource } from './adminMigrations';
+import { chunk } from '@/utils/cleanerSelection';
 
 export type CleanerAction = 'PURGE' | 'SOFT_DELETE' | 'HARD_DELETE' | 'RESTORE';
 export type CleanerGroup = 'active' | 'completed' | 'failed' | 'deleted';
@@ -108,6 +109,13 @@ export interface CleanupLogEntry {
   createdAt: string;
 }
 
+const PHRASE_VERB: Record<CleanerAction, string> = {
+  PURGE: 'PURGE',
+  SOFT_DELETE: 'SOFT DELETE',
+  HARD_DELETE: 'HARD DELETE',
+  RESTORE: 'RESTORE',
+};
+
 export const migrationCleanerService = {
   search: (params: CleanerSearchParams, signal?: AbortSignal) =>
     apiClient
@@ -133,6 +141,49 @@ export const migrationCleanerService = {
     apiClient
       .post<CleanerExecuteResponse>('/admin/migration-cleaner/execute', { ids, action, confirm, ...(force && { force }) })
       .then((r) => r.data),
+
+  /** A dry run over any number of ids: sent in batches the server accepts, then joined. */
+  previewMany: async (ids: string[], action: CleanerAction, force = false): Promise<CleanerPreview> => {
+    const parts = await Promise.all(chunk(ids).map((b) => migrationCleanerService.preview(b, action, force)));
+    const items = parts.flatMap((p) => p.items);
+    const eligible = items.filter((i) => i.eligible).length;
+    return {
+      action,
+      eligible,
+      refused: items.length - eligible,
+      force,
+      confirmationPhrase: `${force ? 'FORCE ' : ''}${PHRASE_VERB[action]} ${items.length}`,
+      items,
+    };
+  },
+
+  /**
+   * Runs any number of ids in batches of 200, one after another. Each batch gets its own confirmation
+   * (the server checks it against that batch's count). If a batch cannot be sent, the rest are not
+   * attempted and every id says so, so nothing is silently dropped.
+   */
+  executeMany: async (ids: string[], action: CleanerAction, force = false): Promise<CleanerExecuteResponse> => {
+    const results: CleanerResult[] = [];
+    let stopped = '';
+    for (const batch of chunk(ids)) {
+      if (stopped) {
+        results.push(...batch.map((id) => ({ id, outcome: 'skipped' as const, reasons: [stopped] })));
+        continue;
+      }
+      try {
+        const confirm = action === 'PURGE' || action === 'HARD_DELETE'
+          ? `${force ? 'FORCE ' : ''}${PHRASE_VERB[action]} ${batch.length}`
+          : undefined;
+        results.push(...(await migrationCleanerService.execute(batch, action, confirm, force)).results);
+      } catch {
+        stopped = 'Not attempted: an earlier batch could not be sent. Check Recent removals before trying again.';
+        results.push(...batch.map((id) => ({ id, outcome: 'failed' as const, reasons: ['The request failed. Check Recent removals to see whether it went through.'] })));
+      }
+    }
+    const summary: Record<CleanerOutcome, number> = { purged: 0, soft_deleted: 0, restored: 0, deleted: 0, skipped: 0, failed: 0 };
+    for (const r of results) summary[r.outcome]++;
+    return { action, results, summary };
+  },
 
   history: (skip = 0, take = 30) =>
     apiClient

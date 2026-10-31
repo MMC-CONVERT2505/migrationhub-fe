@@ -462,7 +462,7 @@ const ReviewModal: React.FC<{
 
   useEffect(() => {
     let live = true;
-    migrationCleanerService.preview(ids, action, force)
+    migrationCleanerService.previewMany(ids, action, force)
       .then((p) => { if (live) setPreview(p); })
       .catch((e) => { if (live) setError(errMsg(e, 'Could not prepare the review.')); });
     return () => { live = false; };
@@ -477,7 +477,7 @@ const ReviewModal: React.FC<{
     if (!matches || running) return;
     setRunning(true); setError('');
     try {
-      onDone(await migrationCleanerService.execute(eligible.map((i) => i.id), action, needsPhrase(action) ? typed.trim() : undefined, force));
+      onDone(await migrationCleanerService.executeMany(eligible.map((i) => i.id), action, force));
     } catch (e) {
       setError(errMsg(e, 'The request failed. Check the Recent removals list before trying again.'));
       setRunning(false);

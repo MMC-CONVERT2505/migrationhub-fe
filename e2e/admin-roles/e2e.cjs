@@ -146,6 +146,26 @@ async function login(browser, email) {
     check('[cleaner] the Deleted filter lists the soft-deleted ones', (await page.locator('table').first().locator('tbody tr', { hasText: 'Soft deleted' }).count()) >= 1);
     await ctx.close(); }
 
+  // ---- Migration Cleaner: a selection bigger than one batch
+  { await fetch(API + '/__clean-seed?n=369');
+    const { ctx, page } = await login(browser, 'admin@x.com'); await page.waitForURL(/\/admin$/, { timeout: 10000 });
+    await page.goto(`${APP}/admin/settings/migration-cleaner`); await page.waitForSelector('tbody tr input[type=checkbox]');
+    await page.getByRole('radio', { name: 'Hard delete' }).click();
+    await page.getByRole('button', { name: /Select all 369 matching/ }).click();
+    await page.waitForFunction(() => /^369 selected/.test(document.body.innerText.match(/\d+ selected/)?.[0] || ''), null, { timeout: 8000 }).catch(() => {});
+    const note = await page.locator('body').innerText();
+    check('[cleaner] select all picks all 369, not just 200, with no cap warning', /^369 selected/.test(await page.getByText(/\d+ selected/).innerText()) && !/Selected the first/.test(note));
+    await page.getByRole('button', { name: /^Review/ }).click(); const d = page.getByRole('dialog');
+    await d.getByText(/can be hard deleted/).waitFor({ timeout: 10000 });
+    check('[cleaner] review counts all 369', /369/.test(await d.innerText()));
+    await d.getByLabel(/To confirm, type/).fill('HARD DELETE 369');
+    await d.getByRole('button', { name: /^Hard delete 369$/ }).click();
+    await page.getByRole('status').filter({ hasText: /hard deleted/ }).waitFor({ timeout: 15000 });
+    const cc = await (await fetch(API + '/__clean-calls')).json();
+    check('[cleaner] sent as batches of 200 and 169, each with its own count in the phrase', cc.length === 2 && cc[0].ids.length === 200 && cc[1].ids.length === 169 && cc[0].confirm === 'HARD DELETE 200' && cc[1].confirm === 'HARD DELETE 169', JSON.stringify(cc.map((c) => [c.ids.length, c.confirm])));
+    check('[cleaner] the result says 369 hard deleted and the list is empty', /369 hard deleted/.test(await page.getByRole('status').first().innerText()) && /No migrations match/.test(await page.locator('table').first().innerText()));
+    await ctx.close(); }
+
   { await fetch(API + '/__clean-reset');
     const { ctx, page } = await login(browser, 'reader@x.com'); await page.waitForURL(/\/admin$/, { timeout: 10000 });
     await page.goto(`${APP}/admin/settings/migration-cleaner`); await page.waitForSelector('h1:has-text("Migration Cleaner")');

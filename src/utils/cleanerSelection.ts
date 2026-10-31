@@ -34,4 +34,14 @@ export const confirmPhrase = (action: CleanerAction, count: number, force = fals
 /** Only what cannot be undone makes the admin type the phrase. */
 export const needsPhrase = (action: CleanerAction): boolean => action === 'PURGE' || action === 'HARD_DELETE';
 
-export const SELECTION_LIMIT = 200;
+/** Most a single selection may hold (the server caps "select all" at the same number). */
+export const SELECTION_LIMIT = 5000;
+
+/** Most ids one request carries; bigger selections are sent as several requests. */
+export const BATCH_SIZE = 200;
+
+export function chunk<T>(items: readonly T[], size = BATCH_SIZE): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}

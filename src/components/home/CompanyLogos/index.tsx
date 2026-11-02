@@ -4,23 +4,24 @@ import { motion } from 'framer-motion';
 // Logo files live in /public/logos. Drop a matching file in and it renders
 // automatically; until then each firm falls back to a styled text badge so
 // the section never looks broken. Only the firms listed here are referenced.
+// `size` is the logo's height (and width cap): KPMG, Deloitte, Grant Thornton and BDO are shown larger on purpose.
 const COMPANIES = [
-  { name: 'KPMG', file: '/logos/kpmg.png', color: '#00338D' },
-  { name: 'Deloitte', file: '/logos/deloitte.jpg', color: '#000000' },
-  { name: 'Grant Thornton', file: '/logos/grant-thornton.png', color: '#4F2D7F' },
-  { name: 'BDO', file: '/logos/bdo.svg', color: '#E2001A' },
-  { name: 'RSM', file: '/logos/rsm.webp', color: '#3F9C35' },
-  { name: 'Mazars', file: '/logos/mazars.jpg', color: '#0033A0' },
-  { name: 'PKF', file: '/logos/pkf.png', color: '#003366' },
+  { name: 'KPMG', file: '/logos/kpmg.png', color: '#00338D', size: 'h-12 max-w-[170px]', text: 'text-3xl' },
+  { name: 'Deloitte', file: '/logos/deloitte.jpg', color: '#000000', size: 'h-10 max-w-[200px]', text: 'text-3xl' },
+  { name: 'Grant Thornton', file: '/logos/grant-thornton.png', color: '#4F2D7F', size: 'h-10 max-w-[210px]', text: 'text-2xl' },
+  { name: 'BDO', file: '/logos/bdo.svg', color: '#E2001A', size: 'h-12 max-w-[150px]', text: 'text-4xl' },
+  { name: 'RSM', file: '/logos/rsm.webp', color: '#3F9C35', size: 'h-9 max-w-[130px]', text: 'text-xl' },
+  { name: 'Mazars', file: '/logos/mazars.jpg', color: '#0033A0', size: 'h-9 max-w-[140px]', text: 'text-xl' },
+  { name: 'PKF', file: '/logos/pkf.png', color: '#003366', size: 'h-9 max-w-[130px]', text: 'text-xl' },
 ];
 
-/** A firm logo inside a bordered card; falls back to its name on load error. */
+/** A firm logo on its own (no frame); falls back to its name in the firm's colour on load error. */
 const CompanyLogo: React.FC<{ company: (typeof COMPANIES)[number] }> = ({ company }) => {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex items-center justify-center h-16 min-w-[112px] px-5 bg-white border border-border rounded-lg hover:border-border-medium hover:shadow-card transition-all duration-150">
+    <div className="flex items-center justify-center h-14 px-1">
       {failed ? (
-        <span className="text-sm font-bold tracking-wide" style={{ color: company.color }}>
+        <span className={`${company.text} font-extrabold tracking-tight`} style={{ color: company.color }}>
           {company.name}
         </span>
       ) : (
@@ -29,7 +30,7 @@ const CompanyLogo: React.FC<{ company: (typeof COMPANIES)[number] }> = ({ compan
           alt={`${company.name} logo`}
           loading="lazy"
           onError={() => setFailed(true)}
-          className="max-h-9 w-auto max-w-[140px] object-contain"
+          className={`${company.size} w-auto object-contain`}
         />
       )}
     </div>
@@ -44,7 +45,7 @@ export const CompanyLogos: React.FC = () => {
           <span className="text-sm font-medium text-text-tertiary uppercase tracking-widest whitespace-nowrap flex-shrink-0">
             Trusted by
           </span>
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+          <div className="flex flex-1 flex-wrap items-center justify-center sm:justify-start lg:justify-between gap-x-8 gap-y-4">
             {COMPANIES.map((company, i) => (
               <motion.div
                 key={company.name}

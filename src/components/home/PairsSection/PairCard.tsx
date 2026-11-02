@@ -96,29 +96,28 @@ export const PairCard: React.FC<PairCardProps> = ({ pair, index }) => {
         <PairLogoBox logo={pair.dstLogo} abbr={pair.dstAbbr} name={platformDisplayName(pair.dst)} color={pair.dstColor} />
       </div>
 
-      <p className="mt-3 text-sm font-semibold text-text-primary">
-        {/* The whole card is the link's hit area (::after); one link keeps tab order and screen-reader lists clean. */}
-        {pair.url ? (
-          <a
-            href={pair.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`${pairDisplayName(pair)}: ${actionName} (opens in a new tab)`}
-            className="outline-none after:absolute after:inset-0 after:content-['']"
-          >
-            {pairDisplayName(pair)}
-          </a>
-        ) : (
-          <Link
-            to={pairDetailsPath(pair)}
-            onClick={() => setSelectedPair(pair)}
-            aria-label={`${pairDisplayName(pair)}: ${actionName}`}
-            className="outline-none after:absolute after:inset-0 after:content-['']"
-          >
-            {pairDisplayName(pair)}
-          </Link>
-        )}
-      </p>
+      {/* The pair's name is already shown by its two logos, so it is not repeated as text. The link stays: it is the
+          card's whole hit area (::after, positioned against the card), and its name is read by screen readers. */}
+      {pair.url ? (
+        <a
+          href={pair.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${pairDisplayName(pair)}: ${actionName} (opens in a new tab)`}
+          className="outline-none after:absolute after:inset-0 after:content-['']"
+        >
+          <span className="sr-only">{pairDisplayName(pair)}</span>
+        </a>
+      ) : (
+        <Link
+          to={pairDetailsPath(pair)}
+          onClick={() => setSelectedPair(pair)}
+          aria-label={`${pairDisplayName(pair)}: ${actionName}`}
+          className="outline-none after:absolute after:inset-0 after:content-['']"
+        >
+          <span className="sr-only">{pairDisplayName(pair)}</span>
+        </Link>
+      )}
 
       {/* MYOB Business note */}
       {pair.myobBusiness && (

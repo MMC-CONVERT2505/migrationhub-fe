@@ -49,11 +49,8 @@ export const WhySection: React.FC = () => {
           className="text-center mb-14"
         >
           <h2 className="text-3xl font-bold text-text-primary">
-            Why accountants choose MMC Convert
+            Built by accountants, for accountants
           </h2>
-          <p className="mt-3 text-text-secondary max-w-2xl mx-auto">
-            Built by accountants, for accountants. We understand the complexity of migrating financial data.
-          </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

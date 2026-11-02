@@ -3,7 +3,17 @@ import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
-import { PLATFORM_GROUPS } from '@/seo/platforms';
+import { PLATFORM_GROUPS, PLATFORM_KEYS } from '@/seo/platforms';
+import { pairSlug } from '@/utils/platformMap';
+
+const PAIR_ITEM = 'rounded-lg border border-border bg-bg-light px-4 py-3 text-text-secondary';
+
+/** The pair's page, or null when a platform has no catalogue key (the pair is then listed without a link, never with a broken one). */
+const pairPath = (source: string, destination: string): string | null => {
+  const s = PLATFORM_KEYS[source];
+  const d = PLATFORM_KEYS[destination];
+  return s && d ? `/migration/${pairSlug(s, d)}/plan` : null;
+};
 
 const SupportedPlatformsPage: React.FC = () => (
   <div className="min-h-screen bg-bg">
@@ -13,10 +23,10 @@ const SupportedPlatformsPage: React.FC = () => (
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-text-primary sm:text-5xl">
-            Accounting platforms <span className="text-blue-600">MigrationHub</span> supports
+            Accounting platforms <span className="text-blue-600">Migration Hub</span> supports
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-text-secondary">
-            MigrationHub by MMC Convert offers these accounting data migrations today. Each one moves your data from the source platform to the destination, and you see the price for your country before you pay.
+            Migration Hub by MMC Convert offers these accounting data migrations today. Each one moves your data from the source platform to the destination, and you see the price for your country before you pay.
           </p>
         </div>
       </section>
@@ -29,11 +39,28 @@ const SupportedPlatformsPage: React.FC = () => (
               <div key={group.source}>
                 <h3 className="text-lg font-semibold text-text-primary">From {group.source}</h3>
                 <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {group.destinations.map((dest) => (
-                    <li key={dest} className="rounded-lg border border-border bg-bg-light px-4 py-3 text-text-secondary">
-                      <span className="font-medium text-text-primary">{group.source}</span> to <span className="font-medium text-text-primary">{dest}</span> migration
-                    </li>
-                  ))}
+                  {group.destinations.map((dest) => {
+                    const to = pairPath(group.source, dest);
+                    const label = (
+                      <>
+                        <span className="font-medium text-text-primary">{group.source}</span> to <span className="font-medium text-text-primary">{dest}</span>
+                      </>
+                    );
+                    return (
+                      <li key={dest}>
+                        {to ? (
+                          <Link
+                            to={to}
+                            className={`block ${PAIR_ITEM} transition-colors hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2`}
+                          >
+                            {label}
+                          </Link>
+                        ) : (
+                          <div className={PAIR_ITEM}>{label}</div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}
@@ -52,7 +79,7 @@ const SupportedPlatformsPage: React.FC = () => (
               Start a migration
             </Link>
             <Link to="/contact" className="px-2 py-2.5 text-blue-700 hover:underline">Contact the MMC Convert team</Link>
-            <Link to="/how-it-works" className="px-2 py-2.5 text-blue-700 hover:underline">How MigrationHub works</Link>
+            <Link to="/how-it-works" className="px-2 py-2.5 text-blue-700 hover:underline">How Migration Hub works</Link>
           </div>
         </div>
       </section>

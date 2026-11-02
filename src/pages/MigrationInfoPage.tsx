@@ -20,7 +20,7 @@ import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
 import { hasPriceList, normalizeCountry, offeredCountries, validCountry } from '@/utils/countryPricing';
 import { COUNTRY_LABELS, DIAL_CODE_BY_LABEL } from '@/constants/countries';
-import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit } from '@/utils/inquiryContact';
+import { OP_TEAM_INQUIRY_EMAIL, contactErrors, contactForSubmit, operatorPhoneRequired } from '@/utils/inquiryContact';
 import { usePaymentSkipped } from '@/hooks/usePaymentSkipped';
 import { useCheckoutSelection } from '@/hooks/useCheckoutSelection';
 
@@ -223,6 +223,9 @@ const MigrationInfoPage: React.FC = () => {
   // extra historical years cost nothing; the Operation Team is never charged.
   const { plan, isFree, isOperationTeam } = useCheckoutSelection();
   const operatorSkipsPayment = usePaymentSkipped(selectedPair?.isFree ?? false, plan);
+  // Operation Team on QBO → Xero must still give a phone; on every other pair the box stays locked as before.
+  const opPhoneRequired = isOperationTeam && operatorPhoneRequired(selectedPair);
+  const phoneLocked = isOperationTeam && !opPhoneRequired;
 
   const isQboToMyob =
     selectedPair?.src?.toLowerCase() === 'qbo' && selectedPair?.dst?.toLowerCase() === 'myob';
@@ -423,7 +426,7 @@ const MigrationInfoPage: React.FC = () => {
   const validate = (): FieldErr[] => {
     const e: FieldErr[] = [];
     if (!form.name.trim()) e.push({ field: 'name', message: 'Name is required.' });
-    e.push(...contactErrors({ isOperator: isOperationTeam, email: form.email, phone: form.phone }));
+    e.push(...contactErrors({ isOperator: isOperationTeam, operatorPhoneRequired: opPhoneRequired, email: form.email, phone: form.phone }));
     if (!form.entityName.trim()) e.push({ field: 'entityName', message: 'Entity name is required.' });
     if (asksTrackingInventory && form.trackingInventory === null) e.push({ field: 'trackingInventory', message: 'Please tell us whether this file uses tracking inventory.' });
     return e;
@@ -449,7 +452,7 @@ const MigrationInfoPage: React.FC = () => {
     setSubmitting(true);
     // Dial code + national number, still one `phone` string on the wire.
     const contact = contactForSubmit(
-      { isOperator: isOperationTeam, email: form.email, phone: form.phone, dialCode: form.dialCode },
+      { isOperator: isOperationTeam, operatorPhoneRequired: opPhoneRequired, email: form.email, phone: form.phone, dialCode: form.dialCode },
       toNationalNumber,
     );
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
@@ -561,26 +564,26 @@ const MigrationInfoPage: React.FC = () => {
                   controls rather than InputField so both sit on the same baseline as
                   the Country select beside them. */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="phone" className="text-xs font-medium text-text-secondary">Phone Number {!isOperationTeam && <span className="text-red-500">*</span>}</label>
+                <label htmlFor="phone" className="text-xs font-medium text-text-secondary">Phone Number {!phoneLocked && <span className="text-red-500">*</span>}</label>
                 <div className="flex items-start gap-2">
                   <select
                     id="dialCode"
                     value={form.dialCode}
                     onChange={(e) => setDialCode(e.target.value)}
                     aria-label="Dial code"
-                    disabled={isOperationTeam}
-                    className={cn(inputCls, 'w-24 flex-shrink-0 px-2', isOperationTeam && greyedCls)}
+                    disabled={phoneLocked}
+                    className={cn(inputCls, 'w-24 flex-shrink-0 px-2', phoneLocked && greyedCls)}
                   >
                     {DIAL_CODES.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                   <input
-                    id="phone" type="tel" inputMode="tel" aria-required={!isOperationTeam}
-                    disabled={isOperationTeam}
-                    value={isOperationTeam ? '' : form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => validateOnBlur('phone')}
-                    placeholder={isOperationTeam ? 'Not required' : '412 345 678'} autoComplete="tel-national" maxLength={20}
+                    id="phone" type="tel" inputMode="tel" aria-required={!phoneLocked}
+                    disabled={phoneLocked}
+                    value={phoneLocked ? '' : form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => validateOnBlur('phone')}
+                    placeholder={phoneLocked ? 'Not required' : '412 345 678'} autoComplete="tel-national" maxLength={20}
                     aria-invalid={!!fieldError('phone')}
                     aria-describedby={fieldError('phone') ? 'phone-error' : undefined}
-                    className={cn(inputCls, 'placeholder:text-text-tertiary', fieldError('phone') && inputErrCls, isOperationTeam && greyedCls)}
+                    className={cn(inputCls, 'placeholder:text-text-tertiary', fieldError('phone') && inputErrCls, phoneLocked && greyedCls)}
                   />
                 </div>
                 {fieldError('phone') && (

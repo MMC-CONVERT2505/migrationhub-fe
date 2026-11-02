@@ -1,15 +1,21 @@
 import { apiClient } from './client';
 
 export interface ContactRequest {
+  name: string;
   email: string;
   companyName: string;
   country: string;
   /** Optional — full international number, e.g. "+61412345678". Omitted when not provided. */
   phone?: string;
+  /** What the visitor wants to ask or tell us. */
+  message: string;
 }
 
 export interface ContactItem {
   id: number;
+  /** Older submissions were made before these two fields existed. */
+  name?: string | null;
+  message?: string | null;
   email: string;
   companyName: string;
   country: string;

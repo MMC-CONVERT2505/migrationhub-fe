@@ -60,6 +60,7 @@ const MigrationTrackPage: React.FC = () => {
   const [m, setM] = useState<UserMigration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (silent = false) => {
@@ -68,8 +69,10 @@ const MigrationTrackPage: React.FC = () => {
       const data = await migrationsService.getById(id);
       setM(data);
       setError('');
+      setRefreshFailed(false);
     } catch (err) {
-      if (!silent) setError(err instanceof ApiError ? err.message : 'Failed to load migration.');
+      if (silent) setRefreshFailed(true);
+      else setError(err instanceof ApiError ? err.message : 'Failed to load migration.');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -115,6 +118,12 @@ const MigrationTrackPage: React.FC = () => {
           <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             {error || 'Migration not found.'}
             <button onClick={() => navigate('/migrations')} className="ml-2 underline">Go back</button>
+          </div>
+        )}
+
+        {!loading && m && refreshFailed && (
+          <div role="status" className="mt-4 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            We couldn&apos;t refresh the latest status. What you see may be out of date, and we&apos;ll keep trying.
           </div>
         )}
 

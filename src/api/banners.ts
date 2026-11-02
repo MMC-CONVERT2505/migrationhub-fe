@@ -27,6 +27,11 @@ export const bannersService = {
       .patch<BannerEntity>(`/banner/update/${id}`, data)
       .then((r) => r.data),
 
+  usage: (id: number) =>
+    apiClient
+      .get<{ pairs: { id: number | string; displayName: string }[] }>(`/banner/usage/${id}`)
+      .then((r) => r.data),
+
   delete: (id: number) =>
     apiClient
       .delete<{ message: string }>(`/banner/delete/${id}`)

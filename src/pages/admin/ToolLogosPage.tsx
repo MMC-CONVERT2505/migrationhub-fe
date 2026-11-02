@@ -128,6 +128,7 @@ const ToolLogosPage: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<BannerEntity | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BannerEntity | null>(null);
+  const [usage, setUsage] = useState<{ id: number | string; displayName: string }[] | null>(null);
 
   const [form, setForm] = useState<LogoFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -225,6 +226,17 @@ const ToolLogosPage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    setUsage(null);
+    if (!deleteTarget) return;
+    let cancelled = false;
+    bannersService.usage(deleteTarget.id).then(
+      (r) => { if (!cancelled) setUsage(r.pairs); },
+      () => { if (!cancelled) setUsage([]); },
+    );
+    return () => { cancelled = true; };
+  }, [deleteTarget]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -385,6 +397,12 @@ const ToolLogosPage: React.FC = () => {
               Delete <span className="font-semibold text-text-primary">{deleteTarget.name}</span>? Any migration pair
               using it will have the logo detached. This cannot be undone.
             </p>
+            {usage === null && <p className="text-xs text-text-secondary">Checking where this logo is used…</p>}
+            {usage && usage.length > 0 && (
+              <div role="alert" className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                In use by {usage.length} migration pair{usage.length === 1 ? '' : 's'}: {usage.map((p) => p.displayName).join(', ')}. They will show no logo until you pick another.
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setDeleteTarget(null)}
@@ -394,10 +412,10 @@ const ToolLogosPage: React.FC = () => {
               </button>
               <button
                 onClick={handleDelete}
-                disabled={saving}
+                disabled={saving || usage === null}
                 className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-60 transition-colors"
               >
-                {saving ? 'Deleting…' : 'Delete'}
+                {saving ? 'Deleting…' : usage && usage.length > 0 ? 'Delete anyway' : 'Delete'}
               </button>
             </div>
           </div>

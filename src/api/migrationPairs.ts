@@ -56,7 +56,7 @@ export const migrationPairsService = {
   /** Rotate the webhook secret for a migration pair. Requires write permission. */
   rotateSecret: (id: number | string) =>
     apiClient
-      .post<ApiResponse<RotateSecretResponse>>(`/migration-pairs/${id}/rotate-secret`)
+      .post<RotateSecretResponse>(`/migration-pairs/${id}/rotate-secret`)
       .then((r) => r.data),
 
   /** Attach or replace the plan on a migration pair. Requires write permission. */

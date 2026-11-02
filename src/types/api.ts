@@ -619,7 +619,9 @@ export interface UploadResponse {
   };
 }
 
+/** The API returns this object as-is (no { data } wrapper). */
 export interface RotateSecretResponse {
+  id?: string;
   webhookSecret: string;
 }
 

@@ -506,6 +506,79 @@ const planPriceText = (plan: ApiPlan, rows: ApiPlanPrice[] | undefined): string 
 
 // ─── Plan manager (attach / detach plans on an existing pair) ─────────────────
 
+const RotateSecretPanel: React.FC<{ pairId: number | string }> = ({ pairId }) => {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const rotate = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await migrationPairsService.rotateSecret(pairId);
+      if (!res.webhookSecret) {
+        setError('The secret was rotated but the new value could not be shown. Rotate again to get a fresh one.');
+        return;
+      }
+      setSecret(res.webhookSecret);
+      setConfirming(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to rotate the secret.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    if (!secret) return;
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopied(true);
+    } catch {
+      setError('Could not copy. Select the secret and copy it manually.');
+    }
+  };
+
+  return (
+    <div className="mt-5 pt-5 border-t border-border">
+      <h3 className="text-sm font-bold text-text-primary">Webhook secret</h3>
+      <p className="mt-1 text-xs text-text-secondary">
+        Rotating invalidates the current secret immediately. Update the migration tool with the new value or its webhooks will be rejected.
+      </p>
+      {error && <div role="alert" className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{error}</div>}
+      {secret && (
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs font-semibold text-amber-800">New secret. It is shown only once, so copy it now.</p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="flex-1 px-2 py-1.5 bg-white border border-border rounded font-mono text-xs break-all select-all">{secret}</code>
+            <button type="button" onClick={copy} className="px-3 py-1.5 text-xs font-semibold border border-border rounded-lg hover:bg-bg-light">
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mt-3 flex items-center gap-2">
+        {!confirming ? (
+          <button type="button" onClick={() => { setConfirming(true); setSecret(null); setCopied(false); }} className="px-3 py-1.5 text-xs font-semibold text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-50">
+            Rotate secret
+          </button>
+        ) : (
+          <>
+            <button type="button" onClick={rotate} disabled={busy} className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-60">
+              {busy ? 'Rotating…' : 'Yes, rotate now'}
+            </button>
+            <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="px-3 py-1.5 text-xs font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-light">
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const PlanManager: React.FC<{
   pairId: number | string;
   attachedPlans: ApiPlan[];
@@ -975,6 +1048,7 @@ const MigrationPairsPage: React.FC = () => {
               priceRows={editTarget.planPrices}
               onRefresh={load}
             />
+            <RotateSecretPanel pairId={editTarget.id} />
             <div className="flex justify-end gap-2 pt-5 border-t border-border mt-5">
               <button type="button" onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-bg-light transition-colors">
                 Cancel

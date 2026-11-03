@@ -11,7 +11,8 @@ const REQUIRED = 'Phone number is required.';
 async function toDetails(browser, who, slug) {
   const ctx = await browser.newContext(); const page = await ctx.newPage();
   const roles = who === 'op' ? ['OP_TEAM'] : [];
-  await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('e2e-seeded')) { sessionStorage.setItem(k, v); sessionStorage.setItem('e2e-seeded', '1'); } }, ['mmc-auth', session(roles)]);
+  // 'anon' is a visitor nobody has signed in.
+  if (who !== 'anon') await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('e2e-seeded')) { sessionStorage.setItem(k, v); sessionStorage.setItem('e2e-seeded', '1'); } }, ['mmc-auth', session(roles)]);
   const [s, d] = slug.split('-to-').map((x) => word[x]);
   await page.goto(`${APP}/`);
   const card = page.locator('div.group').filter({ hasText: new RegExp(s + '.{1,20}' + d, 'i') }).first();
@@ -87,6 +88,64 @@ const phoneLabel = (page) => page.locator('label[for="phone"]');
     check(`[customer ${slug}] valid phone proceeds with their own email`, /\/payment/.test(page.url()) && sent.length === 1 && sent[0].body.email === 't@example.com' && sent[0].body.phone === '+61412345678', JSON.stringify(sent[0] && sent[0].body));
     await ctx.close();
   }
+
+  // ---------- Xero -> Reckon (the website deep-link pair): an Operation Team member can sign in inside the flow
+  const DEEP = '/migration/details/xero-to-reckon/true';
+  const deepLink = async (who) => {
+    const ctx = await browser.newContext(); const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push('reckon: ' + e.message));
+    if (who) await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('e2e-seeded')) { sessionStorage.setItem(k, v); sessionStorage.setItem('e2e-seeded', '1'); } }, ['mmc-auth', session(who === 'op' ? ['OP_TEAM'] : [])]);
+    await page.goto(APP + DEEP); await page.waitForTimeout(2000);
+    if (await page.getByRole('button', { name: 'Continue' }).count()) { const r = page.getByRole('radio'); if (await r.count()) await r.first().click().catch(() => {}); await page.selectOption('#plan-country', { value: 'Australia' }).catch(() => {}); await page.getByRole('button', { name: 'Continue' }).click(); }
+    await page.waitForURL(/customer-details/, { timeout: 15000 }); await page.waitForSelector('#name');
+    return { ctx, page };
+  };
+  const prompt = (page) => page.getByText('Operation Team member?');
+  await api('/__reset');
+  { const { ctx, page } = await deepLink(null);
+    check('[reckon deep link, fresh tab] a signed-out visitor sees "Operation Team member? Sign in"', (await prompt(page).count()) === 1 && (await page.locator('main a', { hasText: 'Sign in' }).count()) === 1);
+    check('[reckon deep link, fresh tab] a customer still gets the normal form: phone live and required', await page.locator('#phone').isEnabled() && (await page.locator('label[for="phone"]').innerHTML()).includes('text-red-500'));
+    await fillRest(page, true); await submit(page);
+    check('[reckon deep link, fresh tab] and a customer who leaves the phone blank still gets "Phone number is required."', (await page.getByText(REQUIRED).count()) === 1 && (await posts()).length === 0);
+    const before = page.url(); const token = new URL(before).searchParams.get('flow');
+    await page.locator('main a', { hasText: 'Sign in' }).click(); await page.waitForURL(/\/sign-in/);
+    const next = new URL(page.url()).searchParams.get('next');
+    check('[reckon sign-in] goes to Sign in carrying the way back (this same step, flow token included)', next === `/migration/xero-to-reckon/customer-details?flow=${token}`, String(next));
+    await page.fill('#email', 'op@x.com'); await page.fill('#password', 'whatever'); await page.getByRole('button', { name: /^Sign in/ }).first().click();
+    await page.waitForURL((u) => u.pathname === '/migration/xero-to-reckon/customer-details', { timeout: 15000 });
+    check('[reckon sign-in] after signing in it lands back on the same step, flow intact (not bounced)', page.url() === before, page.url().replace(APP, ''));
+    await page.waitForSelector('#name');
+    check('[reckon as Operation Team] the "Sign in" prompt is gone', (await prompt(page).count()) === 0);
+    check('[reckon as Operation Team] phone is locked and "Not required"; email is the shared inbox', !(await page.locator('#phone').isEnabled()) && (await page.locator('#phone').getAttribute('placeholder')) === 'Not required' && !(await page.locator('label[for="phone"]').innerHTML()).includes('text-red-500') && (await page.locator('#email').inputValue()) === 'preeti@mmcconvert.com');
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/payment/, { timeout: 8000 }).catch(() => {});
+    const sent = await posts();
+    check('[reckon as Operation Team] NO "Phone number is required." - continues, and no phone is sent', (await page.getByText(REQUIRED).count()) === 0 && /\/payment/.test(page.url()) && sent.length === 1 && !sent[0].body.phone && sent[0].body.email === 'preeti@mmcconvert.com', JSON.stringify(sent[0] && sent[0].body));
+    await ctx.close(); }
+  await api('/__reset');
+  { const { ctx, page } = await deepLink('op');
+    check('[reckon deep link, already signed in as Operation Team] no prompt, phone optional', (await prompt(page).count()) === 0 && !(await page.locator('#phone').isEnabled()));
+    await ctx.close(); }
+  { const { ctx, page } = await deepLink('customer');
+    check('[reckon deep link, signed in as a customer] no prompt, phone required as always', (await prompt(page).count()) === 0 && await page.locator('#phone').isEnabled());
+    await ctx.close(); }
+  { // a customer who signs in through the link is NOT treated as the team
+    const { ctx, page } = await deepLink(null);
+    await page.locator('main a', { hasText: 'Sign in' }).click(); await page.waitForURL(/\/sign-in/);
+    await page.fill('#email', 'cust@x.com'); await page.fill('#password', 'whatever'); await page.getByRole('button', { name: /^Sign in/ }).first().click();
+    await page.waitForURL((u) => u.pathname === '/migration/xero-to-reckon/customer-details', { timeout: 15000 }); await page.waitForSelector('#name');
+    check('[reckon sign-in as a customer] still a customer: phone live and required, email editable', await page.locator('#phone').isEnabled() && await page.locator('#email').isEnabled() && (await prompt(page).count()) === 0);
+    await ctx.close(); }
+  // Everywhere else the prompt must NOT appear: other pairs, and Reckon entered from the Hub home page (not the deep link).
+  for (const slug of ['qbo-to-xero', 'xero-to-myob']) {
+    const { ctx, page } = await toDetails(browser, 'anon', slug).catch(() => ({}));
+    if (!page) continue;
+    check(`[no prompt] ${slug} entered from the Hub home page shows no "Operation Team? Sign in"`, (await prompt(page).count()) === 0);
+    await ctx.close();
+  }
+  { const ctx = await browser.newContext(); const page = await ctx.newPage();
+    await page.goto(APP + '/'); const card = page.locator('div.group').filter({ hasText: /Xero.{1,20}Reckon/i }).first(); await card.waitFor(); await card.click();
+    await page.getByText('Choose your migration plan').waitFor(); await page.selectOption('#plan-country', { value: 'Australia' }); const r = page.getByRole('radio'); if (await r.count()) await r.first().click(); await page.getByRole('button', { name: 'Continue' }).click(); await page.waitForURL(/customer-details/); await page.waitForSelector('#name');
+    check('[no prompt] Reckon entered from the Hub home page (normal flow, not the deep link) shows no prompt', (await prompt(page).count()) === 0);
+    await ctx.close(); }
 
   check('no uncaught page errors in any scenario', errors.length === 0, errors.join(' | '));
   await browser.close(); process.exit(bad ? 1 : 0);

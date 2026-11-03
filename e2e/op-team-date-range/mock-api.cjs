@@ -11,6 +11,13 @@ http.createServer((req, res) => {
     if (u === '/__log') return send(res, 200, log);
     if (u === '/__reset') { log.length = 0; state.failCreate = false; state.down = false; state.noFree = false; return send(res, 200, {}); }
     if (u === '/__mode') { Object.assign(state, JSON.parse(raw || '{}')); return send(res, 200, state); }
+    // Sign-in for the browser checks: an identifier starting "op@" is an Operation Team member, anything else a customer.
+    const tokenFor = (roles) => ['{"alg":"none"}', JSON.stringify({ sub: 7, type: 'user', roles }), 'sig'].map((x, i) => (i === 2 ? x : Buffer.from(x).toString('base64url'))).join('.');
+    if (req.method === 'POST' && u === '/auth/login') return send(res, 200, { accessToken: tokenFor(/^op@/.test((body && body.identifier) || '') ? ['OP_TEAM'] : []) });
+    if (req.method === 'GET' && u === '/users/me') {
+      let roles = []; try { roles = JSON.parse(Buffer.from(String(req.headers.authorization || '').split('.')[1] || '', 'base64').toString()).roles || []; } catch { /* anonymous */ }
+      return send(res, 200, { data: { id: 7, email: roles.length ? 'op@x.com' : 'cust@x.com', firstname: 'Who', lastname: 'Ever', roles } });
+    }
     log.push({ m: req.method, u, body });
     if (state.down && u.startsWith('/migration-pairs')) return send(res, 503, { message: 'down' });
     if (req.method === 'GET' && u === '/migration-pairs/available') return send(res, 200, state.noFree ? catalogue.map((p) => (p.destination === 'myob' ? { ...p, isFree: false, planPrices: p.planPrices.map((r) => ({ ...r, basePrice: '389' })) } : p)) : catalogue);

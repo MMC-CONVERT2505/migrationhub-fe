@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { FlowLayout } from '@/components/migration/FlowLayout';
 import { FaqAccordion } from '@/components/migration/FaqAccordion';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
@@ -7,7 +7,8 @@ import { InputField } from '@/components/auth/InputField';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/utils/format';
 import { useAppStore } from '@/store/appStore';
-import { skipsPlanStep } from '@/constants/dedicatedFlow';
+import { canonicalSlug, skipsPlanStep } from '@/constants/dedicatedFlow';
+import { useSession } from '@/store/authStore';
 import { useDedicatedBackTrap } from '@/hooks/useDedicatedBackTrap';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
@@ -206,6 +207,8 @@ const YesNoField: React.FC<{
 
 const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { accessToken } = useSession('user');
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
@@ -530,6 +533,22 @@ const MigrationInfoPage: React.FC = () => {
         <div className="min-w-0 bg-white border border-border rounded-2xl shadow-card p-5 sm:p-8">
           {/* Selected migration pair — highlighted so the user always sees which flow this is */}
           <SelectedPairBanner pair={selectedPair} className="mb-6" />
+          {/* The website deep link opens in a fresh tab, where nobody is signed in (a login lives in one tab), and this flow
+              hides the header's Sign in. Without a way in, an Operation Team member would be treated as a customer, and
+              asked for the phone. Shown only to a signed-out visitor inside this pair's dedicated flow; it returns to this
+              same step (flow token included) after sign-in. */}
+          {!accessToken && dedicatedFlow && dedicatedFlow.slug === canonicalSlug(selectedPair) && (
+            <p className="-mt-3 mb-5 text-xs text-text-secondary">
+              Operation Team member?{' '}
+              <Link
+                to={`/sign-in?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
+                className="font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
+              >
+                Sign in
+              </Link>{' '}
+              to continue as the team.
+            </p>
+          )}
 
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Migration Information</h1>
           <p className="mt-1 text-sm text-text-secondary">

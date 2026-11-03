@@ -78,7 +78,7 @@ export const PairsSection: React.FC = () => {
   );
 
   return (
-    <section id="pairs" className="py-20">
+    <section id="pairs" className="pt-12 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}

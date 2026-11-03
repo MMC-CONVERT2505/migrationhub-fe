@@ -33,7 +33,7 @@
     "path": "/about",
     "name": "About",
     "title": "About MigrationHub | Accounting Migration by MMC Convert",
-    "description": "About MigrationHub, the accounting data migration platform from MMC Convert: why we built it and how our team keeps every migration accurate and auditable.",
+    "description": "Meet the MMC Convert team behind MigrationHub: the founders and advisors who lead our accounting data migration platform, and the offices they work from.",
     "source": [
       "src/pages/AboutPage.tsx"
     ]

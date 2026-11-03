@@ -5,7 +5,7 @@ import { usersService } from '@/api/users';
 export const OP_TEAM_ROLE = 'OP_TEAM';
 
 /** Role names from either shape the API has used: ['A'] or [{ role: { name: 'A' } }]. */
-function roleNames(roles: unknown): string[] {
+export function roleNames(roles: unknown): string[] {
   if (!Array.isArray(roles)) return [];
   return roles
     .map((r) => (typeof r === 'string' ? r : (r as { role?: { name?: string } })?.role?.name))

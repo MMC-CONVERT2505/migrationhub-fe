@@ -115,49 +115,49 @@ const text = (page, sel) => page.locator(sel).first().innerText();
     await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/home-logos.png` : undefined, fullPage: false }).catch(() => {});
     await ctx.close(); }
 
-  // ---------- Footer: WhatsApp before the phone number
+  // ---------- Footer: the WhatsApp icon + number is one link that opens WhatsApp (web on a computer, the app on a phone)
   { const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
     await ctx.route('https://wa.me/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<title>wa</title>' }));
     const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push(`footer-wa: ${e.message}`));
     await page.goto(APP + '/'); await page.waitForLoadState('networkidle');
     const foot = page.locator('footer');
-    const wa = foot.locator('a[href^="https://wa.me/"]'); const tel = foot.locator('a[href^="tel:"]'); const mail = foot.locator('a[href^="mailto:"]');
-    check('[footer whatsapp] exactly one WhatsApp link, and the call link is still there', (await wa.count()) === 1 && (await tel.count()) === 1);
-    check('[footer whatsapp] opens a chat with the site number (wa.me, digits only)', (await wa.getAttribute('href')) === 'https://wa.me/919926477000', await wa.getAttribute('href'));
-    check('[footer whatsapp] the call link is unchanged: tel:+919926477000 showing +919926477000', (await tel.getAttribute('href')) === 'tel:+919926477000' && (await tel.innerText()).trim() === '+919926477000');
-    const a = await wa.boundingBox(); const t = await tel.boundingBox();
-    check('[footer whatsapp] the icon sits BEFORE the number, on the same line', a.x + a.width <= t.x + 1 && Math.abs((a.y + a.height / 2) - (t.y + t.height / 2)) < 8, `icon right=${Math.round(a.x + a.width)} number left=${Math.round(t.x)}`);
-    const order = await foot.evaluate((f) => [...f.querySelectorAll('a')].map((x) => x.getAttribute('href')).filter((h) => /^(mailto:|https:\/\/wa\.me\/|tel:)/.test(h)).map((h) => (h.startsWith('https') ? 'wa' : h.split(':')[0])).join(','));
-    check('[footer whatsapp] reading/tab order is email, WhatsApp, number', order === 'mailto,wa,tel', order);
-    check('[footer whatsapp] the touch target is at least 32x32px', a.width >= 32 && a.height >= 32, `${Math.round(a.width)}x${Math.round(a.height)}`);
+    const wa = foot.locator('a[href^="https://wa.me/"]'); const mail = foot.locator('a[href^="mailto:"]');
+    check('[footer whatsapp] exactly one WhatsApp link', (await wa.count()) === 1);
+    check('[footer whatsapp] it opens a chat with the site number (wa.me, digits only)', (await wa.getAttribute('href')) === 'https://wa.me/919926477000', await wa.getAttribute('href'));
+    check('[footer whatsapp] there is NO tel: link left (a computer shows "No Apps Available" for those)', (await foot.locator('a[href^="tel:"]').count()) === 0);
+    check('[footer whatsapp] the number is the link\'s text, so clicking the number opens WhatsApp', (await wa.innerText()).trim() === '+919926477000');
+    const icon = await wa.locator('svg').boundingBox(); const num = await wa.locator('span').boundingBox(); const box = await wa.boundingBox();
+    check('[footer whatsapp] the icon sits BEFORE the number, on the same line, inside the one link', icon.x + icon.width <= num.x + 1 && Math.abs((icon.y + icon.height / 2) - (num.y + num.height / 2)) < 8, `icon right=${Math.round(icon.x + icon.width)} number left=${Math.round(num.x)}`);
+    check('[footer whatsapp] the whole icon + number is one big target (>= 32px tall)', box.height >= 32, `${Math.round(box.width)}x${Math.round(box.height)}`);
     const label = await wa.getAttribute('aria-label');
-    check('[footer whatsapp] named for screen readers, icon itself hidden from them', /WhatsApp/.test(label) && /new tab/.test(label) && (await wa.locator('svg').getAttribute('aria-hidden')) === 'true', label);
+    check('[footer whatsapp] named for screen readers with the number, icon hidden from them', /WhatsApp/.test(label) && label.includes('+919926477000') && /new tab/.test(label) && (await wa.locator('svg').getAttribute('aria-hidden')) === 'true', label);
     check('[footer whatsapp] opens safely in a new tab (noopener noreferrer)', (await wa.getAttribute('target')) === '_blank' && /noopener/.test(await wa.getAttribute('rel')) && /noreferrer/.test(await wa.getAttribute('rel')));
-    const color = await wa.evaluate((el) => getComputedStyle(el).color);
-    check('[footer whatsapp] the icon is the WhatsApp green and visible', color === 'rgb(21, 128, 61)', color);
+    const color = await wa.locator('svg').evaluate((el) => getComputedStyle(el).color);
+    check('[footer whatsapp] the icon is WhatsApp green', color === 'rgb(21, 128, 61)', color);
     await mail.focus(); await page.keyboard.press('Tab');
     const f1 = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('href'));
     const ring = await page.evaluate(() => { const c = getComputedStyle(document.activeElement); return c.boxShadow + ' ' + c.outlineStyle; });
-    check('[footer whatsapp] keyboard: Tab from the email lands on WhatsApp, with a visible focus ring', f1 === 'https://wa.me/919926477000' && /rgb/.test(ring) && ring.trim() !== 'none none', `${f1} | ${ring.slice(0, 60)}`);
-    await page.keyboard.press('Tab');
-    check('[footer whatsapp] keyboard: the next Tab lands on the phone number', (await page.evaluate(() => document.activeElement.getAttribute('href'))) === 'tel:+919926477000');
-    const [popup] = await Promise.all([ctx.waitForEvent('page', { timeout: 8000 }), wa.click()]);
+    check('[footer whatsapp] keyboard: Tab from the email lands on WhatsApp (one stop) with a visible focus ring', f1 === 'https://wa.me/919926477000' && /rgb/.test(ring) && ring.trim() !== 'none none', `${f1} | ${ring.slice(0, 50)}`);
+    // Clicking the NUMBER (not the icon) must open WhatsApp.
+    let [popup] = await Promise.all([ctx.waitForEvent('page', { timeout: 8000 }), foot.getByText('+919926477000', { exact: true }).click()]);
     await popup.waitForLoadState().catch(() => {});
-    check('[footer whatsapp] clicking opens WhatsApp\'s chat link in a NEW tab and keeps the site open', popup.url() === 'https://wa.me/919926477000' && page.url() === APP + '/', popup.url());
+    check('[footer whatsapp] clicking the NUMBER opens WhatsApp\'s chat link in a NEW tab and keeps the site open', popup.url() === 'https://wa.me/919926477000' && page.url() === APP + '/', popup.url());
     check('[footer whatsapp] the new tab cannot reach back into the site (window.opener is null)', (await popup.evaluate(() => window.opener)) === null);
+    await popup.close();
+    [popup] = await Promise.all([ctx.waitForEvent('page', { timeout: 8000 }), wa.locator('svg').click()]);
+    check('[footer whatsapp] clicking the ICON opens the same chat link in a new tab', popup.url() === 'https://wa.me/919926477000', popup.url());
     await popup.close();
     for (const route of ['/contact', '/about', '/supported-platforms']) {
       await page.goto(APP + route); await page.waitForLoadState('networkidle');
-      check(`[footer whatsapp] same WhatsApp link in the footer of ${route}`, (await page.locator('footer a[href="https://wa.me/919926477000"]').count()) === 1);
+      check(`[footer whatsapp] same single WhatsApp link, no tel: link, in the footer of ${route}`, (await page.locator('footer a[href="https://wa.me/919926477000"]').count()) === 1 && (await page.locator('footer a[href^="tel:"]').count()) === 0);
     }
     await ctx.close(); }
   { const ctx = await browser.newContext({ viewport: { width: 390, height: 800 } }); const page = await ctx.newPage();
     await page.goto(APP + '/'); await page.waitForLoadState('networkidle');
-    const wa = page.locator('footer a[href^="https://wa.me/"]'); const tel = page.locator('footer a[href^="tel:"]');
-    await tel.scrollIntoViewIfNeeded();
-    const a = await wa.boundingBox(); const t = await tel.boundingBox();
+    const wa = page.locator('footer a[href^="https://wa.me/"]'); await wa.scrollIntoViewIfNeeded();
+    const icon = await wa.locator('svg').boundingBox(); const num = await wa.locator('span').boundingBox();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    check('[footer whatsapp mobile] icon still before the number on one line at 390px, no sideways scroll', a.x + a.width <= t.x + 1 && Math.abs((a.y + a.height / 2) - (t.y + t.height / 2)) < 8 && overflow <= 0, `overflow=${overflow}`);
+    check('[footer whatsapp mobile] icon still before the number on one line at 390px, no sideways scroll', icon.x + icon.width <= num.x + 1 && Math.abs((icon.y + icon.height / 2) - (num.y + num.height / 2)) < 8 && overflow <= 0, `overflow=${overflow}`);
     await ctx.close(); }
 
   // ---------- Supported platforms

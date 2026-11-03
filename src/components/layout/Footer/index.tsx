@@ -35,7 +35,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
 
 const LINK_CLASS = `text-sm ${NAV_TEXT_MUTED}`;
 
-/** Opens a WhatsApp chat with the site's number, built from the same constant as the call link so the two cannot drift apart. */
+/** Opens a WhatsApp chat with the site's number, built from the same CONTACT_PHONE constant as everything else. */
 const WHATSAPP_URL = whatsappLink(CONTACT_PHONE);
 
 /** Slim footer for task pages (flow, tracker, history): same copyright line as the full one. */
@@ -103,22 +103,24 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-x-8 gap-y-1 text-sm text-text-tertiary">
             <p>{copyrightNotice()}</p>
             <a href={`mailto:${CONTACT_EMAIL}`} className={NAV_TEXT_MUTED}>{CONTACT_EMAIL}</a>
-            <span className="inline-flex items-center gap-1.5">
-              {/* Left out (not shown dead) if the number is ever not a usable international number. */}
-              {WHATSAPP_URL && (
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Chat with us on WhatsApp (opens in a new tab)"
-                  title="Chat with us on WhatsApp"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-green-700 transition-colors hover:bg-green-50 hover:text-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
-                >
-                  <WhatsAppIcon className="h-5 w-5" />
-                </a>
-              )}
+            {WHATSAPP_URL ? (
+              // Icon and number are ONE link: a computer has no app for tel: links (the browser just shows "No Apps
+              // Available"), while wa.me opens the WhatsApp app on a phone and WhatsApp Web on a computer.
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Chat with us on WhatsApp: ${CONTACT_PHONE} (opens in a new tab)`}
+                title="Chat with us on WhatsApp"
+                className={`inline-flex min-h-8 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 ${NAV_TEXT_MUTED}`}
+              >
+                <WhatsAppIcon className="h-5 w-5 flex-shrink-0 text-green-700" />
+                <span>{CONTACT_PHONE}</span>
+              </a>
+            ) : (
+              // Only if the number is ever not a usable international number: fall back to a plain call link.
               <a href={`tel:${CONTACT_PHONE}`} className={NAV_TEXT_MUTED}>{CONTACT_PHONE}</a>
-            </span>
+            )}
           </div>
           <div className="flex items-center gap-4 text-xs text-text-tertiary">
             <span className="flex items-center gap-1.5">

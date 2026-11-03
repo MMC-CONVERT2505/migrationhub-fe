@@ -30,7 +30,8 @@ for (const p of pages) {
   if (canonical !== want) fail(`${p.path}: canonical is ${canonical}, want ${want}`);
   if (!robots || /noindex/i.test(robots) || !/max-image-preview:large/.test(robots)) fail(`${p.path}: robots is "${robots}"`);
   if (h1s !== 1) fail(`${p.path}: ${h1s} <h1> in the raw HTML`);
-  if (p.path === '/' && !/<h1[^>]*>[^]*?MigrationHub[^]*?<\/h1>/.test(h)) fail('/: <h1> does not contain MigrationHub');
+  // The brand is written both ways (the site's JSON-LD alternateName lists "Migration Hub" and "MMC MigrationHub"): either keeps the keyword in the h1.
+  if (p.path === '/' && !/<h1[^>]*>[^]*?Migration ?Hub[^]*?<\/h1>/.test(h)) fail('/: <h1> does not contain the brand (MigrationHub / Migration Hub)');
   for (const prop of ['og:type', 'og:site_name', 'og:title', 'og:description', 'og:url', 'og:image', 'og:locale'])
     if (!new RegExp(`property="${prop}"`).test(h)) fail(`${p.path}: missing ${prop}`);
   if (!/name="twitter:card" content="summary_large_image"/.test(h)) fail(`${p.path}: missing twitter:card`);

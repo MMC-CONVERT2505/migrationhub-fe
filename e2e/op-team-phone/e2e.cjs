@@ -5,7 +5,7 @@ const api = async (p) => (await fetch(API + p)).json();
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const tok = (roles) => `${b64({ alg: 'none' })}.${b64({ sub: 7, type: 'user', roles })}.sig`;
 const session = (roles) => JSON.stringify({ state: { user: { accessToken: tok(roles), user: { id: 7, email: 'who@x.com', firstname: 'Who', lastname: 'Ever', roles } }, admin: { accessToken: null, user: null } }, version: 2 });
-const word = { qbo: 'QuickBooks', xero: 'Xero', myob: 'MYOB' };
+const word = { qbo: 'QuickBooks', xero: 'Xero', myob: 'MYOB', reckon: 'Reckon', freshbooks: 'FreshBooks', prosaic: 'Prosaic', tally: 'Tally', zoho: 'Zoho' };
 const REQUIRED = 'Phone number is required.';
 
 async function toDetails(browser, who, slug) {
@@ -146,6 +146,80 @@ const phoneLabel = (page) => page.locator('label[for="phone"]');
     await page.getByText('Choose your migration plan').waitFor(); await page.selectOption('#plan-country', { value: 'Australia' }); const r = page.getByRole('radio'); if (await r.count()) await r.first().click(); await page.getByRole('button', { name: 'Continue' }).click(); await page.waitForURL(/customer-details/); await page.waitForSelector('#name');
     check('[no prompt] Reckon entered from the Hub home page (normal flow, not the deep link) shows no prompt', (await prompt(page).count()) === 0);
     await ctx.close(); }
+
+  // ---------- The browser believes "Operation Team" but the server does not (expired / replaced login, role removed)
+  const customToken = (extra) => `${b64({ alg: 'none' })}.${b64({ sub: 7, type: 'user', ...extra })}.sig`;
+  const sessionWith = (extra, profileRoles) => JSON.stringify({ state: { user: { accessToken: customToken(extra), user: { id: 7, email: 'op@x.com', firstname: 'Op', lastname: 'Team', roles: profileRoles } }, admin: { accessToken: null, user: null } }, version: 2 });
+  const NOW = Math.floor(Date.now() / 1000);
+  const hubToDetails = async (page, slug = 'xero-to-reckon') => {
+    await page.goto(APP + '/'); const [s1, d1] = slug.split('-to-').map((x) => word[x]);
+    const card = page.locator('div.group').filter({ hasText: new RegExp(s1 + '.{1,20}' + d1, 'i') }).first(); await card.waitFor(); await card.click();
+    await page.getByText('Choose your migration plan').waitFor(); await page.selectOption('#plan-country', { value: 'Australia' }); const r = page.getByRole('radio'); if (await r.count()) await r.first().click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+  };
+  const newTab = async (initial) => { const ctx = await browser.newContext(); const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push('stale-session: ' + e.message)); if (initial) await ctx.addInitScript(([k, v]) => { if (!sessionStorage.getItem('e2e-seeded')) { sessionStorage.setItem(k, v); sessionStorage.setItem('e2e-seeded', '1'); } }, ['mmc-auth', initial]); return { ctx, page }; };
+  const signInAs = async (page, who) => { await page.fill('#email', who); await page.fill('#password', 'whatever'); await page.getByRole('button', { name: /^Sign in/ }).first().click(); await page.waitForURL((u) => u.pathname === '/migration/xero-to-reckon/customer-details', { timeout: 15000 }); await page.waitForSelector('#name'); };
+  const hasSession = (page) => page.evaluate(() => !!JSON.parse(sessionStorage.getItem('mmc-auth') || '{}')?.state?.user?.accessToken);
+
+  // 1. The login expired (the likely cause of the reported error): caught when the step opens, before any typing
+  await api('/__reset');
+  { const { ctx, page } = await newTab(sessionWith({ roles: ['OP_TEAM'], exp: NOW - 3600 }, ['OP_TEAM']));
+    await hubToDetails(page); await page.waitForURL(/\/sign-in/, { timeout: 15000 });
+    const u = new URL(page.url());
+    check('[expired login] opening the details step sends them to sign in (not a form that will fail on submit)', u.pathname === '/sign-in' && u.searchParams.get('expired') === '1', page.url().replace(APP, ''));
+    check('[expired login] the way back is this same step, and the stale login is cleared', u.searchParams.get('next') === '/migration/xero-to-reckon/customer-details' && !(await hasSession(page)));
+    check('[expired login] the sign-in page says the session expired', (await page.getByText('Your session expired').count()) === 1);
+    await signInAs(page, 'op@x.com');
+    check('[expired login] after signing in again: back on the step, phone optional and locked', !(await page.locator('#phone').isEnabled()) && (await page.locator('#phone').getAttribute('placeholder')) === 'Not required');
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/payment/, { timeout: 8000 }).catch(() => {});
+    check('[expired login] and the submit now works: no "Phone number is required."', /\/payment/.test(page.url()) && (await posts()).length === 1);
+    await ctx.close(); }
+
+  // 2. The login stops being valid WHILE the form is open (replaced elsewhere / expired mid-way): the submit must not dead-end
+  await api('/__reset');
+  { const { ctx, page } = await newTab(sessionWith({ roles: ['OP_TEAM'], exp: NOW + 3600 }, ['OP_TEAM']));
+    await hubToDetails(page); await page.waitForURL(/customer-details/); await page.waitForSelector('#name'); await page.waitForTimeout(600);
+    check('[login revoked mid-way] the step opens normally while the login is still good', !(await page.locator('#phone').isEnabled()) && /customer-details/.test(page.url()));
+    await fetch(API + '/__mode', { method: 'POST', body: JSON.stringify({ revoked: true }) });
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/sign-in/, { timeout: 15000 }).catch(() => {});
+    check('[login revoked mid-way] the rejected submit sends them to sign in instead of a stuck "Phone number is required."', /\/sign-in/.test(page.url()) && (await page.getByText(REQUIRED).count()) === 0, page.url().replace(APP, ''));
+    check('[login revoked mid-way] nothing was saved', (await posts()).length === 0);
+    await api('/__reset'); await signInAs(page, 'op@x.com');
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/payment/, { timeout: 8000 }).catch(() => {});
+    check('[login revoked mid-way] after signing in again it goes through', /\/payment/.test(page.url()) && (await posts()).length === 1);
+    await ctx.close(); }
+
+  // 3. The token still says Operation Team but the role was removed in the database
+  await api('/__reset');
+  { const { ctx, page } = await newTab(sessionWith({ roles: ['OP_TEAM'], dbRoles: [], exp: NOW + 3600 }, ['OP_TEAM']));
+    await hubToDetails(page); await page.waitForURL(/\/sign-in/, { timeout: 15000 }).catch(() => {});
+    check('[role removed] a token that still claims the team is replaced by a fresh sign-in (cleared, sent to sign in)', /\/sign-in/.test(page.url()) && !(await hasSession(page)), page.url().replace(APP, ''));
+    await signInAs(page, 'cust@x.com');
+    check('[role removed] signing in as who they now are: a customer, so the phone is asked for', await page.locator('#phone').isEnabled() && await page.locator('#email').isEnabled());
+    await ctx.close(); }
+
+  // 4. Healthy sessions are never disturbed
+  await api('/__reset');
+  { const { ctx, page } = await newTab(sessionWith({ roles: ['OP_TEAM'], exp: NOW + 3600 }, ['OP_TEAM']));
+    await hubToDetails(page); await page.waitForURL(/customer-details/); await page.waitForSelector('#name'); await page.waitForTimeout(1200);
+    check('[healthy Operation Team login] stays on the step, phone optional and locked', /customer-details/.test(page.url()) && !(await page.locator('#phone').isEnabled()));
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/payment/, { timeout: 8000 }).catch(() => {});
+    check('[healthy Operation Team login] submits without a phone', /\/payment/.test(page.url()) && (await posts()).length === 1);
+    await ctx.close(); }
+  await api('/__reset');
+  { const { ctx, page } = await newTab(sessionWith({ roles: [], exp: NOW + 3600 }, []));
+    await hubToDetails(page); await page.waitForURL(/customer-details/); await page.waitForSelector('#name'); await page.waitForTimeout(1200);
+    check('[healthy customer login] stays on the step: phone live and required', /customer-details/.test(page.url()) && await page.locator('#phone').isEnabled());
+    await ctx.close(); }
+  await api('/__reset');
+  { await fetch(API + '/__mode', { method: 'POST', body: JSON.stringify({ failMe: true }) });
+    const { ctx, page } = await newTab(sessionWith({ roles: ['OP_TEAM'], exp: NOW + 3600 }, ['OP_TEAM']));
+    await hubToDetails(page); await page.waitForURL(/customer-details/); await page.waitForSelector('#name'); await page.waitForTimeout(1200);
+    check('[profile check fails for another reason] a server hiccup does not log anyone out or block the form', /customer-details/.test(page.url()) && !(await page.locator('#phone').isEnabled()) && (await hasSession(page)));
+    await fillRest(page, false); await submit(page); await page.waitForURL(/\/payment/, { timeout: 8000 }).catch(() => {});
+    check('[profile check fails for another reason] and the submit still goes through', /\/payment/.test(page.url()));
+    await ctx.close(); }
+  await api('/__reset');
 
   check('no uncaught page errors in any scenario', errors.length === 0, errors.join(' | '));
   await browser.close(); process.exit(bad ? 1 : 0);

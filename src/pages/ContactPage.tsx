@@ -135,8 +135,8 @@ const ContactPage: React.FC = () => {
                   <span className="text-blue-600">migration</span>
                 </h1>
                 <p className="mt-6 text-lg text-text-secondary leading-relaxed">
-                  Tell us a little about your company and we&apos;ll get back to you within one
-                  business day. Prefer email? Reach us directly at{' '}
+                  Tell us a little about your company and we&apos;ll be in touch within the
+                  next 24 hours. Prefer email? Reach us directly at{' '}
                   <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">
                     {CONTACT_EMAIL}
                   </a>.

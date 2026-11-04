@@ -248,6 +248,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
     await page.fill('#name', 'Bo'); await page.fill('#email', 'bo@acme.com'); await page.fill('#companyName', 'Beta Co'); await page.selectOption('#country', 'New Zealand'); await page.fill('#phone', '21 345 678'); await page.fill('#message', 'Second enquiry');
     await page.getByRole('button', { name: 'Send message' }).click(); await page.getByText('Thanks — we’ve got it').waitFor({ timeout: 8000 }).catch(() => {});
     const p2 = (await api('/__log')).filter((r) => r.u === '/contact')[1];
+    check('[contact] the page intro makes the same 24-hour promise, not "one business day"', /within the\s+next 24 hours/.test(await page.locator('main').innerText()) && !/business day/i.test(await page.locator('main').innerText()));
     check('[contact] a phone, when given, is sent with its dial code', p2 && /^\+64\d{8,9}$/.test(p2.body.phone), JSON.stringify(p2 && p2.body.phone));
     await ctx.close(); }
   { const { ctx, page } = await open('/contact', { width: 390, height: 800 });

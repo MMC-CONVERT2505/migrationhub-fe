@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
 import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
+import { pricingInclusions } from '@/utils/pricingInclusions';
 import { MAX_PRICING_CARDS, summarisePlans, type PlanSummary } from '@/utils/pricing';
 import { countriesOf, normalizeCountry } from '@/utils/countryPricing';
 import { useAppStore } from '@/store/appStore';
@@ -58,9 +59,6 @@ export const PricingSection: React.FC = () => {
         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center max-w-2xl mx-auto">
           <p className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Pricing</p>
           <h2 id="pricing-title" className="mt-3 text-3xl md:text-4xl font-bold text-text-primary tracking-tight">Simple, one-time pricing</h2>
-          <p className="mt-3 text-text-secondary">
-            Pay once per migration — no subscriptions. The exact price depends on the migration you choose, so pick yours to see it.
-          </p>
         </motion.div>
 
         {state === 'ready' && countries.length > 0 && (
@@ -85,17 +83,22 @@ export const PricingSection: React.FC = () => {
 
         {showPlans && (
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite">
-            {plans.map((p) => (
+            {plans.map((p) => {
+              // Basic, Standard and Enterprise list a fixed set of inclusions (their history is the first one), with no
+              // separate history or support line above them; any other plan shows what it is stored with.
+              const fixed = pricingInclusions(p.name);
+              const features = fixed ? [...fixed] : p.features.slice(0, 6);
+              return (
               <div key={p.key} className={`relative bg-white rounded-xl p-6 flex flex-col border ${p.popular ? 'border-blue-600 shadow-card' : 'border-border'}`}>
                 {p.popular && <span className="absolute -top-px right-4 rounded-b-md bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Most popular</span>}
                 <h3 className="text-lg font-bold text-text-primary">{p.name}</h3>
-                {p.history && <p className="mt-0.5 text-xs text-text-secondary">{p.history}</p>}
+                {!fixed && p.history && <p className="mt-0.5 text-xs text-text-secondary">{p.history}</p>}
                 <p className="mt-4 font-mono text-3xl font-bold text-text-primary">{priceLabel(p)}</p>
                 {p.max > 0 && <p className="text-[11px] text-text-tertiary">one-time · {p.currency}{p.taxRate > 0 ? ` · +${p.taxRate}% GST` : ''}{p.hasFree ? ' · free on some migrations' : ''}</p>}
-                {p.support && <p className="mt-3 text-sm text-text-secondary">{p.support}</p>}
-                {p.features.length > 0 && (
+                {!fixed && p.support && <p className="mt-3 text-sm text-text-secondary">{p.support}</p>}
+                {features.length > 0 && (
                   <ul className="mt-3 space-y-1.5 flex-1">
-                    {p.features.slice(0, 6).map((f) => (
+                    {features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-text-secondary">
                         <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         {f}
@@ -104,7 +107,8 @@ export const PricingSection: React.FC = () => {
                   </ul>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

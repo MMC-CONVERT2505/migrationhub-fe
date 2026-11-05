@@ -9,7 +9,7 @@ const COMPANIES = [
   { name: 'KPMG', file: '/logos/kpmg.png', color: '#00338D', size: 'h-12 max-w-[170px]', text: 'text-3xl' },
   { name: 'Deloitte', file: '/logos/deloitte.jpg', color: '#000000', size: 'h-10 max-w-[200px]', text: 'text-3xl' },
   { name: 'Grant Thornton', file: '/logos/grant-thornton.png', color: '#4F2D7F', size: 'h-10 max-w-[210px]', text: 'text-2xl' },
-  { name: 'BDO', file: '/logos/bdo.svg', color: '#E2001A', size: 'h-12 max-w-[150px]', text: 'text-4xl' },
+  { name: 'BDO', file: '/logos/bdo_logo_color.png', color: '#E2001A', size: 'h-12 max-w-[150px]', text: 'text-4xl' },
   { name: 'RSM', file: '/logos/rsm.webp', color: '#3F9C35', size: 'h-9 max-w-[130px]', text: 'text-xl' },
   { name: 'Mazars', file: '/logos/mazars.jpg', color: '#0033A0', size: 'h-9 max-w-[140px]', text: 'text-xl' },
   { name: 'PKF', file: '/logos/pkf.png', color: '#003366', size: 'h-9 max-w-[130px]', text: 'text-xl' },
@@ -19,7 +19,7 @@ const COMPANIES = [
 const CompanyLogo: React.FC<{ company: (typeof COMPANIES)[number] }> = ({ company }) => {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex items-center justify-center h-14 px-1">
+    <div className="flex items-center justify-center h-14 px-0.5">
       {failed ? (
         <span className={`${company.text} font-extrabold tracking-tight`} style={{ color: company.color }}>
           {company.name}
@@ -45,7 +45,7 @@ export const CompanyLogos: React.FC = () => {
           <span className="text-sm font-medium text-text-tertiary uppercase tracking-widest whitespace-nowrap flex-shrink-0">
             Trusted by
           </span>
-          <div className="flex flex-1 flex-wrap items-center justify-center sm:justify-start lg:justify-between gap-x-8 gap-y-4">
+          <div className="flex flex-1 flex-wrap items-center justify-center sm:justify-start lg:justify-between gap-x-5 gap-y-4">
             {COMPANIES.map((company, i) => (
               <motion.div
                 key={company.name}

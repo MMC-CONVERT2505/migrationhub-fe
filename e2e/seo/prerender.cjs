@@ -28,7 +28,7 @@ const HYDRATION = /#4(18|19|22|23|25)|hydrat/i;
   // 2. With JavaScript: hydrates without errors and without duplicating head tags.
   for (const p of PAGES) {
     const ctx = await browser.newContext(); const page = await ctx.newPage(); const errs = [];
-    // Not ours: the mock API has no banner route, and logos/bdo.svg is a known missing file (public/logos/README.md).
+    // Not ours: the mock API has no banner route, and logos/bdo.svg was a known missing file (now bdo_logo_color.png).
     const IGNORED = /\/banner\/get-banners|\/logos\/bdo\.svg/; const ignoredHits = [];
     page.on('response', (r) => { if (r.status() >= 400 && IGNORED.test(r.url())) ignoredHits.push(r.url()); });
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') { if (/Failed to load resource/.test(m.text()) && ignoredHits.length > 0) return; errs.push(m.text()); } });

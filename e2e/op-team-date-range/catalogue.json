@@ -816,62 +816,6 @@
     "basePrice": "0",
     "extraYearPrice": "100",
     "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "Australia",
-    "currency": "AUD",
-    "basePrice": "549",
-    "extraYearPrice": "150",
-    "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "New Zealand",
-    "currency": "USD",
-    "basePrice": "389",
-    "extraYearPrice": "100",
-    "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "United Kingdom",
-    "currency": "GBP",
-    "basePrice": "189",
-    "extraYearPrice": "69",
-    "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "Singapore",
-    "currency": "USD",
-    "basePrice": "389",
-    "extraYearPrice": "589",
-    "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "India",
-    "currency": "INR",
-    "basePrice": "35000",
-    "extraYearPrice": "15000",
-    "taxRate": "18"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "United Arab Emirates",
-    "currency": "USD",
-    "basePrice": "389",
-    "extraYearPrice": "100",
-    "taxRate": "0"
-   },
-   {
-    "planId": "plan-basic",
-    "country": "South Africa",
-    "currency": "USD",
-    "basePrice": "389",
-    "extraYearPrice": "100",
-    "taxRate": "0"
    }
   ],
   "sourceLogo": null,

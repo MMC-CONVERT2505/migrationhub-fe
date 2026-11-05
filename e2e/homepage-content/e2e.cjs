@@ -96,12 +96,14 @@ const text = (page, sel) => page.locator(sel).first().innerText();
       out.framed = [...sec.querySelectorAll('div')].filter((d) => parseFloat(getComputedStyle(d).borderTopWidth) > 0 && d.querySelector('img,span')).length;
       return out;
     });
+    const rowsT = await trusted.evaluate((sec) => new Set([...sec.querySelectorAll('img, span')].filter((e) => e.closest('div.h-14')).map((e) => Math.round(e.getBoundingClientRect().top / 30))).size);
+    check('[trusted] all seven logos fit on ONE row at 1366px (no lone logo on a second row)', rowsT === 1, `rows=${rowsT}`);
     check('[trusted] no frame/box around any logo', info.framed === 0, JSON.stringify(info.framed));
     check('[trusted] KPMG is large and legible (>= 44px tall)', info.KPMG && info.KPMG.ok && info.KPMG.h >= 44, JSON.stringify(info.KPMG));
     check('[trusted] Deloitte wordmark is large and legible (>= 36px tall, was ~6px)', info.Deloitte && info.Deloitte.ok && info.Deloitte.h >= 36, JSON.stringify(info.Deloitte));
     check('[trusted] Grant Thornton is large and legible (>= 36px tall)', info['Grant Thornton'] && info['Grant Thornton'].ok && info['Grant Thornton'].h >= 36, JSON.stringify(info['Grant Thornton']));
-    check('[trusted] BDO (no logo file yet) shows as large bold text', info.BDO_text && info.BDO_text.size >= 30, JSON.stringify(info.BDO_text));
-    check('[trusted] the four featured firms are bigger than the other three', ['KPMG', 'Deloitte', 'Grant Thornton'].every((k) => info[k].h > info.RSM.h) && info.RSM.ok, `rsm=${info.RSM && info.RSM.h}`);
+    check('[trusted] BDO shows its real logo (image loads, >= 44px tall), not the text fallback', info.BDO && info.BDO.ok && info.BDO.h >= 44 && !info.BDO_text, JSON.stringify(info.BDO));
+    check('[trusted] the four featured firms are bigger than the other three', ['KPMG', 'Deloitte', 'Grant Thornton', 'BDO'].every((k) => info[k].h > info.RSM.h) && info.RSM.ok, `rsm=${info.RSM && info.RSM.h}`);
     const works = page.locator('section', { hasText: 'Works with' }).first();
     await works.scrollIntoViewIfNeeded(); await page.waitForTimeout(900);
     const w = await works.evaluate((sec) => {
@@ -159,6 +161,29 @@ const text = (page, sel) => page.locator(sel).first().innerText();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     check('[footer whatsapp mobile] icon still before the number on one line at 390px, no sideways scroll', icon.x + icon.width <= num.x + 1 && Math.abs((icon.y + icon.height / 2) - (num.y + num.height / 2)) < 8 && overflow <= 0, `overflow=${overflow}`);
     await ctx.close(); }
+
+  // ---------- Pricing cards: fixed inclusions, no history/support lines, intro sentence gone
+  const WANT = { Basic: 'Current Financial Year + 1 Historical Year', Standard: 'Current Financial Year + 3 Historical Years', Enterprise: 'Inception to date' };
+  const TAIL = ['All data categories', 'Payroll', 'Attachments', 'Multi-Currency', 'Quality Analysis Report'];
+  for (const [label, vp] of [['desktop', { width: 1366, height: 800 }], ['mobile', { width: 390, height: 800 }]]) {
+    const { ctx, page } = await open('/', vp);
+    const sec = page.locator('#pricing'); await sec.scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
+    check(`[pricing ${label}] the "Pay once per migration..." sentence is gone, heading kept`, !/Pay once per migration|pick yours to see it/.test(await sec.innerText()) && /Simple, one-time pricing/.test(await sec.innerText()));
+    for (const [name, first] of Object.entries(WANT)) {
+      const card = sec.locator('h3', { hasText: new RegExp(`^${name}$`) }).locator('xpath=..');
+      const items = await card.locator('li').allInnerTexts();
+      check(`[pricing ${label}] ${name}: exactly the six requested inclusions, in order`, JSON.stringify(items.map((t) => t.trim())) === JSON.stringify([first, ...TAIL]), items.join(' | '));
+      const text = await card.innerText();
+      const gone = ['Email support', 'Priority email', 'Phone, chat', 'revisions', 'Reconciliation report', 'Unlimited history', 'year history', 'Dedicated senior', 'Payroll Included', 'Payroll +', 'Inception to Date'].filter((g) => text.includes(g));
+      check(`[pricing ${label}] ${name}: no old heading or inclusion left`, gone.length === 0, gone.join(', '));
+      check(`[pricing ${label}] ${name}: the history text appears once (as the first inclusion, not also as a heading)`, text.split(first).length === 2, String(text.split(first).length - 1));
+      check(`[pricing ${label}] ${name}: still shows its name and a price`, /\$|A\$|Free|from/.test(await card.locator('p.font-mono').innerText()));
+    }
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    check(`[pricing ${label}] no sideways scroll`, over <= 0, String(over));
+    if (label === 'desktop') { const hs = await sec.locator('h3').evaluateAll((e) => e.map((x) => Math.round(x.getBoundingClientRect().top))); check('[pricing desktop] the three cards line up in one row', new Set(hs).size === 1, hs.join(',')); }
+    await ctx.close();
+  }
 
   // ---------- Supported platforms
   { const { ctx, page } = await open('/supported-platforms');

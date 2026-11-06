@@ -13,14 +13,14 @@ so the section is never broken.
 | KPMG           | `kpmg.png`                 | present           |
 | Deloitte       | `deloitte.jpg`             | present           |
 | Grant Thornton | `grant-thornton.png`       | present           |
-| BDO            | `bdo.svg`                  | MISSING (fallback) |
+| BDO            | `bdo_logo_color.png`       | present           |
 | RSM            | `rsm.webp`                 | present           |
 | Mazars         | `mazars.jpg`               | present           |
 | PKF            | `pkf.png`                  | present           |
 
 If the file name/extension here changes, update the matching entry in
-`src/components/home/CompanyLogos/index.tsx`. BDO has no file yet, so it renders
-as a text badge until `bdo.svg` (or another format — update the component) is added.
+`src/components/home/CompanyLogos/index.tsx`. A firm whose file fails to load shows
+its name as text instead.
 
 Only these seven firms are referenced. Do not add software/product logos
 (Xero, QuickBooks, MYOB, etc.) here — they are not part of this section.

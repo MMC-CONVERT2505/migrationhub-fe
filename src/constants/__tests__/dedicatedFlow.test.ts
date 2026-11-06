@@ -17,11 +17,13 @@ const reckon = (over: Partial<Pair> = {}) => pair('xero', 'reckon', { isFree: tr
 const flow = { slug: 'xero-to-reckon', token: 'tok-1' };
 
 describe('isDedicatedPair / canonicalSlug', () => {
-  it('only Xero → Reckon is dedicated, whatever case the keys use', () => {
+  it('only Xero → Reckon, Xero → MYOB and QBO → MYOB are dedicated, whatever case the keys use', () => {
     expect(isDedicatedPair(reckon())).toBe(true);
     expect(isDedicatedPair(pair('Xero', 'Reckon'))).toBe(true);
     expect(canonicalSlug(pair('Xero', 'Reckon'))).toBe('xero-to-reckon');
-    for (const p of [pair('xero', 'myob'), pair('reckon', 'xero'), pair('qbo', 'xero')]) expect(isDedicatedPair(p)).toBe(false);
+    for (const p of [pair('xero', 'myob'), pair('QBO', 'MYOB')]) expect(isDedicatedPair(p)).toBe(true);
+    // the opposite direction, and every other pair, stay normal
+    for (const p of [pair('myob', 'qbo'), pair('myob', 'xero'), pair('reckon', 'xero'), pair('qbo', 'xero'), pair('xero', 'qbo')]) expect(isDedicatedPair(p)).toBe(false);
     expect(isDedicatedPair(null)).toBe(false);
   });
 });
@@ -91,5 +93,42 @@ describe('skipsPlanStep', () => {
     expect(skipsPlanStep(reckon(), null)).toBe(false);
     expect(skipsPlanStep(pair('xero', 'myob', { isFree: true, plans: [plan()] }), flow)).toBe(false);
     expect(skipsPlanStep(null, flow)).toBe(false);
+  });
+});
+
+describe('MYOB direct links (price-listed, Australia and New Zealand free)', () => {
+  const anz = (dst: string, src: string) => {
+    const basic = plan({ id: 'plan-basic', name: 'Basic' });
+    const row = (country: string) => ({ planId: 'plan-basic', country, currency: country === 'Australia' ? 'AUD' : 'AUD', basePrice: 0, extraYearPrice: 150, taxRate: 0 });
+    return pair(src, dst, { isFree: true, plans: [basic], planPrices: [row('Australia'), row('New Zealand')] } as Partial<Pair>);
+  };
+  const flows = {
+    xeroMyob: { slug: 'xero-to-myob', token: 't-x' },
+    qboMyob: { slug: 'qbo-to-myob', token: 't-q' },
+  };
+
+  it('takes the Basic plan, which costs nothing in either country', () => {
+    for (const p of [anz('myob', 'xero'), anz('myob', 'qbo')]) {
+      expect(dedicatedFreePlan(p)).toMatchObject({ id: 'plan-basic' });
+      expect(skipsPlanStep(p, { slug: canonicalSlug(p), token: 't' })).toBe(true);
+    }
+  });
+
+  it('keeps the plan step if the price list has no free plan for the first country', () => {
+    const p = anz('myob', 'xero');
+    p.planPrices = p.planPrices!.map((r) => ({ ...r, basePrice: 389 }));
+    expect(dedicatedFreePlan(p)).toBeNull();
+    expect(skipsPlanStep(p, flows.xeroMyob)).toBe(false);
+  });
+
+  it('inside either MYOB flow, the other pairs (Reckon included) go back to that flow', () => {
+    expect(dedicatedFlowRedirect({ pair: reckon(), flow: flows.qboMyob, urlToken: null, step: 'plan' })).toBe(dedicatedDetailsPath(flows.qboMyob));
+    expect(dedicatedFlowRedirect({ pair: anz('myob', 'qbo'), flow: flows.xeroMyob, urlToken: 't-x', step: 'details' })).toBe(dedicatedDetailsPath(flows.xeroMyob));
+    expect(dedicatedFlowRedirect({ pair: pair('myob', 'qbo'), flow: flows.qboMyob, urlToken: null, step: 'details' })).toBe(dedicatedDetailsPath(flows.qboMyob));
+  });
+
+  it('their own details step needs their own token', () => {
+    expect(dedicatedFlowRedirect({ pair: anz('myob', 'xero'), flow: flows.xeroMyob, urlToken: 't-x', step: 'details' })).toBeNull();
+    expect(dedicatedFlowRedirect({ pair: anz('myob', 'xero'), flow: flows.xeroMyob, urlToken: 't-q', step: 'details' })).toBe(dedicatedDetailsPath(flows.xeroMyob));
   });
 });

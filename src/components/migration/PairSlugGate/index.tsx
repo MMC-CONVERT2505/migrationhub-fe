@@ -110,9 +110,11 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
         const resolved = apiPairToUiPair(match);
         // Inside a dedicated flow another pair must not replace the flow's pair in the store; the guard below
         // sends the visitor back to the flow.
+        // A website deep link is a fresh entry, not a way out: it replaces whatever flow this tab had.
         const flowNow = useAppStore.getState().dedicatedFlow;
-        if (!flowNow || flowNow.slug === canonicalSlug(resolved)) setSelectedPair(resolved);
-        setResolvedOther(flowNow && flowNow.slug !== canonicalSlug(resolved) ? resolved : null);
+        const stays = !flowNow || flowNow.slug === canonicalSlug(resolved) || lockEntry;
+        if (stays) setSelectedPair(resolved);
+        setResolvedOther(stays ? null : resolved);
         setRemote({ slug, status: 'ready', error: '' });
       })
       .catch(() => {
@@ -133,7 +135,7 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
     return () => {
       cancelled = true;
     };
-  }, [slug, retry, resolvedFromStore, storeMatch, setSelectedPair]);
+  }, [slug, retry, resolvedFromStore, storeMatch, setSelectedPair, lockEntry]);
 
   // Anything resolved for a different slug is stale — hold the loader until the
   // effect has re-run for the slug now in the URL.
@@ -148,20 +150,28 @@ export const PairSlugGate: React.FC<PairSlugGateProps> = ({ lockEntry = false, s
   // Dedicated flow (website deep link only): no way out to home or another pair while it is active. The pair the
   // URL named decides (not whatever stale pair sits in the store).
   const urlPair = resolvedOther ?? (storeMatch ? selectedPair : null);
-  const entering = lockEntry && !!urlPair && isDedicatedPair(urlPair) && !dedicatedFlow;
+  // The deep link names a different pair than the flow this tab holds: it starts (dedicated pair) or clears (any other
+  // pair) the flow, instead of being sent back to the old one.
+  const replacing = lockEntry && !!urlPair && !!dedicatedFlow && dedicatedFlow.slug !== canonicalSlug(urlPair);
+  const entering = lockEntry && !!urlPair && isDedicatedPair(urlPair) && dedicatedFlow?.slug !== canonicalSlug(urlPair);
   const redirect =
-    status === 'ready' && urlPair
+    status === 'ready' && urlPair && !replacing
       ? dedicatedFlowRedirect({ pair: urlPair, flow: dedicatedFlow, urlToken, step })
       : null;
 
   // Only the website deep link starts the dedicated flow: issue this tab's token, then let the guard re-run with it.
   useEffect(() => {
-    if (entering && status === 'ready' && urlPair) startDedicatedFlow(canonicalSlug(urlPair));
-  }, [entering, status, urlPair, startDedicatedFlow]);
+    if (status !== 'ready' || !urlPair || !lockEntry) return;
+    if (entering) startDedicatedFlow(canonicalSlug(urlPair));
+    else if (replacing) {
+      endDedicatedFlow();
+      setEntryLocked(true);
+    }
+  }, [entering, replacing, status, urlPair, lockEntry, startDedicatedFlow, endDedicatedFlow, setEntryLocked]);
 
   if (redirect) return <Navigate to={redirect} replace />;
-  if (status === 'ready' && !entering) return <>{children}</>;
-  if (status === 'ready' && entering) return <GateLoader />;
+  if (status === 'ready' && !entering && !replacing) return <>{children}</>;
+  if (status === 'ready') return <GateLoader />;
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">

@@ -8,7 +8,7 @@ import { hasPriceList, offeredCountries, pricedPlans } from '@/utils/countryPric
  * there is no way back to the plan page, the Hub home page or another pair until the migration is done.
  * Entering from the Hub home page is the normal flow, like every other pair.
  */
-export const DEDICATED_PAIR_SLUGS: readonly string[] = ['xero-to-reckon'];
+export const DEDICATED_PAIR_SLUGS: readonly string[] = ['xero-to-reckon', 'xero-to-myob', 'qbo-to-myob'];
 
 /** Query parameter that carries the flow token on the pair's customer-details URL. */
 export const FLOW_PARAM = 'flow';

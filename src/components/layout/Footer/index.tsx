@@ -65,7 +65,15 @@ export const Footer: React.FC = () => {
               </span>
             </Link>
             <p className="text-sm text-text-tertiary leading-relaxed">
-              Enterprise-grade accounting data migration. Fast, accurate, and secure.
+              Switching accounting software before your{' '}
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                coffee
+                <svg className="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="none" aria-label="coffee mug">
+                  <path d="M5 8h11v6a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 5c0-1 1-1 1-2M12 5c0-1 1-1 1-2M4 20h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </span>{' '}
+              gets cold.
             </p>
           </div>
 

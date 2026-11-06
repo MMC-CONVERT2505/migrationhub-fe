@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@/utils/format';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
 import { getAvailablePairs } from '@/api/availablePairs';
 import { PairCard } from './PairCard';
@@ -29,7 +28,6 @@ const PairCardSkeleton: React.FC = () => (
 export const PairsSection: React.FC = () => {
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('All');
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -54,29 +52,6 @@ export const PairsSection: React.FC = () => {
     };
   }, [attempt]);
 
-  const filteredPairs = useMemo(() => {
-    switch (activeTab) {
-      case 'Free':
-        return pairs.filter((p) => p.status === 'free');
-      case 'Region':
-        return pairs.filter((p) => p.status === 'region');
-      case 'Paid':
-        return pairs.filter((p) => p.status === 'paid');
-      default:
-        return pairs;
-    }
-  }, [activeTab, pairs]);
-
-  const tabs = useMemo(
-    () => [
-      { key: 'All', label: 'All tools', count: loading ? null : pairs.length, dot: '' },
-      { key: 'Free', label: 'Free', count: loading ? null : pairs.filter((p) => p.status === 'free').length, dot: 'bg-green-500' },
-      { key: 'Region', label: 'Region-based', count: loading ? null : pairs.filter((p) => p.status === 'region').length, dot: 'bg-gray-400' },
-      { key: 'Paid', label: 'Paid', count: loading ? null : pairs.filter((p) => p.status === 'paid').length, dot: 'bg-gray-400' },
-    ],
-    [pairs, loading],
-  );
-
   return (
     <section id="pairs" className="pt-12 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -91,36 +66,6 @@ export const PairsSection: React.FC = () => {
             Select your migration path
           </h2>
         </motion.div>
-
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {tabs.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-150 border',
-                  active
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                    : 'bg-white text-text-secondary border-border hover:border-border-medium hover:text-text-primary',
-                )}
-              >
-                {tab.dot && !active && <span className={cn('w-1.5 h-1.5 rounded-full', tab.dot)} />}
-                {tab.label}
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded-full text-xs font-semibold',
-                    active ? 'bg-white/20 text-white' : 'bg-bg-light text-text-tertiary',
-                  )}
-                >
-                  {tab.count ?? <span aria-hidden className="inline-block h-3 w-3 animate-pulse rounded bg-bg-lighter align-middle" />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
 
         {/* Grid */}
         {loading ? (
@@ -142,13 +87,13 @@ export const PairsSection: React.FC = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPairs.map((pair, i) => (
+              {pairs.map((pair, i) => (
                 <PairCard key={`${pair.src}-${pair.dst}-${i}`} pair={pair} index={i} />
               ))}
             </div>
-            {filteredPairs.length === 0 && (
+            {pairs.length === 0 && (
               <div className="text-center py-12 text-text-tertiary">
-                No migration pairs found for this filter.
+                No migration pairs are available right now.
               </div>
             )}
           </>

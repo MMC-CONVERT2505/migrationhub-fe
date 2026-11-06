@@ -5,6 +5,7 @@ import { bannersService } from '@/api/banners';
 import { extractList } from '@/utils/platformMap';
 import type { BannerEntity } from '@/types/api';
 import { trimmedLogoUrl } from '@/utils/trimLogo';
+import { platformLogo } from '@/constants/logos';
 
 /** Display height (px) for a logo of this width/height ratio: roughly equal visual weight, so compact logos (a round mark,
  *  a short wordmark) are a little taller than long, thin ones. */
@@ -90,15 +91,9 @@ export const WorksWith: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.06 }}
-                    className="flex items-center gap-2.5 px-1 py-2"
+                    className="w-full"
                   >
-                    <div
-                      className="w-9 h-9 rounded flex items-center justify-center text-white text-sm font-bold font-mono flex-shrink-0"
-                      style={{ backgroundColor: platform.color }}
-                    >
-                      {platform.abbr.slice(0, 1)}
-                    </div>
-                    <span className="text-base font-semibold text-text-secondary">{platform.name}</span>
+                    <LogoPill src={platformLogo(platform.key) ?? ''} name={platform.name} />
                   </motion.div>
                 ))}
           </div>

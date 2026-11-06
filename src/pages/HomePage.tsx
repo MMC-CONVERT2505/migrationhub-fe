@@ -9,7 +9,7 @@ import { TrustpilotSection } from '@/components/home/TrustpilotSection';
 import { PairsSection } from '@/components/home/PairsSection';
 import { PricingSection } from '@/components/home/PricingSection';
 import { WhySection } from '@/components/home/WhySection';
-import { SafetyNet } from '@/components/home/SafetyNet';
+import { HowItWorks } from '@/components/home/HowItWorks';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
 import { pairDetailsPath } from '@/utils/platformMap';
@@ -52,10 +52,10 @@ const HomePage: React.FC = () => {
         <PairsSection />
         <CompanyLogos />
         <TrustpilotSection />
+        <HowItWorks />
         <WorksWith />
         <PricingSection />
         <WhySection />
-        <SafetyNet />
       </main>
 
       <Footer />

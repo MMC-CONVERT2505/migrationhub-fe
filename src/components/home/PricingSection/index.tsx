@@ -10,10 +10,9 @@ import { countriesOf, normalizeCountry } from '@/utils/countryPricing';
 import { useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
 import { goToSection } from '@/utils/scroll';
+import { browserCountry } from '@/utils/browserCountry';
 import type { Pair } from '@/types';
 import type { MigrationPairEntity } from '@/types/api';
-
-const DEFAULT_COUNTRY = 'Australia';
 
 const priceLabel = (p: PlanSummary) => {
   if (p.max === 0) return 'Free';
@@ -40,15 +39,20 @@ export const PricingSection: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // The visitor's country (shared with the plan step, so their choice carries into checkout). Only a country the
-  // price list actually covers is used; otherwise Australia, else the first one offered.
+  // The visitor's country is only a starting hint. An explicit selection remains in session storage and carries into checkout.
   const storedCountry = useAppStore((s) => s.selectedCountry);
   const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
   const countries = useMemo(() => countriesOf(pairs), [pairs]);
   const stored = normalizeCountry(storedCountry);
+  const [detected, setDetected] = useState<string | null>(null);
+  useEffect(() => setDetected(normalizeCountry(browserCountry())), []);
   const country = countries.length === 0
     ? null
-    : stored && countries.includes(stored) ? stored : countries.includes(DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : countries[0];
+    : stored && countries.includes(stored) ? stored : detected && countries.includes(detected) ? detected : null;
+
+  useEffect(() => {
+    if (state === 'ready' && !stored && country) setSelectedCountry(country);
+  }, [country, setSelectedCountry, state, stored]);
 
   const plans = useMemo(() => summarisePlans(pairs, 'USD', country).slice(0, MAX_PRICING_CARDS), [pairs, country]);
   const showPlans = state === 'ready' && plans.length > 0;
@@ -63,14 +67,15 @@ export const PricingSection: React.FC = () => {
 
         {state === 'ready' && countries.length > 0 && (
           <div className="mt-8 flex flex-col items-center gap-2">
-            <label htmlFor="pricing-country" className="text-sm font-medium text-text-secondary">Show prices for</label>
+            <label htmlFor="pricing-country" className="text-sm font-medium text-text-secondary">Select your country</label>
             <select
               id="pricing-country"
-              value={country ?? ''}
-              onChange={(e) => setSelectedCountry(e.target.value || null)}
+              value={country ?? 'Other'}
+              onChange={(e) => setSelectedCountry(e.target.value === 'Other' ? null : e.target.value || null)}
               className="w-full max-w-xs rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="Other">Other</option>
             </select>
           </div>
         )}

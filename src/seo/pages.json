@@ -1,0 +1,70 @@
+[
+  {
+    "path": "/",
+    "name": "Home",
+    "title": "MigrationHub | Accounting Data Migration Platform by MMC Convert",
+    "description": "MigrationHub by MMC Convert moves your accounting data between QuickBooks Online, Xero, MYOB, FreshBooks, Tally, Zoho Books and Reckon. Start in minutes.",
+    "source": [
+      "src/pages/HomePage.tsx",
+      "src/components/home"
+    ]
+  },
+  {
+    "path": "/how-it-works",
+    "name": "How it works",
+    "title": "How MigrationHub Works | Accounting Data Migration Steps",
+    "description": "See how an accounting data migration with MigrationHub works: choose your platforms and plan, enter your details, connect your accounts and track progress.",
+    "source": [
+      "src/pages/HowItWorksPage.tsx",
+      "src/seo/faq.ts"
+    ]
+  },
+  {
+    "path": "/supported-platforms",
+    "name": "Supported platforms",
+    "title": "Supported Accounting Platforms | MigrationHub by MMC Convert",
+    "description": "Every migration MigrationHub offers today, from QuickBooks Online, Xero, MYOB and Tally to FreshBooks, Zoho Books, Reckon and Prosaic, by source platform.",
+    "source": [
+      "src/pages/SupportedPlatformsPage.tsx",
+      "src/seo/platforms.ts"
+    ]
+  },
+  {
+    "path": "/about",
+    "name": "About",
+    "title": "About MigrationHub | Accounting Migration by MMC Convert",
+    "description": "Meet the MMC Convert team behind MigrationHub: the founders and advisors who lead our accounting data migration platform, and the offices they work from.",
+    "source": [
+      "src/pages/AboutPage.tsx"
+    ]
+  },
+  {
+    "path": "/contact",
+    "name": "Contact",
+    "title": "Contact MigrationHub | MMC Convert Migration Support",
+    "description": "Contact the MMC Convert team about an accounting data migration with MigrationHub. Tell us about your company and platforms and we will reply within a day.",
+    "source": [
+      "src/pages/ContactPage.tsx"
+    ]
+  },
+  {
+    "path": "/privacy",
+    "name": "Privacy Policy",
+    "title": "Privacy Policy | MigrationHub by MMC Convert",
+    "description": "How MigrationHub by MMC Convert collects, uses, shares and protects your personal and accounting data, how long we keep it and how to exercise your rights.",
+    "source": [
+      "src/pages/PrivacyPage.tsx",
+      "src/content/privacyPolicy.tsx"
+    ]
+  },
+  {
+    "path": "/termsofuse",
+    "name": "Terms of Use",
+    "title": "Terms of Use | MigrationHub by MMC Convert",
+    "description": "The terms that apply when you order and use an accounting data migration from MigrationHub by MMC Convert, including payment, data handling and liability.",
+    "source": [
+      "src/pages/TermsPage.tsx",
+      "src/content/termsOfUse.tsx"
+    ]
+  }
+]

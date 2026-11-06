@@ -20,9 +20,7 @@ interface NavbarProps {
 
 /** Header links. Section links scroll on the home page; Contact Us is a route. */
 const NAV_LINKS = [
-  { label: 'What we convert', href: '#pairs' },
-  { label: 'How it works', href: '#why' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Platforms', to: '/supported-platforms' },
   { label: 'Reviews', href: '#reviews' },
   { label: 'Contact Us', to: '/contact' },
 ] as const;

@@ -1,10 +1,8 @@
 import type { Pair, Plan } from '@/types';
+import { COUNTRY_NAMES } from '@/constants/countries';
 
 /** The countries the price list is sold in; the label is what the customer sees, the name keys the price list. */
-export const PRICED_COUNTRIES = [
-  'Australia', 'New Zealand', 'United Kingdom', 'United States', 'Canada',
-  'Singapore', 'India', 'United Arab Emirates', 'South Africa',
-] as const;
+export const PRICED_COUNTRIES = COUNTRY_NAMES;
 
 /** "Australia (AUD)" (the form label) or "australia" → "Australia"; null when it is not a country we sell in. */
 export function normalizeCountry(raw: string | null | undefined): string | null {

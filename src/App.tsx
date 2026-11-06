@@ -2,6 +2,8 @@ import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/Spinner';
+import { RouteSEO } from '@/components/seo/SEO';
+import { HashScroll } from '@/components/common/HashScroll';
 import { PairSlugGate } from '@/components/migration/PairSlugGate';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/auth/AdminGuard';
@@ -27,6 +29,9 @@ const MigrationDetailsEntryPage = React.lazy(() => import('@/pages/MigrationDeta
 const MigrationHistoryPage = React.lazy(() => import('@/pages/MigrationHistoryPage'));
 const MigrationTrackPage   = React.lazy(() => import('@/pages/MigrationTrackPage'));
 const SignInPage          = React.lazy(() => import('@/pages/SignInPage'));
+const HowItWorksPage        = React.lazy(() => import('@/pages/HowItWorksPage'));
+const SupportedPlatformsPage = React.lazy(() => import('@/pages/SupportedPlatformsPage'));
+const NotFoundPage        = React.lazy(() => import('@/pages/NotFoundPage'));
 const SignUpPage          = React.lazy(() => import('@/pages/SignUpPage'));
 
 const AdminLoginPage      = React.lazy(() => import('@/pages/AdminLoginPage'));
@@ -46,9 +51,11 @@ const MigrationReviewDetailPage = React.lazy(() => import('@/pages/admin/Migrati
 const ReportsPage         = React.lazy(() => import('@/pages/admin/ReportsPage'));
 const InquiriesPage       = React.lazy(() => import('@/pages/admin/InquiriesPage'));
 const UsersPage           = React.lazy(() => import('@/pages/admin/UsersPage'));
-const CreateSubUserPage   = React.lazy(() => import('@/pages/admin/CreateSubUserPage'));
+const CreateUserPage   = React.lazy(() => import('@/pages/admin/CreateUserPage'));
 const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
 const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
+const SettingsPage        = React.lazy(() => import('@/pages/admin/SettingsPage'));
+const MigrationCleanerPage = React.lazy(() => import('@/pages/admin/MigrationCleanerPage'));
 const FaqsPage            = React.lazy(() => import('@/pages/admin/FaqsPage'));
 const FaqFormPage         = React.lazy(() => import('@/pages/admin/FaqFormPage'));
 
@@ -96,10 +103,14 @@ const SessionResync: React.FC = () => {
 const App: React.FC = () => (
   <RouteBoundary>
   <SessionResync />
+  <HashScroll />
+  <RouteSEO />
   <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/"          element={<HomePage />} />
       <Route path="/about"     element={<AboutPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/supported-platforms" element={<SupportedPlatformsPage />} />
       <Route path="/contact"   element={<ContactPage />} />
       <Route path="/privacy"   element={<PrivacyPage />} />
       <Route path="/termsofuse" element={<TermsPage />} />
@@ -133,7 +144,7 @@ const App: React.FC = () => (
         <Route element={<AdminLayout />}>
           <Route index                    element={<AdminDashboard />} />
           <Route path="users"            element={<UsersPage />} />
-          <Route path="users/create"     element={<CreateSubUserPage />} />
+          <Route path="users/create"     element={<CreateUserPage />} />
           <Route path="roles"            element={<RolesPage />} />
           <Route path="permissions"      element={<PermissionsPage />} />
           <Route path="migration-pairs"  element={<MigrationPairsPage />} />
@@ -146,6 +157,8 @@ const App: React.FC = () => (
 
 
           <Route path="plans"            element={<PlansPage />} />
+          <Route path="settings"         element={<SettingsPage />} />
+          <Route path="settings/migration-cleaner" element={<MigrationCleanerPage />} />
           <Route path="audit"            element={<AuditPage />} />
           <Route path="contacts"         element={<ContactsPage />} />
           <Route path="inquiries"        element={<InquiriesPage />} />
@@ -158,8 +171,8 @@ const App: React.FC = () => (
         </Route>
       </Route>
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Unknown paths get a real 404 page, not the homepage */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   </Suspense>
   </RouteBoundary>

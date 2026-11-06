@@ -11,11 +11,12 @@ import { migrationsService } from '@/api/migrations';
 import { ApiError } from '@/api/client';
 import { PLATFORM_COLORS, PLATFORM_ABBR } from '@/constants/logos';
 import { normalizePlatform } from '@/utils/platformMap';
-import type { MigrationStatus, UserMigration } from '@/types/api';
+import type { UserMigration } from '@/types/api';
+import { historyBucket, isLiveStatus, statusRank } from '@/utils/migrationHistory';
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<
-  MigrationStatus,
+  string,
   { label: string; variant: 'default' | 'info' | 'success' | 'error' | 'warning'; pulse?: boolean }
 > = {
   DRAFT:        { label: 'Draft',        variant: 'default' },
@@ -25,7 +26,13 @@ const STATUS_CONFIG: Record<
   UNDER_REVIEW: { label: 'Under review', variant: 'warning' },
   FAILED:       { label: 'Failed',       variant: 'error' },
   CANCELLED:    { label: 'Cancelled',    variant: 'default' },
+  PARTIAL_SUCCESS: { label: 'Partial success', variant: 'warning' },
+  PAYMENT_PENDING: { label: 'Payment pending', variant: 'default' },
+  PAYMENT_FAILED:  { label: 'Payment failed',  variant: 'error' },
 };
+
+/** A status without its own label reads "In progress", never "Draft". */
+const IN_PROGRESS_LABEL = { label: 'In progress', variant: 'info' as const, pulse: true };
 
 // ─── Platform pill ────────────────────────────────────────────────────────────
 const PlatformPill: React.FC<{ platform: string }> = ({ platform }) => {
@@ -48,10 +55,11 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
   index,
 }) => {
   const navigate = useNavigate();
-  const cfg      = STATUS_CONFIG[migration.status] ?? STATUS_CONFIG.DRAFT;
+  const cfg      = STATUS_CONFIG[migration.status] ?? IN_PROGRESS_LABEL;
   const charge   = chargeSummary(migration);
   const isActive = migration.status === 'RUNNING' || migration.status === 'QUEUED';
-  const isFailed = migration.status === 'FAILED';
+  const isLive   = isLiveStatus(migration.status);
+  const isFailed = historyBucket(migration.status) === 'failed' && migration.status !== 'CANCELLED';
 
   const formattedDate = new Date(migration.createdAt).toLocaleDateString('en-AU', {
     day: 'numeric', month: 'short', year: 'numeric',
@@ -142,18 +150,15 @@ const MigrationCard: React.FC<{ migration: UserMigration; index: number }> = ({
         </div>
 
         {/* Action button */}
-        {(migration.status === 'DRAFT' || migration.status === 'QUEUED') && (
+        {migration.status === 'DRAFT' && (
           <button
-            onClick={(e) => { e.stopPropagation(); navigate('/migration'); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); navigate(`/migrations/${migration.id}`); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
           >
-            Continue
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
+            View
           </button>
         )}
-        {migration.status === 'RUNNING' && (
+        {isLive && (
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/migrations/${migration.id}`); }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
@@ -200,9 +205,8 @@ const MigrationHistoryPage: React.FC = () => {
       .then((data) => {
         // Sort: active first, then by newest
         const sorted = [...data].sort((a, b) => {
-          const order: MigrationStatus[] = ['RUNNING', 'QUEUED', 'DRAFT', 'FAILED', 'UNDER_REVIEW', 'COMPLETED', 'CANCELLED'];
-          const ai = order.indexOf(a.status);
-          const bi = order.indexOf(b.status);
+          const ai = statusRank(a.status);
+          const bi = statusRank(b.status);
           if (ai !== bi) return ai - bi;
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
@@ -214,10 +218,10 @@ const MigrationHistoryPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const active    = migrations.filter((m) => m.status === 'RUNNING' || m.status === 'QUEUED');
-  const drafts    = migrations.filter((m) => m.status === 'DRAFT');
-  const completed = migrations.filter((m) => m.status === 'COMPLETED' || m.status === 'UNDER_REVIEW');
-  const failed    = migrations.filter((m) => m.status === 'FAILED' || m.status === 'CANCELLED');
+  const active    = migrations.filter((m) => historyBucket(m.status) === 'active');
+  const drafts    = migrations.filter((m) => historyBucket(m.status) === 'drafts');
+  const completed = migrations.filter((m) => historyBucket(m.status) === 'completed');
+  const failed    = migrations.filter((m) => historyBucket(m.status) === 'failed');
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/utils/format';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
-import { migrationPairsService } from '@/api/migrationPairs';
+import { getAvailablePairs } from '@/api/availablePairs';
 import { PairCard } from './PairCard';
 import type { Pair } from '@/types';
 import type { MigrationPairEntity } from '@/types/api';
@@ -39,8 +39,7 @@ export const PairsSection: React.FC = () => {
     let live = true;
     setLoading(true);
     setFailed(false);
-    migrationPairsService
-      .available()
+    getAvailablePairs({ force: attempt > 0 })
       .then((res) => {
         if (live) setPairs(extractList<MigrationPairEntity>(res).map(apiPairToUiPair));
       })
@@ -70,16 +69,16 @@ export const PairsSection: React.FC = () => {
 
   const tabs = useMemo(
     () => [
-      { key: 'All', label: 'All tools', count: pairs.length, dot: '' },
-      { key: 'Free', label: 'Free', count: pairs.filter((p) => p.status === 'free').length, dot: 'bg-green-500' },
-      { key: 'Region', label: 'Region-based', count: pairs.filter((p) => p.status === 'region').length, dot: 'bg-gray-400' },
-      { key: 'Paid', label: 'Paid', count: pairs.filter((p) => p.status === 'paid').length, dot: 'bg-gray-400' },
+      { key: 'All', label: 'All tools', count: loading ? null : pairs.length, dot: '' },
+      { key: 'Free', label: 'Free', count: loading ? null : pairs.filter((p) => p.status === 'free').length, dot: 'bg-green-500' },
+      { key: 'Region', label: 'Region-based', count: loading ? null : pairs.filter((p) => p.status === 'region').length, dot: 'bg-gray-400' },
+      { key: 'Paid', label: 'Paid', count: loading ? null : pairs.filter((p) => p.status === 'paid').length, dot: 'bg-gray-400' },
     ],
-    [pairs],
+    [pairs, loading],
   );
 
   return (
-    <section id="pairs" className="py-20">
+    <section id="pairs" className="pt-12 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -116,7 +115,7 @@ export const PairsSection: React.FC = () => {
                     active ? 'bg-white/20 text-white' : 'bg-bg-light text-text-tertiary',
                   )}
                 >
-                  {tab.count}
+                  {tab.count ?? <span aria-hidden className="inline-block h-3 w-3 animate-pulse rounded bg-bg-lighter align-middle" />}
                 </span>
               </button>
             );

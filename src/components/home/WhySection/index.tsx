@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TRUST_METRICS } from '@/content/trustMetrics';
 
 const WHY_CARDS = [
   {
@@ -10,7 +11,10 @@ const WHY_CARDS = [
   {
     icon: '⚡',
     title: 'Fast & reliable',
-    description: 'Average migration time of 19 minutes. Our optimised engine handles millions of records with 99.8% accuracy.',
+    description: [
+      TRUST_METRICS.averageMigrationTime ? `Average migration time of ${TRUST_METRICS.averageMigrationTime}.` : null,
+      `Our optimised engine handles millions of records${TRUST_METRICS.dataAccuracy ? ` with ${TRUST_METRICS.dataAccuracy} accuracy` : ''}.`,
+    ].filter(Boolean).join(' '),
   },
   {
     icon: '🧑‍💼',
@@ -45,11 +49,8 @@ export const WhySection: React.FC = () => {
           className="text-center mb-14"
         >
           <h2 className="text-3xl font-bold text-text-primary">
-            Why accountants choose MMC Convert
+            Built by accountants, for accountants
           </h2>
-          <p className="mt-3 text-text-secondary max-w-2xl mx-auto">
-            Built by accountants, for accountants. We understand the complexity of migrating financial data.
-          </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

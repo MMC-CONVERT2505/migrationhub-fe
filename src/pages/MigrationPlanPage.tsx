@@ -1,3 +1,5 @@
+import { CustomDateRange } from '@/components/payment/CustomDateRange';
+import { isValidDateRange } from '@/utils/dateRange';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { FlowLayout } from '@/components/migration/FlowLayout';
@@ -7,7 +9,7 @@ import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/appStore';
 import { Spinner } from '@/components/common/Spinner';
 import { dedicatedDetailsPath, dedicatedFreePlan, detailsPathFor, skipsPlanStep } from '@/constants/dedicatedFlow';
-import { migrationPairsService } from '@/api/migrationPairs';
+import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList, findPairBySlug, pairSlug } from '@/utils/platformMap';
 import { findSelectedPlan, planRequired, usesFreePairBenefits } from '@/constants/migrationFlow';
 import { useOperationTeamMember } from '@/hooks/useIsOperationTeam';
@@ -36,7 +38,17 @@ const MigrationPlanPage: React.FC = () => {
   const storedCountry = useAppStore((s) => s.selectedCountry);
   const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
   const setSelectedYears = useAppStore((s) => s.setSelectedYears);
+  const selectedDateRange = useAppStore((s) => s.selectedDateRange);
+  const setSelectedDateRange = useAppStore((s) => s.setSelectedDateRange);
   const { isOperationTeam } = useOperationTeamMember();
+  const [rangeAttempted, setRangeAttempted] = useState(false);
+
+  // An exact period is the Operation Team's alone: one left over from an earlier session never reaches a customer's order.
+  useEffect(() => {
+    if (!isOperationTeam && selectedDateRange) setSelectedDateRange(null);
+  }, [isOperationTeam, selectedDateRange, setSelectedDateRange]);
+  const customMode = isOperationTeam && selectedDateRange !== null;
+  const rangeReady = !customMode || isValidDateRange(selectedDateRange);
 
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState('');
@@ -109,7 +121,7 @@ const MigrationPlanPage: React.FC = () => {
     setRetrying(true);
     setRetryError('');
     try {
-      const res = await migrationPairsService.available();
+      const res = await getAvailablePairs({ force: true });
       const match = findPairBySlug(extractList<MigrationPairEntity>(res), pairSlug(selectedPair.src, selectedPair.dst));
       if (match) setSelectedPair(apiPairToUiPair(match));
       if (!match || (match.plans ?? []).length === 0) {
@@ -197,7 +209,11 @@ const MigrationPlanPage: React.FC = () => {
           </fieldset>
         )}
 
-        {!noPlans && canExtend && selectedPlan && years != null && (
+        {isOperationTeam && !noPlans && !awaitingCountry && (selectedPlan || !needsPlan) && (
+          <CustomDateRange value={isOperationTeam ? selectedDateRange : null} onChange={setSelectedDateRange} showErrors={rangeAttempted} />
+        )}
+
+        {!noPlans && !customMode && canExtend && selectedPlan && years != null && (
           <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
             <label htmlFor="history-years" className="text-sm font-semibold text-text-primary">Historical years</label>
             <p className="mt-0.5 text-xs text-text-secondary">
@@ -239,10 +255,18 @@ const MigrationPlanPage: React.FC = () => {
               size="lg"
               fullWidth
               disabled={(needsPlan && !selectedPlan) || awaitingCountry}
-              onClick={() => navigate(detailsPathFor(selectedPair, dedicatedFlow))}
+              aria-disabled={!rangeReady || undefined}
+              onClick={() => {
+                // Not disabled for an incomplete range: pressing it shows what is missing instead of doing nothing.
+                if (!rangeReady) return setRangeAttempted(true);
+                navigate(detailsPathFor(selectedPair, dedicatedFlow));
+              }}
             >
               Continue
             </Button>
+            {!rangeReady && (
+              <p role="alert" className="mt-2 text-center text-xs text-red-600">Enter a valid From and To date to continue.</p>
+            )}
             {needsPlan && !selectedPlan && (
               <p className="mt-2 text-center text-xs text-text-tertiary">Select a plan to continue.</p>
             )}

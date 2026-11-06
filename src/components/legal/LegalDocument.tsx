@@ -1,3 +1,4 @@
+import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -80,7 +81,8 @@ const Toc: React.FC<{ sections: PolicySection[] }> = ({ sections }) => (
 /** True at the `lg` breakpoint and up; keeps a single table of contents in the DOM (one landmark, not two). */
 function useIsDesktop(): boolean {
   const query = '(min-width: 1024px)';
-  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  // Starts false on purpose: the prerendered HTML is the mobile layout, and the first client render must match it to hydrate.
+  const [matches, setMatches] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(query);
     const onChange = () => setMatches(mq.matches);
@@ -101,15 +103,9 @@ export interface LegalDocumentProps {
   emptyNotice?: React.ReactNode;
 }
 
-export const LegalDocument: React.FC<LegalDocumentProps> = ({ heading, documentTitle, dates, sections, emptyNotice }) => {
+export const LegalDocument: React.FC<LegalDocumentProps> = ({ heading, dates, sections, emptyNotice }) => {
   const { hash } = useLocation();
   const isDesktop = useIsDesktop();
-
-  useEffect(() => {
-    const previous = document.title;
-    document.title = `${documentTitle} | Migration Hub`;
-    return () => { document.title = previous; };
-  }, [documentTitle]);
 
   // A deep link (/privacy#retention) lands on its section; otherwise start at the top.
   useEffect(() => {
@@ -120,9 +116,10 @@ export const LegalDocument: React.FC<LegalDocumentProps> = ({ heading, documentT
   }, [hash]);
 
   return (
-    <div className="min-h-screen bg-bg animate-screen-enter">
+    <div className="min-h-screen bg-bg">
       <Navbar />
       <main>
+        <Breadcrumbs />
         <section className="border-b border-border bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <h1 className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">{heading}</h1>

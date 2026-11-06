@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { EXTERNAL_LINKS, CONTACT_EMAIL, CONTACT_PHONE } from '@/constants/links';
+import { copyrightNotice } from '@/utils/copyright';
 import { goToSection } from '@/utils/scroll';
 import { LogoMark } from '@/components/layout/Navbar';
 import { NAV_TEXT_MUTED } from '@/constants/navStyles';
+import { WhatsAppIcon } from '@/components/common/WhatsAppIcon';
+import { whatsappLink } from '@/utils/whatsapp';
 
 type FooterLink =
   | { label: string; to: string }
@@ -15,15 +18,13 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Product: [
     { label: 'Migrations', section: 'pairs' },
     { label: 'Pricing', section: 'pricing' },
+    { label: 'How it works', to: '/how-it-works' },
     { label: 'Security', href: EXTERNAL_LINKS.security },
   ],
   Company: [
     { label: 'About', to: '/about' },
-    { label: 'Blog', href: EXTERNAL_LINKS.blog },
-    { label: 'Careers', href: EXTERNAL_LINKS.careers },
   ],
   Support: [
-    { label: 'Knowledge Base', href: EXTERNAL_LINKS.knowledgeBase },
     { label: 'Contact', to: '/contact' },
   ],
   Legal: [
@@ -34,11 +35,14 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
 
 const LINK_CLASS = `text-sm ${NAV_TEXT_MUTED}`;
 
+/** Opens a WhatsApp chat with the site's number, built from the same CONTACT_PHONE constant as everything else. */
+const WHATSAPP_URL = whatsappLink(CONTACT_PHONE);
+
 /** Slim footer for task pages (flow, tracker, history): same copyright line as the full one. */
 export const CompactFooter: React.FC = () => (
   <footer className="mt-auto border-t border-border bg-white">
     <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center text-xs text-text-secondary">
-      &copy; {new Date().getFullYear()} MMC Convert. All rights reserved.
+      {copyrightNotice()}
     </p>
   </footer>
 );
@@ -97,9 +101,26 @@ export const Footer: React.FC = () => {
         {/* Bottom bar */}
         <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-x-8 gap-y-1 text-sm text-text-tertiary">
-            <p>&copy; {new Date().getFullYear()} MMC Convert. All rights reserved.</p>
+            <p>{copyrightNotice()}</p>
             <a href={`mailto:${CONTACT_EMAIL}`} className={NAV_TEXT_MUTED}>{CONTACT_EMAIL}</a>
-            <a href={`tel:${CONTACT_PHONE}`} className={NAV_TEXT_MUTED}>{CONTACT_PHONE}</a>
+            {WHATSAPP_URL ? (
+              // Icon and number are ONE link: a computer has no app for tel: links (the browser just shows "No Apps
+              // Available"), while wa.me opens the WhatsApp app on a phone and WhatsApp Web on a computer.
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Chat with us on WhatsApp: ${CONTACT_PHONE} (opens in a new tab)`}
+                title="Chat with us on WhatsApp"
+                className={`inline-flex min-h-8 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 ${NAV_TEXT_MUTED}`}
+              >
+                <WhatsAppIcon className="h-5 w-5 flex-shrink-0 text-green-700" />
+                <span>{CONTACT_PHONE}</span>
+              </a>
+            ) : (
+              // Only if the number is ever not a usable international number: fall back to a plain call link.
+              <a href={`tel:${CONTACT_PHONE}`} className={NAV_TEXT_MUTED}>{CONTACT_PHONE}</a>
+            )}
           </div>
           <div className="flex items-center gap-4 text-xs text-text-tertiary">
             <span className="flex items-center gap-1.5">

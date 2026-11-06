@@ -7,6 +7,8 @@ import {
   adminMigrationsService,
   type AdminMigrationListItem,
   type MigrationStatusGroup,
+  runnerRoleLabel,
+  isNamedRunner,
 } from '@/api/adminMigrations';
 import { ApiError } from '@/api/client';
 import { statusMeta } from '@/constants/migrationStatus';
@@ -217,17 +219,17 @@ const MigrationsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[180px]">
-                        {m.runner?.type === 'OP_TEAM' ? (
+                        {isNamedRunner(m.runner) ? (
                           <>
                             <div className="text-text-primary text-xs font-medium truncate" title={m.runner.name}>
                               {m.runner.name}
                             </div>
                             <div className="text-text-secondary text-[11px] truncate" title={m.runner.email ?? ''}>
-                              Operation Team{m.runner.removed ? ' · removed' : ''}
+                              {runnerRoleLabel(m.runner)}{m.runner.removed ? ' · removed' : ''}
                             </div>
                           </>
                         ) : (
-                          <span className="text-text-secondary text-xs">Guest</span>
+                          <span className="text-text-secondary text-xs">Customer</span>
                         )}
                       </td>
                       <td className="px-4 py-3">

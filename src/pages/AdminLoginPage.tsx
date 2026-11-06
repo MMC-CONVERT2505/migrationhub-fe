@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { hasPanelRole } from '@/utils/adminAccess';
 import { signInErrorMessage } from '@/utils/authErrors';
 import { authService } from '@/api/auth';
 import { usersService } from '@/api/users';
@@ -19,12 +20,12 @@ function decodeJwt(token: string): JwtPayload | null {
 }
 
 function isAdminToken(token: string, userRoles?: string[]): boolean {
-  if (userRoles?.includes('admin')) return true;
+  if (hasPanelRole(userRoles)) return true;
   const payload = decodeJwt(token);
   if (!payload) return false;
   return (
     payload.type === 'admin' ||
-    (Array.isArray(payload.roles) && payload.roles.includes('admin'))
+    hasPanelRole(payload.roles)
   );
 }
 

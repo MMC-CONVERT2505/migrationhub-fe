@@ -22,7 +22,7 @@ const Field: React.FC<{ label: string; required?: boolean; hint?: string; childr
   </div>
 );
 
-const CreateSubUserPage: React.FC = () => {
+const CreateUserPage: React.FC = () => {
   const navigate   = useNavigate();
   const { can }    = usePermissions();
 
@@ -82,7 +82,7 @@ const CreateSubUserPage: React.FC = () => {
         else if (e.message.toLowerCase().includes('username')) setFieldErrors({ username: e.message });
         else setError(e.message);
       } else {
-        setError('Failed to create sub-user.');
+        setError('Failed to create user.');
       }
     } finally {
       setSaving(false);
@@ -95,7 +95,7 @@ const CreateSubUserPage: React.FC = () => {
         <svg className="w-12 h-12 text-text-tertiary mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
-        <p className="text-text-secondary font-medium">You need the <span className="font-mono text-xs bg-bg-light px-1.5 py-0.5 rounded">users.write</span> permission to create sub-users.</p>
+        <p className="text-text-secondary font-medium">You need the <span className="font-mono text-xs bg-bg-light px-1.5 py-0.5 rounded">users.write</span> permission to create users.</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ const CreateSubUserPage: React.FC = () => {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Create Sub-User</h1>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Create User</h1>
           <p className="mt-0.5 text-sm text-text-secondary">Create a new user and optionally assign roles</p>
         </div>
       </div>
@@ -192,7 +192,7 @@ const CreateSubUserPage: React.FC = () => {
             Cancel
           </button>
           <button type="submit" disabled={saving} className="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
-            {saving ? 'Creating…' : 'Create Sub-User'}
+            {saving ? 'Creating…' : 'Create User'}
           </button>
         </div>
       </form>
@@ -200,4 +200,4 @@ const CreateSubUserPage: React.FC = () => {
   );
 };
 
-export default CreateSubUserPage;
+export default CreateUserPage;

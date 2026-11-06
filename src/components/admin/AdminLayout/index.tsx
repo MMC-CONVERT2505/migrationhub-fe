@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
 import { usePermissions } from '@/hooks/usePermissions';
+import { permissionForPath } from '@/utils/adminAccess';
 import { NAV_TEXT } from '@/constants/navStyles';
 
 interface NavItem {
@@ -169,6 +170,17 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'Settings',
+    to: '/admin/settings',
+    end: false,
+    icon: (
+      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ];
 
 export const AdminLayout: React.FC = () => {
@@ -176,9 +188,12 @@ export const AdminLayout: React.FC = () => {
   const { pathname } = useLocation();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.to === '/admin/permissions' && !can('permissions.read')) return false;
-    return true;
+    const needed = permissionForPath(item.to);
+    return !needed || can(needed);
   });
+  // Hiding a nav item is not enough: a typed or bookmarked URL must be refused too.
+  const neededHere = permissionForPath(pathname);
+  const allowedHere = !neededHere || can(neededHere);
 
   return (
   <div className="min-h-screen bg-bg">
@@ -232,7 +247,16 @@ export const AdminLayout: React.FC = () => {
       {/* Page content */}
       <main className="flex-1 p-6 pb-20 md:pb-6 min-w-0">
         <ErrorBoundary resetKey={pathname}>
-          <Outlet />
+          {allowedHere ? (
+            <Outlet />
+          ) : (
+            <div role="alert" className="max-w-md mx-auto mt-16 text-center">
+              <h1 className="text-xl font-bold text-text-primary mb-2">Access denied</h1>
+              <p className="text-sm text-text-secondary">
+                Your role doesn&apos;t include permission to view this section. Contact your administrator if you need it.
+              </p>
+            </div>
+          )}
         </ErrorBoundary>
       </main>
     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { hasPanelRole } from '@/utils/adminAccess';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useSession } from '@/store/authStore';
 
@@ -18,12 +19,12 @@ function decodeJwt(token: string): JwtPayload | null {
 }
 
 function isAdminToken(token: string, userRoles?: string[]): boolean {
-  if (userRoles?.includes('admin')) return true;
+  if (hasPanelRole(userRoles)) return true;
   const payload = decodeJwt(token);
   if (!payload) return false;
   return (
     payload.type === 'admin' ||
-    (Array.isArray(payload.roles) && payload.roles.includes('admin'))
+    hasPanelRole(payload.roles)
   );
 }
 

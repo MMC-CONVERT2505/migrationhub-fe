@@ -14,6 +14,7 @@ const AdminDashboard: React.FC = () => {
   const [outcomes, setOutcomes] = useState<AnalyticsOutcomes | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [failed, setFailed] = useState({ stats: false, activity: false });
 
   const fetchSummaryPairsOutcomes = async () => {
     const [summaryRes, pairsRes, outcomesRes] = await Promise.all([
@@ -33,13 +34,22 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    Promise.all([fetchSummaryPairsOutcomes(), fetchActivity()])
-      .catch(() => {/* errors surfaced per-component via empty state */})
-      .finally(() => setLoading(false));
+    const loadStats = () =>
+      fetchSummaryPairsOutcomes().then(
+        () => setFailed((f) => ({ ...f, stats: false })),
+        () => setFailed((f) => ({ ...f, stats: true })),
+      );
+    const loadActivity = () =>
+      fetchActivity().then(
+        () => setFailed((f) => ({ ...f, activity: false })),
+        () => setFailed((f) => ({ ...f, activity: true })),
+      );
+
+    Promise.all([loadStats(), loadActivity()]).finally(() => setLoading(false));
 
     // Activity refreshes every 10 s; KPI/pairs/outcomes every 30 s
-    const activityTimer  = setInterval(() => fetchActivity().catch(() => {}), 10_000);
-    const summaryTimer   = setInterval(() => fetchSummaryPairsOutcomes().catch(() => {}), 30_000);
+    const activityTimer  = setInterval(loadActivity, 10_000);
+    const summaryTimer   = setInterval(loadStats, 30_000);
 
     return () => {
       clearInterval(activityTimer);
@@ -66,10 +76,17 @@ const AdminDashboard: React.FC = () => {
           </p>
         </div>
         {/* Refresh dot */}
-        <div className="flex items-center gap-1.5 text-xs font-medium text-green-600 mt-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-          Live
-        </div>
+        {failed.stats || failed.activity ? (
+          <div role="status" className="flex items-center gap-1.5 text-xs font-medium text-amber-700 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+            Refresh failing, data may be out of date. Retrying…
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-green-600 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+            Live
+          </div>
+        )}
       </div>
 
       <KPICards data={summary} loading={loading} />

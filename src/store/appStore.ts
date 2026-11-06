@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { AppState, PendingMigration, Screen, Pair, InquiryDetails } from '@/types';
+import type { AppState, DateRangeSelection, PendingMigration, Screen, Pair, InquiryDetails } from '@/types';
 import { newFlowToken } from '@/constants/dedicatedFlow';
 
 const PENDING_MIGRATION_LS_KEY = 'mmc-pending-migration';
@@ -17,6 +17,7 @@ export const useAppStore = create<AppState>()(
       pendingMigration: null,
       selectedPlanId: null,
       selectedYears: null,
+      selectedDateRange: null,
       selectedCountry: null,
       inquiryDetails: null,
       entryLocked: false,
@@ -26,7 +27,14 @@ export const useAppStore = create<AppState>()(
       setSelectedCountry: (country: string | null) =>
         set((s) => (s.selectedCountry === country ? {} : { selectedCountry: country, selectedYears: null })),
       setScreen: (screen: Screen) => set({ currentScreen: screen }),
-      setSelectedPair: (pair: Pair | null) => set({ selectedPair: pair }),
+      // A custom period belongs to one order: another pair means another order, so it never carries over.
+      // (The same pair being re-resolved, e.g. after a refresh of the listing, keeps it.)
+      setSelectedPair: (pair: Pair | null) =>
+        set((s) =>
+          s.selectedPair && pair && s.selectedPair.src === pair.src && s.selectedPair.dst === pair.dst
+            ? { selectedPair: pair }
+            : { selectedPair: pair, selectedDateRange: null },
+        ),
       setEntryLocked: (locked: boolean) => set({ entryLocked: locked }),
       // A fresh entry always gets a fresh token, so an old link or another tab's token can never match.
       startDedicatedFlow: (slug: string) => set({ dedicatedFlow: { slug, token: newFlowToken() }, entryLocked: true }),
@@ -60,6 +68,7 @@ export const useAppStore = create<AppState>()(
           pendingMigration: null,
           selectedPlanId: null,
           selectedYears: null,
+          selectedDateRange: null,
           selectedCountry: null,
           entryLocked: false,
           dedicatedFlow: null,
@@ -70,7 +79,10 @@ export const useAppStore = create<AppState>()(
       // Choosing a different plan drops any extended-years choice made for the previous one.
       setSelectedPlanId: (planId: string | null) =>
         set((s) => (s.selectedPlanId === planId ? {} : { selectedPlanId: planId, selectedYears: null })),
-      setSelectedYears: (years: number | null) => set({ selectedYears: years }),
+      // Years and an exact period are alternatives: choosing one drops the other.
+      setSelectedYears: (years: number | null) => set({ selectedYears: years, selectedDateRange: null }),
+      setSelectedDateRange: (range: DateRangeSelection | null) =>
+        set(range ? { selectedDateRange: range, selectedYears: null } : { selectedDateRange: null }),
 
       setPendingMigration: (data: PendingMigration | null) => {
         if (data) {
@@ -91,6 +103,7 @@ export const useAppStore = create<AppState>()(
         selectedPair: s.selectedPair,
         selectedPlanId: s.selectedPlanId,
         selectedYears: s.selectedYears,
+        selectedDateRange: s.selectedDateRange,
         selectedCountry: s.selectedCountry,
         inquiryDetails: s.inquiryDetails,
         entryLocked: s.entryLocked,

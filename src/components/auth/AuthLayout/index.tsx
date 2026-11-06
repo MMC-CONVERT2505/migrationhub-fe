@@ -1,3 +1,5 @@
+import { currentYear } from '@/utils/copyright';
+import { TRUST_METRICS, visibleStats } from '@/content/trustMetrics';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,6 +12,7 @@ interface AuthLayoutProps {
 }
 
 // ─── Testimonial shown in the brand panel ────────────────────────────────────
+// TODO(owner): confirm this is a real customer quote that may be shown (the name also appears on the home page against a different pair).
 const TESTIMONIAL = {
   quote:
     '"MMC Convert moved our entire 4-year Xero history into QuickBooks Online overnight. Every transaction balanced perfectly. Incredible product."',
@@ -18,11 +21,15 @@ const TESTIMONIAL = {
   rating: 5,
 };
 
-const STATS = [
-  { value: '100,000+', label: 'Migrations completed' },
-  { value: '99.8%',    label: 'Data accuracy rate' },
-  { value: '500+',     label: 'Accounting firms' },
-];
+const STATS = visibleStats([
+  { key: 'migrationsCompleted', label: 'Migrations completed' },
+  { key: 'dataAccuracy', label: 'Data accuracy rate' },
+  { key: 'firmsServed', label: 'Accounting firms' },
+]);
+
+/** "Join 500+ accounting firms who trust…" only with a real figure; otherwise the sentence stands without it. */
+export const joinLine = (tail: string): string =>
+  TRUST_METRICS.firmsServed ? `Join ${TRUST_METRICS.firmsServed} accounting firms who trust MMC Convert ${tail}` : `Trusted by accounting firms for ${tail}`;
 
 // ─── Logo Mark (reusable) ─────────────────────────────────────────────────────
 export const LogoMark: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }) => {
@@ -53,7 +60,7 @@ const Stars: React.FC<{ count: number }> = ({ count }) => (
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   heading = 'Migrate your accounting data with confidence',
-  subheading = 'Join 500+ accounting firms who trust MMC Convert for accurate, stress-free platform migrations.',
+  subheading = joinLine('for accurate, stress-free platform migrations.'),
 }) => (
   <div className="min-h-screen flex bg-bg">
     {/* ── Left brand panel (hidden on small screens) ── */}
@@ -82,7 +89,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       </div>
 
       {/* Middle: stats */}
-      <div className="relative z-10 grid grid-cols-3 gap-4 my-10">
+      <div className="relative z-10 grid gap-4 my-10" style={{ gridTemplateColumns: `repeat(${Math.max(STATS.length, 1)}, minmax(0, 1fr))` }}>
         {STATS.map((s) => (
           <div key={s.label} className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
             <p className="text-2xl font-bold text-white tracking-tight">{s.value}</p>
@@ -135,7 +142,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       {/* Footer */}
       <div className="px-5 py-4 border-t border-border text-center">
         <p className="text-xs text-text-tertiary">
-          © {new Date().getFullYear()} MMC Convert ·{' '}
+          © {currentYear()} MMC Convert ·{' '}
           <Link to="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
           {' · '}
           <Link to="/termsofuse" className="hover:text-text-secondary transition-colors">Terms</Link>

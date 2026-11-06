@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { FlowLayout } from '@/components/migration/FlowLayout';
 import { FaqAccordion } from '@/components/migration/FaqAccordion';
 import { SelectedPairBanner } from '@/components/migration/SelectedPairBanner';
@@ -7,7 +7,11 @@ import { InputField } from '@/components/auth/InputField';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/utils/format';
 import { useAppStore } from '@/store/appStore';
-import { skipsPlanStep } from '@/constants/dedicatedFlow';
+import { canonicalSlug, skipsPlanStep } from '@/constants/dedicatedFlow';
+import { decodeJwt, useAuthStore, useSession } from '@/store/authStore';
+import { usersService } from '@/api/users';
+import { OP_TEAM_ROLE, roleNames } from '@/hooks/useIsOperationTeam';
+import { isPhoneRequiredRejection, operatorClaimIsStale } from '@/utils/sessionCheck';
 import { useDedicatedBackTrap } from '@/hooks/useDedicatedBackTrap';
 import { inquiryMigrationsService } from '@/api/inquiryMigrations';
 import { ApiError } from '@/api/client';
@@ -206,6 +210,34 @@ const YesNoField: React.FC<{
 
 const MigrationInfoPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { accessToken } = useSession('user');
+  const setUser = useAuthStore((s) => s.setUser);
+  const logout = useAuthStore((s) => s.logout);
+
+  // The form decides "Operation Team" from what this tab cached at sign-in, while the server decides from the database
+  // on every request. When they disagree (the login expired, was replaced, or the role was removed) the server treats
+  // the request as a customer and rejects it for the phone the team never gives. So confirm the sign-in once on
+  // opening this step: an expired or revoked login is sent to sign in by the app's 401 handling, and a token that still
+  // claims the team after the role was removed is replaced by a fresh sign-in.
+  const signInAgain = () => {
+    logout('user');
+    navigate(`/sign-in?next=${encodeURIComponent(`${location.pathname}${location.search}`)}&expired=1`, { replace: true });
+  };
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    usersService
+      .getMe()
+      .then((res) => {
+        if (cancelled) return;
+        if (operatorClaimIsStale(decodeJwt(accessToken)?.roles, res.data?.roles)) { signInAgain(); return; }
+        setUser('user', res.data);
+      })
+      .catch(() => { /* a 401 signs out and redirects (api/client); any other failure keeps what we have */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
   const selectedPair = useAppStore((s) => s.selectedPair);
   const setInquiryDetails = useAppStore((s) => s.setInquiryDetails);
   const inquiryDetails = useAppStore((s) => s.inquiryDetails);
@@ -484,7 +516,7 @@ const MigrationInfoPage: React.FC = () => {
         if (err instanceof ApiError && err.statusCode === 409) {
           setEditBlocked(err.message);
         } else {
-          setGlobalError(err instanceof ApiError ? err.message : 'Could not save your details. Please try again.');
+          await failSubmit(err);
         }
       } finally {
         setSubmitting(false);
@@ -518,9 +550,28 @@ const MigrationInfoPage: React.FC = () => {
 
       navigate(nextPath);
     } catch (err) {
-      setGlobalError(err instanceof ApiError ? err.message : 'Could not save your details. Please try again.');
+      await failSubmit(err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  /** What a failed save means. The form hid the phone as the Operation Team but the server rejected it for the phone:
+   *  the server does not see this sign-in as the team, so re-check it rather than leave a locked field and a dead end. */
+  const failSubmit = async (err: unknown) => {
+    const generic = err instanceof ApiError ? err.message : 'Could not save your details. Please try again.';
+    if (!(isOperationTeam && !opPhoneRequired && err instanceof ApiError && isPhoneRequiredRejection(err.statusCode, err.message))) {
+      setGlobalError(generic);
+      return;
+    }
+    try {
+      const me = await usersService.getMe();
+      if (!roleNames(me.data?.roles).includes(OP_TEAM_ROLE)) { signInAgain(); return; }
+      setUser('user', me.data);
+      setGlobalError('We couldn’t confirm your Operation Team access. Please try again, or sign in again.');
+    } catch (e) {
+      // A 401 has already signed the visitor out and sent them to sign in.
+      if (!(e instanceof ApiError && e.statusCode === 401)) setGlobalError(generic);
     }
   };
 
@@ -530,6 +581,22 @@ const MigrationInfoPage: React.FC = () => {
         <div className="min-w-0 bg-white border border-border rounded-2xl shadow-card p-5 sm:p-8">
           {/* Selected migration pair — highlighted so the user always sees which flow this is */}
           <SelectedPairBanner pair={selectedPair} className="mb-6" />
+          {/* The website deep link opens in a fresh tab, where nobody is signed in (a login lives in one tab), and this flow
+              hides the header's Sign in. Without a way in, an Operation Team member would be treated as a customer, and
+              asked for the phone. Shown only to a signed-out visitor inside this pair's dedicated flow; it returns to this
+              same step (flow token included) after sign-in. */}
+          {!accessToken && dedicatedFlow && dedicatedFlow.slug === canonicalSlug(selectedPair) && (
+            <p className="-mt-3 mb-5 text-xs text-text-secondary">
+              Operation Team member?{' '}
+              <Link
+                to={`/sign-in?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
+                className="font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
+              >
+                Sign in
+              </Link>{' '}
+              to continue as the team.
+            </p>
+          )}
 
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Migration Information</h1>
           <p className="mt-1 text-sm text-text-secondary">

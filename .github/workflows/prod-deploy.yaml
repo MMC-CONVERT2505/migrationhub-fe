@@ -65,10 +65,13 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      # The server logs in to GHCR to pull the image. With no GHCR_READ_TOKEN secret it uses this run's own token (enough
+      # for this repo's package). If a pull is ever refused, add a personal access token with read:packages as the
+      # GHCR_READ_TOKEN secret, and its owner as the GHCR_USERNAME variable.
       - name: Pull new image and restart frontend
         run: |
           ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-          "echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin \
+          "echo '${{ secrets.GHCR_READ_TOKEN || secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ vars.GHCR_USERNAME || github.actor }}' --password-stdin \
           && cd ${{ vars.PROD_WORK_DIR }} \
           && docker compose pull frontend \
           && docker compose up -d frontend \

@@ -8,7 +8,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
   const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] });
   const errors = [];
   const open = async (path, viewport = { width: 1280, height: 800 }) => {
-    const ctx = await browser.newContext({ viewport }); const page = await ctx.newPage();
+    const ctx = await browser.newContext({ timezoneId: 'Australia/Melbourne', locale: 'en-AU', viewport }); const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push(`${path}: ${e.message}`));
     await page.goto(APP + path); await page.waitForLoadState('networkidle');
     return { ctx, page };
@@ -43,7 +43,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
   // ---------- Homepage: banner, order, sections
   { const { ctx, page } = await open('/');
     const h1 = await text(page, 'h1');
-    check('[hero] says "Migration Hub", not "MigrationHub"', /^Migration Hub: move your accounting data right now, in minutes/.test(h1.replace(/\s+/g, ' ')) && !/MigrationHub/.test(h1), h1.replace(/\s+/g, ' '));
+    check('[hero] says "Migration Hub", not "MigrationHub"', /^Migration Hub: move your books yourself, in minutes/.test(h1.replace(/\s+/g, ' ')) && !/MigrationHub/.test(h1), h1.replace(/\s+/g, ' '));
     check('[hero] letters-and-stars block is gone', (await page.locator('#hero-title').locator('xpath=ancestor::section').locator('svg.text-yellow-400').count()) === 0 && !/Rated .* accounting firms/.test(await text(page, 'section')));
     const y = async (sel) => page.locator(sel).first().evaluate((e) => e.getBoundingClientRect().top + window.scrollY).catch(() => -1);
     const ys = {
@@ -96,8 +96,8 @@ const text = (page, sel) => page.locator(sel).first().innerText();
       out.framed = [...sec.querySelectorAll('div')].filter((d) => parseFloat(getComputedStyle(d).borderTopWidth) > 0 && d.querySelector('img,span')).length;
       return out;
     });
-    const rowsT = await trusted.evaluate((sec) => new Set([...sec.querySelectorAll('img, span')].filter((e) => e.closest('div.h-14')).map((e) => Math.round(e.getBoundingClientRect().top / 30))).size);
-    check('[trusted] all seven logos fit on ONE row at 1366px (no lone logo on a second row)', rowsT === 1, `rows=${rowsT}`);
+    const rowsT = await trusted.evaluate((sec) => { const cs = [...sec.querySelectorAll('img, span')].filter((e) => e.closest('div.h-14')).map((e) => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; }).sort((x, y) => x - y); let n = 0, last = -1e9; cs.forEach((c) => { if (c - last > 30) n++; last = c; }); return n; });
+    check('[trusted] eight logos in two rows of four at 1366px', rowsT === 2, `rows=${rowsT}`);
     check('[trusted] no frame/box around any logo', info.framed === 0, JSON.stringify(info.framed));
     check('[trusted] KPMG is large and legible (>= 44px tall)', info.KPMG && info.KPMG.ok && info.KPMG.h >= 44, JSON.stringify(info.KPMG));
     check('[trusted] Deloitte wordmark is large and legible (>= 36px tall, was ~6px)', info.Deloitte && info.Deloitte.ok && info.Deloitte.h >= 36, JSON.stringify(info.Deloitte));
@@ -108,17 +108,17 @@ const text = (page, sel) => page.locator(sel).first().innerText();
     await works.scrollIntoViewIfNeeded(); await page.waitForTimeout(900);
     const w = await works.evaluate((sec) => {
       const framed = [...sec.querySelectorAll('div')].filter((d) => parseFloat(getComputedStyle(d).borderTopWidth) > 0 && d.children.length && d !== sec && !d.matches('section>div')).length;
-      const marks = [...sec.querySelectorAll('div')].filter((d) => /w-9/.test(d.className)).map((d) => Math.round(d.getBoundingClientRect().height));
+      const marks = [...sec.querySelectorAll('img')].map((d) => Math.round(d.getBoundingClientRect().height)); // the fallback list now shows each platform's logo image
       return { framed, marks, bg: getComputedStyle(sec).backgroundColor, items: sec.querySelectorAll('span').length };
     });
     check('[works with] no frame/box around any logo', w.framed === 0, JSON.stringify(w));
-    check('[works with] logos are bigger than before (36px marks, was 24px)', w.marks.length > 0 && w.marks.every((h) => h >= 36), JSON.stringify(w.marks));
+    check('[works with] logos are bigger than before (>= 36px tall, was 24px)', w.marks.length > 0 && w.marks.every((h) => h >= 36), JSON.stringify(w.marks));
     check('[works with] section background is white, so frameless logos never show a box', w.bg === 'rgb(255, 255, 255)', w.bg);
     await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/home-logos.png` : undefined, fullPage: false }).catch(() => {});
     await ctx.close(); }
 
   // ---------- Footer: the WhatsApp icon + number is one link that opens WhatsApp (web on a computer, the app on a phone)
-  { const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
+  { const ctx = await browser.newContext({ timezoneId: 'Australia/Melbourne', locale: 'en-AU', viewport: { width: 1366, height: 768 } });
     await ctx.route('https://wa.me/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<title>wa</title>' }));
     const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push(`footer-wa: ${e.message}`));
     await page.goto(APP + '/'); await page.waitForLoadState('networkidle');
@@ -154,7 +154,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
       check(`[footer whatsapp] same single WhatsApp link, no tel: link, in the footer of ${route}`, (await page.locator('footer a[href="https://wa.me/919926477000"]').count()) === 1 && (await page.locator('footer a[href^="tel:"]').count()) === 0);
     }
     await ctx.close(); }
-  { const ctx = await browser.newContext({ viewport: { width: 390, height: 800 } }); const page = await ctx.newPage();
+  { const ctx = await browser.newContext({ timezoneId: 'Australia/Melbourne', locale: 'en-AU', viewport: { width: 390, height: 800 } }); const page = await ctx.newPage();
     await page.goto(APP + '/'); await page.waitForLoadState('networkidle');
     const wa = page.locator('footer a[href^="https://wa.me/"]'); await wa.scrollIntoViewIfNeeded();
     const icon = await wa.locator('svg').boundingBox(); const num = await wa.locator('span').boundingBox();
@@ -177,7 +177,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
       const gone = ['Email support', 'Priority email', 'Phone, chat', 'revisions', 'Reconciliation report', 'Unlimited history', 'year history', 'Dedicated senior', 'Payroll Included', 'Payroll +', 'Inception to Date'].filter((g) => text.includes(g));
       check(`[pricing ${label}] ${name}: no old heading or inclusion left`, gone.length === 0, gone.join(', '));
       check(`[pricing ${label}] ${name}: the history text appears once (as the first inclusion, not also as a heading)`, text.split(first).length === 2, String(text.split(first).length - 1));
-      check(`[pricing ${label}] ${name}: still shows its name and a price`, /\$|A\$|Free|from/.test(await card.locator('p.font-mono').innerText()));
+      check(`[pricing ${label}] ${name}: still shows its name and a price`, /\$|A\$|₹|Free|from/.test(await card.locator('p.font-mono').innerText()));
     }
     const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     check(`[pricing ${label}] no sideways scroll`, over <= 0, String(over));

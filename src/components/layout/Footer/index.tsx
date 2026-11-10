@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { EXTERNAL_LINKS, CONTACT_EMAIL, CONTACT_PHONE } from '@/constants/links';
+import { CONTACT_EMAIL, CONTACT_PHONE } from '@/constants/links';
 import { copyrightNotice } from '@/utils/copyright';
 import { goToSection } from '@/utils/scroll';
 import { LogoMark } from '@/components/layout/Navbar';
@@ -19,7 +19,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
     { label: 'Migrations', section: 'pairs' },
     { label: 'Pricing', section: 'pricing' },
     { label: 'How it works', to: '/how-it-works' },
-    { label: 'Security', href: EXTERNAL_LINKS.security },
+    { label: 'Security', to: '/security' },
   ],
   Company: [
     { label: 'About', to: '/about' },

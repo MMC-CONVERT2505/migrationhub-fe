@@ -58,6 +58,16 @@
     ]
   },
   {
+    "path": "/security",
+    "name": "Security",
+    "title": "Security at Migration Hub | MigrationHub by MMC Convert",
+    "description": "How Migration Hub protects your accounting data: ISO/IEC 27001:2022 certified, TLS 1.2 in transit, encrypted at rest, role-based access, automatic deletion.",
+    "source": [
+      "src/pages/SecurityPage.tsx",
+      "src/content/security.ts"
+    ]
+  },
+  {
     "path": "/termsofuse",
     "name": "Terms of Use",
     "title": "Terms of Use | MigrationHub by MMC Convert",

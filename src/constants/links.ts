@@ -1,7 +1,6 @@
 /** Real destinations for links that used to be "#" placeholders. These live on the main MMC Convert site. */
 export const EXTERNAL_LINKS = {
   terms: 'https://www.mmcconvert.com/termsofuse',
-  security: 'https://www.mmcconvert.com/security',
   trustpilot: 'https://www.trustpilot.com/review/mmcconvert.com',
 } as const;
 

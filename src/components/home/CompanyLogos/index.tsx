@@ -12,7 +12,7 @@ const COMPANIES = [
   { name: 'RSM', file: '/logos/rsm.webp', color: '#3F9C35', size: 'h-9 max-w-[130px]', text: 'text-xl' },
   { name: 'Mazars', file: '/logos/mazars.jpg', color: '#0033A0', size: 'h-9 max-w-[140px]', text: 'text-xl' },
   { name: 'PKF', file: '/logos/pkf.png', color: '#003366', size: 'h-9 max-w-[130px]', text: 'text-xl' },
-  { name: 'ShineWing Accountants and Advisors', file: '/logos/shinewing.png', color: '#143A5A', size: 'h-10 max-w-[220px]', text: 'text-xl' },
+  { name: 'ShineWing', file: '/logos/shinewing.png', color: '#1F3263', size: 'h-14 max-w-[110px]', text: 'text-2xl' },
 ];
 
 /** A firm logo on its own (no frame); falls back to its name in the firm's colour on load error. */

@@ -15,7 +15,7 @@ export const Hero: React.FC = () => {
         >
           <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
             Migration Hub: move your books{' '}
-            <span className="text-orange-500">yourself</span>
+            <span className="text-blue-600">yourself</span>
             , in minutes
           </h1>
 

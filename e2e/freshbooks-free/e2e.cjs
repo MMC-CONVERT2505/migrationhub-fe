@@ -7,7 +7,7 @@ const opts = (page, sel) => page.locator(`${sel} option`).evaluateAll((o) => o.m
 (async () => {
   const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] });
   const errors = [];
-  const open = async (path, vp = { width: 1366, height: 800 }, seed) => { const ctx = await browser.newContext({ viewport: vp }); if (seed) await ctx.addInitScript(seed); const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push(`${path}: ${e.message}`)); await page.goto(APP + path); await page.waitForLoadState('networkidle'); return { ctx, page }; };
+  const open = async (path, vp = { width: 1366, height: 800 }, seed) => { const ctx = await browser.newContext({ viewport: vp, timezoneId: 'Australia/Melbourne', locale: 'en-AU' }); if (seed) await ctx.addInitScript(seed); const page = await ctx.newPage(); page.on('pageerror', (e) => errors.push(`${path}: ${e.message}`)); await page.goto(APP + path); await page.waitForLoadState('networkidle'); return { ctx, page }; };
 
   // ---- Homepage card: plainly free, like the other free tools
   { const { ctx, page } = await open('/');
@@ -20,7 +20,7 @@ const opts = (page, sel) => page.locator(`${sel} option`).evaluateAll((o) => o.m
     const qx = (await card(page, /Xero\s*$|QuickBooks.*Xero/i).innerText()).replace(/\s+/g, ' ');
     const regions = await page.locator('#pairs div.group', { hasText: 'Check your region' }).count();
     check('[card] other pairs are unchanged (the one remaining region-based pair, Xero to QBO, still says "Check your region")', regions === 1, `region cards=${regions}`);
-    check('[card] the "Free" filter now counts it', (await page.getByRole('button', { name: /^Free\s*\d/ }).innerText()).replace(/\s+/g, ' ').includes('6'), (await page.getByRole('button', { name: /^Free\s*\d/ }).innerText()).replace(/\s+/g, ' '));
+    check('[card] the Free / Region-based / Paid filter tabs are gone from the section', (await page.locator('#pairs button', { hasText: /^(All tools|Free|Region-based|Paid)/ }).count()) === 0);
     await ctx.close(); }
 
   // ---- Plan page: only the United States and Canada
@@ -64,6 +64,34 @@ const opts = (page, sel) => page.locator(`${sel} option`).evaluateAll((o) => o.m
     check('[details] and the chosen country is one of them', /United States|Canada/.test(String(val)), String(val));
     await ctx.close(); }
 
+  // ---- The whole journey is a free one: no payment step, and the migration is created without a payment
+  for (const country of ['Canada', 'United States']) {
+    await fetch(process.env.API_URL + '/__reset');
+    const { ctx, page } = await open('/');
+    await card(page, /FreshBooks/i).click(); await page.waitForURL(/\/migration\/qbo-to-freshbooks\//); await page.waitForTimeout(1200);
+    await page.selectOption('#plan-country', country); await page.waitForTimeout(500);
+    const planText = (await page.locator('main').innerText()).replace(/\s+/g, ' ');
+    const priceTag = (await page.getByRole('radio').first().locator('xpath=ancestor::*[self::label or self::div][1]').innerText().catch(() => '')).replace(/\s+/g, ' ');
+    check(`[free flow ${country}] the plan step says the migration is free and the Basic plan is priced "Free"`, /This migration is free/.test(planText) && /Basic[^]*\bFree\b/.test(planText) && !/[A$£₹]\s?\d{2,}\b(?![^]*Historical years)/.test((planText.split('Migration plans')[1] || '').split('Historical years')[0]), (planText.split('Migration plans')[1] || '').slice(0, 120));
+    const r = page.getByRole('radio'); if (await r.count()) await r.first().click();
+    await page.getByRole('button', { name: 'Continue' }).click(); await page.waitForURL(/customer-details/, { timeout: 15000 }); await page.waitForSelector('#name');
+    await page.fill('#name', 'Fran Fresh'); await page.fill('#email', 'fran@fresh.co'); await page.fill('#phone', country === 'Canada' ? '4165550123' : '2125550123'); await page.fill('#entityName', 'Fresh Books Ltd');
+    const created = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/migrations', { timeout: 30000 }).catch(() => null);
+    await page.getByRole('button', { name: /^Continue/ }).click();
+    await page.waitForURL(/\/payment\/success/, { timeout: 15000 }).catch(() => {});
+    check(`[free flow ${country}] after the details it goes straight to the success page: no payment page in between`, /\/payment\/success/.test(page.url()) && !/\/payment($|\?)/.test(new URL(page.url()).pathname), page.url().replace(/^https?:\/\/[^/]+/, ''));
+    const resp = await created;
+    check(`[free flow ${country}] the migration is created automatically (the server accepted it)`, !!resp && resp.status() < 300, resp ? String(resp.status()) : 'no request');
+    await page.waitForTimeout(500);
+    const log = await (await fetch(process.env.API_URL + '/__log')).json();
+    const create = log.filter((x) => x.m === 'POST' && x.u === '/migrations');
+    check(`[free flow ${country}] the migration is created once, for this pair, with no payment attached`, create.length === 1 && create[0].body.migrationPairId === 'pair-qbo-freshbooks' && !create[0].body.paymentId, JSON.stringify(create[0] && create[0].body));
+    const inq = log.filter((x) => x.m === 'POST' && x.u === '/inquiry-migrations');
+    check(`[free flow ${country}] the details were saved for this pair and country`, inq.length === 1 && inq[0].body.migrationPairId === 'pair-qbo-freshbooks' && new RegExp(country).test(inq[0].body.country), JSON.stringify(inq[0] && { pair: inq[0].body.migrationPairId, country: inq[0].body.country }));
+    check(`[free flow ${country}] no payment request was ever made`, !log.some((x) => /payment|razorpay/i.test(x.u)));
+    await ctx.close();
+  }
+
   // ---- Every other pair keeps its country list
   { const { ctx, page } = await open('/');
     await card(page, /Reckon/i).click(); await page.waitForURL(/xero-to-reckon\/plan/); await page.waitForTimeout(1200);
@@ -76,7 +104,7 @@ const opts = (page, sel) => page.locator(`${sel} option`).evaluateAll((o) => o.m
     await ctx.close(); }
   { const { ctx, page } = await open('/');
     const all = await opts(page, '#pricing-country');
-    check('[home pricing] the "Show prices for" list still has all nine countries (other pairs still sell there)', all.length === 9, String(all.length));
+    check('[home pricing] the "Select your country" list still has all nine countries plus "Other" (other pairs still sell there)', all.length === 10 && all.includes('Other') && all.filter((c) => c !== 'Other').length === 9, String(all.length));
     await ctx.close(); }
 
   // ---- Phone

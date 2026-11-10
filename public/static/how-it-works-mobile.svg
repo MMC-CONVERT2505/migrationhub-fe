@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 560" width="440" height="560" role="img" aria-label="How it works: 1. Choose your migration. 2. Place your order. 3. Connect both accounts. 4. Migrate and verify.">
+  <title>How Migration Hub works</title>
+  <path d="M70 136V124" stroke="#E3B36B" stroke-width="3" stroke-dasharray="3 8" stroke-linecap="round" fill="none"/>
+  <path d="M62 120l8 10 8-10" stroke="#E3B36B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M70 266V254" stroke="#E3B36B" stroke-width="3" stroke-dasharray="3 8" stroke-linecap="round" fill="none"/>
+  <path d="M62 250l8 10 8-10" stroke="#E3B36B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M70 396V384" stroke="#E3B36B" stroke-width="3" stroke-dasharray="3 8" stroke-linecap="round" fill="none"/>
+  <path d="M62 380l8 10 8-10" stroke="#E3B36B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="70" cy="70" r="54" fill="#FFF4E5"/>
+  <circle cx="70" cy="70" r="42" fill="#D97706"/>
+  <g transform="translate(70 70)" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M-14 -6H12M6 -12l6 6-6 6M14 8H-12M-6 2l-6 6 6 6" /></g>
+  <circle cx="106" cy="34" r="14" fill="#1F2937" stroke="#fff" stroke-width="3"/>
+  <text x="106" y="34" text-anchor="middle" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff">1</text>
+  <text x="154" y="70" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="22" font-weight="600" fill="#1F2937">Choose your migration</text>
+  <circle cx="70" cy="200" r="54" fill="#FFF4E5"/>
+  <circle cx="70" cy="200" r="42" fill="#D97706"/>
+  <g transform="translate(70 200)" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><rect x="-12" y="-16" width="24" height="32" rx="3" /><path d="M-5 0l4 5 8-10" /></g>
+  <circle cx="106" cy="164" r="14" fill="#1F2937" stroke="#fff" stroke-width="3"/>
+  <text x="106" y="164" text-anchor="middle" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff">2</text>
+  <text x="154" y="200" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="22" font-weight="600" fill="#1F2937">Place your Order</text>
+  <circle cx="70" cy="330" r="54" fill="#FFF4E5"/>
+  <circle cx="70" cy="330" r="42" fill="#D97706"/>
+  <g transform="translate(70 330)" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="-8" cy="0" r="10" /><circle cx="8" cy="0" r="10" /></g>
+  <circle cx="106" cy="294" r="14" fill="#1F2937" stroke="#fff" stroke-width="3"/>
+  <text x="106" y="294" text-anchor="middle" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff">3</text>
+  <text x="154" y="330" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="22" font-weight="600" fill="#1F2937">Connect both accounts</text>
+  <circle cx="70" cy="460" r="54" fill="#FFF4E5"/>
+  <circle cx="70" cy="460" r="42" fill="#D97706"/>
+  <g transform="translate(70 460)" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="0" r="16" /><path d="M-8 0l6 7 11-13" /></g>
+  <circle cx="106" cy="424" r="14" fill="#1F2937" stroke="#fff" stroke-width="3"/>
+  <text x="106" y="424" text-anchor="middle" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff">4</text>
+  <text x="154" y="460" dominant-baseline="central" font-family="'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif" font-size="22" font-weight="600" fill="#1F2937">Migrate and Verify</text>
+</svg>

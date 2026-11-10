@@ -65,14 +65,12 @@ export const Footer: React.FC = () => {
               </span>
             </Link>
             <p className="text-sm text-text-tertiary leading-relaxed">
-              Switching accounting software before your{' '}
-              <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                coffee
-                <svg className="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="none" aria-label="coffee mug">
-                  <path d="M5 8h11v6a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 5c0-1 1-1 1-2M12 5c0-1 1-1 1-2M4 20h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              </span>{' '}
+              Switching accounting software before your coffee{' '}
+              <svg aria-hidden focusable="false" className="inline-block h-[1.1em] w-[1.1em] -mt-0.5 align-middle text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 9h12v6a5 5 0 01-5 5H9a5 5 0 01-5-5V9z" />
+                <path d="M16 11h1.5a2.5 2.5 0 010 5H16" />
+                <path d="M8 2.5c-.7 1 .7 1.6 0 2.8M12 2.5c-.7 1 .7 1.6 0 2.8" />
+              </svg>{' '}
               gets cold.
             </p>
           </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
 import { getAvailablePairs } from '@/api/availablePairs';
 import { apiPairToUiPair, extractList } from '@/utils/platformMap';
@@ -10,7 +10,7 @@ import { countriesOf, normalizeCountry } from '@/utils/countryPricing';
 import { useAppStore } from '@/store/appStore';
 import { formatCurrency } from '@/utils/format';
 import { goToSection } from '@/utils/scroll';
-import { browserCountry } from '@/utils/browserCountry';
+import { detectVisitorCountry } from '@/utils/visitorCountry';
 import type { Pair } from '@/types';
 import type { MigrationPairEntity } from '@/types/api';
 
@@ -44,18 +44,20 @@ export const PricingSection: React.FC = () => {
   const setSelectedCountry = useAppStore((s) => s.setSelectedCountry);
   const countries = useMemo(() => countriesOf(pairs), [pairs]);
   const stored = normalizeCountry(storedCountry);
-  const [detected, setDetected] = useState<string | null>(null);
-  useEffect(() => setDetected(normalizeCountry(browserCountry())), []);
-  const country = countries.length === 0
+  // Where the visitor is browsing from (browser time zone, language as a fallback): a starting point only. Nothing is
+  // sent anywhere or saved until they choose; their own choice always wins.
+  const detected = useMemo(() => normalizeCountry(detectVisitorCountry()), []);
+  // "Other" is its own choice: without it, picking it would empty the stored country and detection would fill it right back in.
+  const [otherChosen, setOtherChosen] = useState(false);
+  const country = countries.length === 0 || otherChosen
     ? null
     : stored && countries.includes(stored) ? stored : detected && countries.includes(detected) ? detected : null;
 
-  useEffect(() => {
-    if (state === 'ready' && !stored && country) setSelectedCountry(country);
-  }, [country, setSelectedCountry, state, stored]);
-
   const plans = useMemo(() => summarisePlans(pairs, 'USD', country).slice(0, MAX_PRICING_CARDS), [pairs, country]);
-  const showPlans = state === 'ready' && plans.length > 0;
+  // "Other" (or a country we do not sell in): without a country the cards would mix every currency, so show none
+  // and say where to go instead.
+  const otherCountry = state === 'ready' && countries.length > 0 && !country;
+  const showPlans = state === 'ready' && !otherCountry && plans.length > 0;
 
   return (
     <section id="pricing" className="py-20 bg-bg-light scroll-mt-16" aria-labelledby="pricing-title">
@@ -71,7 +73,11 @@ export const PricingSection: React.FC = () => {
             <select
               id="pricing-country"
               value={country ?? 'Other'}
-              onChange={(e) => setSelectedCountry(e.target.value === 'Other' ? null : e.target.value || null)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOtherChosen(v === 'Other' || !v);
+                setSelectedCountry(v === 'Other' ? null : v || null);
+              }}
               className="w-full max-w-xs rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {countries.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -117,7 +123,15 @@ export const PricingSection: React.FC = () => {
           </div>
         )}
 
-        {state !== 'loading' && !showPlans && (
+        {otherCountry && (
+          <p role="status" className="mt-10 text-center text-sm text-text-secondary">
+            We sell these migrations in the countries listed above. Not on the list?{' '}
+            <Link to="/contact" className="font-semibold text-blue-700 hover:underline">Contact us</Link>
+            {' '}and we will tell you what is possible.
+          </p>
+        )}
+
+        {state !== 'loading' && !showPlans && !otherCountry && (
           <p className="mt-10 text-center text-sm text-text-secondary">
             {state === 'ready' && country
               ? `No plans are listed for ${country} yet. Choose your migration below to see what is available.`

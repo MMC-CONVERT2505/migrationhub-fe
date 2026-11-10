@@ -68,7 +68,7 @@ jobs:
       - name: Pull new image and restart frontend
         run: |
           ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-          "echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin \
+          "echo '${{ secrets.GHCR_READ_TOKEN }}' | docker login ghcr.io -u '${{ vars.GHCR_USERNAME || 'ajay-8055' }}' --password-stdin \
           && cd ${{ vars.PROD_WORK_DIR }} \
           && docker compose pull frontend \
           && docker compose up -d frontend \

@@ -6,7 +6,7 @@ import { FAQ_ITEMS } from '@/seo/faq';
 
 describe('public pages', () => {
   it('lists the indexable pages, each with its own title and description', () => {
-    expect(PUBLIC_PAGES.map((p) => p.path)).toEqual(['/', '/how-it-works', '/supported-platforms', '/about', '/contact', '/privacy', '/termsofuse']);
+    expect(PUBLIC_PAGES.map((p) => p.path)).toEqual(['/', '/how-it-works', '/supported-platforms', '/about', '/contact', '/privacy', '/security', '/termsofuse']);
     expect(new Set(PUBLIC_PAGES.map((p) => p.title)).size).toBe(PUBLIC_PAGES.length);
     expect(new Set(PUBLIC_PAGES.map((p) => p.description)).size).toBe(PUBLIC_PAGES.length);
   });

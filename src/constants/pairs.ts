@@ -130,8 +130,6 @@ export const PAIRS: Pair[] = [
   },
 ];
 
-export const PAIR_FILTER_TABS = ['All', 'QBO', 'Xero', 'MYOB', 'Tally', 'Free'];
-
 export const DATA_CATEGORIES = [
   { icon: '📊', name: 'Chart of accounts',    estimatedRecords: 180  },
   { icon: '👤', name: 'Contacts & customers', estimatedRecords: 1240 },

@@ -5,11 +5,22 @@ import { bannersService } from '@/api/banners';
 import { extractList } from '@/utils/platformMap';
 import type { BannerEntity } from '@/types/api';
 import { trimmedLogoUrl } from '@/utils/trimLogo';
+import { platformLogo } from '@/constants/logos';
 
 /** Display height (px) for a logo of this width/height ratio: roughly equal visual weight, so compact logos (a round mark,
  *  a short wordmark) are a little taller than long, thin ones. */
 export const logoHeight = (aspect: number): number =>
   !Number.isFinite(aspect) || aspect <= 0 ? 40 : Math.min(52, Math.max(36, Math.round(Math.sqrt(5200 / aspect))));
+
+/**
+ * Uploaded logos that need a better file than the one in the admin panel, keyed by the logo name lower-cased with only
+ * letters and digits. The uploaded Tally image is a flattened picture with a grey checkerboard baked in (it showed as a
+ * frame); /logos/tally-logo.png is the same logo on a transparent background. Re-upload that file in Tool Logos to retire
+ * this entry.
+ */
+const LOGO_OVERRIDES: Readonly<Record<string, string>> = { tally: '/logos/tally-logo.png' };
+export const logoSource = (name: string, uploaded: string): string =>
+  LOGO_OVERRIDES[name.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? uploaded;
 
 /** A tool logo on its own (no frame): shows the brand logo, falling back to its name on load error. */
 const LogoPill: React.FC<{ src: string; name: string }> = ({ src, name }) => {
@@ -81,7 +92,7 @@ export const WorksWith: React.FC = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.06 }}
                   >
-                    <LogoPill src={logo.image} name={logo.name} />
+                    <LogoPill src={logoSource(logo.name, logo.image)} name={logo.name} />
                   </motion.div>
                 ))
               : WORKS_WITH_PLATFORMS.map((platform, i) => (
@@ -90,15 +101,9 @@ export const WorksWith: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.06 }}
-                    className="flex items-center gap-2.5 px-1 py-2"
+                    className="w-full"
                   >
-                    <div
-                      className="w-9 h-9 rounded flex items-center justify-center text-white text-sm font-bold font-mono flex-shrink-0"
-                      style={{ backgroundColor: platform.color }}
-                    >
-                      {platform.abbr.slice(0, 1)}
-                    </div>
-                    <span className="text-base font-semibold text-text-secondary">{platform.name}</span>
+                    <LogoPill src={platformLogo(platform.key) ?? ''} name={platform.name} />
                   </motion.div>
                 ))}
           </div>

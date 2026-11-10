@@ -10,7 +10,6 @@ const STAR_PATH =
 
 const STATS = visibleStats([
   { key: 'migrationsCompleted', label: 'conversions completed' },
-  { key: 'reviewCount', label: 'reviews on Trustpilot' },
   { key: 'yearsExperience', label: 'conversion expertise' },
   { key: 'wouldRecommend', label: 'would recommend' },
 ]);
@@ -154,7 +153,7 @@ export const TrustpilotSection: React.FC = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-5 py-3 bg-white border border-border rounded-lg text-sm font-semibold text-text-primary hover:border-border-medium hover:shadow-card transition-all duration-150"
           >
-            {TRUST_METRICS.reviewCount ? `Read all ${TRUST_METRICS.reviewCount} reviews on Trustpilot` : 'Read our reviews on Trustpilot'}
+            Read all reviews on Trustpilot
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
             </svg>

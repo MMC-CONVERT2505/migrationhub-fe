@@ -14,13 +14,13 @@ export const Hero: React.FC = () => {
           className="min-w-0"
         >
           <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
-            Migration Hub: move your accounting data{' '}
-            <span className="text-blue-600">right now</span>
+            Migration Hub: move your books{' '}
+            <span className="text-blue-600">yourself</span>
             , in minutes
           </h1>
 
           <p className="mt-5 text-base sm:text-lg text-text-secondary leading-relaxed max-w-[520px]">
-            No waiting for quotes, queues or uploading files. Start your data migration right now and be done in minutes.
+            Accounting migration in minutes. No quotes, no queues, no people in between.
           </p>
         </motion.div>
 

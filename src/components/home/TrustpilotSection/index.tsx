@@ -55,10 +55,7 @@ export const TrustpilotSection: React.FC = () => {
           viewport={{ once: true }}
           className="text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">
-            Trusted by accountants &amp; businesses worldwide
-          </p>
-          <h2 className="mt-3 text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
             {TRUST_METRICS.rating ? 'Rated excellent on Trustpilot' : 'What our customers say'}
           </h2>
 

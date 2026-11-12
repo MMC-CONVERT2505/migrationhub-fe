@@ -41,11 +41,11 @@ export const CompanyLogos: React.FC = () => {
   return (
     <section className="py-10 bg-white border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <span className="text-sm font-medium text-text-tertiary uppercase tracking-widest whitespace-nowrap flex-shrink-0">
+        <div className="flex flex-col items-center gap-8">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-text-primary">
             Trusted by
-          </span>
-          <div className="grid flex-1 grid-cols-2 items-center justify-items-center gap-x-5 gap-y-4 sm:grid-cols-4">
+          </h2>
+          <div className="grid w-full grid-cols-2 items-center justify-items-center gap-x-5 gap-y-4 sm:grid-cols-4">
             {COMPANIES.map((company, i) => (
               <motion.div
                 key={company.name}

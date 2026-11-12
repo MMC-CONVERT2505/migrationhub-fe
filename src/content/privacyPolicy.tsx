@@ -5,7 +5,7 @@ import { CONTACT_EMAIL } from '@/constants/links';
 
 export const PRIVACY_EMAIL = CONTACT_EMAIL;
 export const PRIVACY_EFFECTIVE = '1st Jan 2026';
-export const PRIVACY_UPDATED = '22nd October 2026';
+export const PRIVACY_UPDATED = '12th November 2026';
 
 const Mail: React.FC = () => (
   <a href={`mailto:${PRIVACY_EMAIL}`} className="text-blue-600 hover:underline break-all">{PRIVACY_EMAIL}</a>
@@ -128,7 +128,7 @@ export const SECTIONS: PolicySection[] = [
       {
         type: 'p',
         lead: 'Automated decisions.',
-        content: 'Migration Hub uses software to map and transfer records, and our specialists review mappings. We do not make decisions about you that have legal or similarly significant effects based solely on automated processing.',
+        content: 'Migration Hub uses software to map and transfer records. We do not make decisions about you that have legal or similarly significant effects based solely on automated processing.',
       },
       {
         type: 'p',
@@ -148,7 +148,7 @@ export const SECTIONS: PolicySection[] = [
           <><strong>Least access.</strong> We request only the platform permissions (scopes) needed to read the source and write to the destination. You can see the permissions on the consent screen before you approve.</>,
           <><strong>No passwords.</strong> We connect through each platform's official authorisation (OAuth) or through files you upload. We never ask for or store your accounting platform login.</>,
           <><strong>Purpose limited.</strong> Accounting data is used only to perform, check and support your migration. We do not sell it, use it for advertising, or use it to train artificial intelligence or machine learning models.</>,
-          <><strong>Human access only when needed.</strong> Our migration specialists access your data only to review mappings, resolve errors or answer your support requests, under confidentiality obligations.</>,
+          <><strong>Human access only when needed.</strong> Our migration specialists access your data only to resolve errors or answer your support requests, under confidentiality obligations.</>,
           <><strong>Your source stays untouched.</strong> We read from your source platform and do not change or delete records in it.</>,
           <><strong>Disconnect any time.</strong> Connections are revoked when your migration and support window close. You can also revoke access yourself in the platform's connected apps settings or ask us to do it.</>,
         ],
@@ -169,7 +169,7 @@ export const SECTIONS: PolicySection[] = [
         caption: 'Recipients of personal data',
         head: ['Recipient', 'Why', 'Location'],
         rows: [
-          ['Cloud hosting: [Amazon Web Services]', 'Store and process data securely', '[Region per customer country, e.g. Sydney, Mumbai, London, US]'],
+          ['Cloud hosting: Amazon Web Services', 'Store and process data securely', '[Region per customer country, e.g. Sydney, Mumbai, London, US]'],
           ['Payment provider: Razorpay', 'Take payments and prevent fraud', 'India'],
           ['Email and OTP delivery', 'Send verification codes, receipts and service emails', 'India'],
           ['Customer support and CRM tools', 'Manage enquiries and support tickets', 'India'],
@@ -207,7 +207,7 @@ export const SECTIONS: PolicySection[] = [
     blocks: [
       {
         type: 'p',
-        content: 'We keep data only as long as we need it for the purposes above, then delete or anonymise it. Proposed periods are below; final figures to be confirmed by MMC Convert.',
+        content: 'We keep data only as long as we need it for the purposes above, then delete or anonymise it.',
       },
       {
         type: 'table',
@@ -233,12 +233,12 @@ export const SECTIONS: PolicySection[] = [
       {
         type: 'list',
         items: [
-          'Encryption in transit (TLS 1.2 or higher) and at rest ([AES-256])',
+          'Encryption in transit (TLS 1.2 or higher) and at rest (AES-256)',
           'OAuth tokens stored encrypted, separate from accounting data',
           'Role based access with multi factor authentication for staff, and access logged and reviewed',
           'Separate storage per customer country, and regular backups',
           'Confidentiality agreements and privacy training for all staff',
-          'Security testing and vulnerability management [at least annually]',
+          'Security testing and vulnerability management annually',
         ],
       },
       {
@@ -278,7 +278,7 @@ export const SECTIONS: PolicySection[] = [
       {
         type: 'p',
         lead: 'Changes to this policy.',
-        content: 'We will post any update on this page and change the "Last updated" date. If a change is significant, for example a new purpose for your data, we will tell you by email or in the app at least [14] days before it takes effect and, where required, ask for your consent. Previous versions are available on request.',
+        content: 'We will post any update on this page and change the "Last updated" date. If a change is significant, for example a new purpose for your data, we will tell you by email or in the app at least 14 days before it takes effect and, where required, ask for your consent. Previous versions are available on request.',
       },
     ],
   },

@@ -8,14 +8,11 @@ import { describe, expect, it } from 'vitest';
 const KNOWN_PLACEHOLDERS = [
   '23BCAPM8108A1Z9', // Terms 1.2, Privacy 1 (GSTIN)
   'the time shown for your pair', // Terms 3.3
-  '14', // Terms 9.5, Privacy 10 (notice days)
+  '14', // Terms 9.5 (notice days)
   'either party may refer it to arbitration in Indore under the Arbitration and Conciliation Act, 1996, before a sole arbitrator, in English', // Terms 9.6
   '452001', // Privacy 1 (postcode)
   'cookies or analytics tools', // Privacy 2
-  'Amazon Web Services', // Privacy 5
   'Region per customer country, e.g. Sydney, Mumbai, London, US', // Privacy 5
-  'AES-256', // Privacy 8
-  'at least annually', // Privacy 8
   'we store uploaded files and migration data in the cloud region closest to your country (for example AWS Sydney for Australian customers)', // Privacy 6 (data location)
   'Prices exclude GST and other taxes, which are added at checkout where applicable.', // Terms 5.2
 ];

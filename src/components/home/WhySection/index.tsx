@@ -1,12 +1,21 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TRUST_METRICS } from '@/content/trustMetrics';
 
-const WHY_CARDS = [
+const WHY_CARDS: Array<{ icon: string; title: string; description: React.ReactNode }> = [
   {
     icon: '🔒',
     title: 'Enterprise security',
-    description: '256-bit SSL encryption in transit, and your data is deleted after your support window. See our Privacy Policy for the detail.',
+    description: (
+      <>
+        256-bit SSL encryption in transit, and your data is deleted after your support window. See our{' '}
+        <Link to="/privacy" className="font-medium text-blue-700 underline hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-sm">
+          Privacy Policy
+        </Link>{' '}
+        for the detail.
+      </>
+    ),
   },
   {
     icon: '⚡',
@@ -32,9 +41,9 @@ const WHY_CARDS = [
     description: 'Comprehensive migration logs and reconciliation reports so your auditors and clients have full visibility.',
   },
   {
-    icon: '🛡️',
-    title: 'Safety net guarantee',
-    description: '30-day post-migration support included with Enterprise. Free revisions if anything looks off.',
+    icon: '✅',
+    title: 'Built-in accuracy check',
+    description: 'Our software checks every record and balance against your source the moment your migration finishes. Anything missing or off? We fix it free within 7 days.',
   },
 ];
 

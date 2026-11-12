@@ -59,7 +59,7 @@ export const PairsSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-8"
+          className="mb-8 text-center"
         >
           <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Migration pairs</p>
           <h2 className="mt-2 text-3xl font-bold text-text-primary tracking-tight">

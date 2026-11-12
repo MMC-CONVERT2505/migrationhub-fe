@@ -133,12 +133,24 @@ const CHECKER = require('path').join(__dirname, 'fixtures', 'tally-uploaded.png'
   { const { ctx, page } = await open('/');
     const sec = page.locator('#how-it-works'); await sec.scrollIntoViewIfNeeded(); await page.waitForTimeout(900);
     check('[how it works] the section exists with the heading "How it Works?"', (await sec.locator('h2').innerText()).trim() === 'How it Works?');
-    const img = sec.locator('img'); const alt = await img.getAttribute('alt');
-    check('[how it works] the four steps are one image, named for screen readers in order', (await sec.locator('img').count()) === 1 && /1\. Choose your migration.*2\. Place your order.*3\. Connect both accounts.*4\. Migrate and verify/.test(alt), alt);
-    const nat = await img.evaluate((i) => ({ ok: i.naturalWidth > 0, src: i.currentSrc.replace(location.origin, '') }));
-    check('[how it works] desktop uses the wide image and it loads', nat.ok && /how-it-works\.svg$/.test(nat.src), nat.src);
-    const svg = await (await fetch(`${APP}/static/how-it-works.svg`)).text();
-    check('[how it works] the image contains the four step names, exactly as written', ['Choose your migration', 'Place your Order', 'Connect both accounts', 'Migrate and Verify'].every((s) => svg.includes(s)));
+    const stepNames = ['Choose your migration', 'Prepare your order', 'Pay securely', 'Connect both accounts', 'Migrate and verify'];
+    const tab = sec.getByRole('tab');
+    const tabText = (await tab.allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+    check('[how it works] a tab row with the five paid steps, in order (Free / Paid switch beside it)', tabText.length === 5 && (await sec.getByRole('button', { name: 'Free migration' }).count()) === 1 && stepNames.every((n, i) => tabText[i].includes(n)), tabText.join(' | '));
+    check('[how it works] the old static image is gone', (await sec.locator('picture, img').count()) === 0);
+    check('[how it works] the animated window is decorative (hidden from screen readers) and has a Pause control', (await sec.locator('[data-hiw-window][aria-hidden="true"]').count()) === 1 && (await sec.getByRole('button', { name: /pause animation/i }).count()) === 1);
+    const sel = async () => (await sec.locator('[role="tab"][aria-selected="true"]').innerText()).replace(/\s+/g, ' ').trim();
+    const first = await sel();
+    await page.mouse.move(0, 0); await page.waitForTimeout(7800);
+    const second = await sel();
+    check('[how it works] the walkthrough advances on its own', first !== second, first + ' -> ' + second);
+    await sec.getByRole('button', { name: /pause animation/i }).click(); await page.mouse.move(0, 0);
+    const held = await sel(); await page.waitForTimeout(7800);
+    check('[how it works] Pause stops it', held === (await sel()));
+    await tab.nth(3).click();
+    check('[how it works] a step can be chosen by hand', /Connect both accounts/.test(await sel()) && /Sign in with each platform/.test(await sec.getByRole('tabpanel').innerText()));
+    await sec.getByRole('button', { name: 'Free migration' }).click();
+    check('[how it works] choosing Free swaps Pay for Review and start (no payment stage)', (await tab.allInnerTexts()).join(' ').includes('Review and start') && !(await tab.allInnerTexts()).join(' ').includes('Pay securely'));
     const y = async (sel) => page.locator(sel).first().evaluate((e) => e.getBoundingClientRect().top + window.scrollY);
     const ys = { rev: await y('#reviews'), works: await y('section:has-text("Works with")'), how: await y('#how-it-works'), pricing: await y('#pricing') };
     check('[how it works] sits after the reviews and before "Works with" and "Pricing" (as already live)', ys.rev < ys.how && ys.how < ys.works && ys.works < ys.pricing, JSON.stringify(ys));
@@ -148,12 +160,8 @@ const CHECKER = require('path').join(__dirname, 'fixtures', 'tally-uploaded.png'
   for (const w of [390, 320]) {
     const { ctx, page } = await open('/', { vp: { width: w, height: 800 } });
     const sec = page.locator('#how-it-works'); await sec.scrollIntoViewIfNeeded(); await page.waitForTimeout(900);
-    const r = await sec.locator('img').evaluate((i) => ({ src: i.currentSrc.replace(location.origin, ''), ok: i.naturalWidth > 0, w: Math.round(i.getBoundingClientRect().width), over: document.documentElement.scrollWidth - innerWidth }));
-    check(`[how it works ${w}px] a phone gets the stacked image, it loads, and nothing overflows`, /how-it-works-mobile\.svg$/.test(r.src) && r.ok && r.w <= w && r.over <= 0, JSON.stringify(r));
-    // the stacked image's text must fit inside its own canvas (no clipped labels)
-    const svg = await (await fetch(`${APP}/static/how-it-works-mobile.svg`)).text();
-    const vb = /viewBox="0 0 (\d+) (\d+)"/.exec(svg); const xs = [...svg.matchAll(/<text x="(\d+)"[^>]*font-size="(\d+)"[^>]*>([^<]+)</g)].map((m) => Number(m[1]) + m[3].length * Number(m[2]) * 0.56);
-    check(`[how it works ${w}px] every label fits inside the image (widest ends at ${Math.round(Math.max(...xs))} of ${vb[1]})`, Math.max(...xs) <= Number(vb[1]));
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    check(`[how it works ${w}px] nothing overflows sideways and all five tabs are there`, over <= 0 && (await sec.getByRole('tab').count()) === 5, String(over));
     await ctx.close();
   }
 

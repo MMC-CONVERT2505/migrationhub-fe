@@ -5,7 +5,7 @@ import type { Block, PolicySection } from './privacyPolicy';
 /** Migration Hub Terms of Use, as data: the page renders the sections, the table of contents and deep links from this. */
 
 export const TERMS_EMAIL = CONTACT_EMAIL;
-export const TERMS_DATES = 'Effective date: 1st Jan 2026 · Last updated: 22nd October 2026';
+export const TERMS_DATES = 'Effective date: 1st Jan 2026 · Last updated: 12th November 2026';
 
 const Mail: React.FC = () => (
   <a href={`mailto:${TERMS_EMAIL}`} className="text-blue-600 hover:underline break-all">{TERMS_EMAIL}</a>
@@ -42,7 +42,7 @@ export const TERMS_SECTIONS: PolicySection[] = [
     title: '3. The Service',
     blocks: [
       c('3.1', 'We transfer accounting data from a source platform to a destination platform for the migration pair and plan you select (for example MYOB to QuickBooks Online). The data categories, history period, number of revisions and support level for each plan are shown at checkout.', 'What we do.'),
-      c('3.2', 'We perform the Service with reasonable care and skill, using software and trained migration specialists who review data mappings.', 'Care and skill.'),
+      c('3.2', 'We perform the Service with reasonable care and skill, using software and trained migration specialists.', 'Care and skill.'),
       c('3.3', 'Most migrations complete within [the time shown for your pair]. Times are estimates. They depend on data volume, platform limits and how quickly you respond, and we are not liable for delays outside our reasonable control.', 'Timing.'),
       c('3.4', 'After completion you have a support window of 7 days, or the post migration support period of your plan if longer, to review the result and request revisions. Requests after the window may be charged.', 'Support window.'),
       c('3.5', 'A revision is a correction of data we migrated incorrectly against your source. It does not include new data, a different date range, or changes made in either platform after migration.', 'Revisions.'),

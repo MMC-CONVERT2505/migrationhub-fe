@@ -20,6 +20,7 @@ import {
   PAYMENT_PATH, SUCCESS_PATH, inquiryForPair, planCurrency, resolveFlowRedirect,
 } from '@/constants/migrationFlow';
 import { pairPlanPath } from '@/utils/platformMap';
+import { DEFAULT_TRANSACTION_PLAN, TRANSACTION_PLANS, asksTransactionPlan, isTransactionPlan, transactionPlanToSend, type TransactionPlan } from '@/constants/transactionPlans';
 import { countryForDialCode } from '@/utils/phone';
 import { countryDisplayName } from '@/utils/country';
 import { hasPriceList, normalizeCountry, offeredCountries, validCountry } from '@/utils/countryPricing';
@@ -101,7 +102,9 @@ const fyEndFor = (country: string) => COUNTRY_FY_END[country] ?? DEFAULT_FY_END;
 
 // Leaving for the plan step to change the country must not cost the customer what they already typed. The country-
 // dependent fields (dial code, FY end) are deliberately not kept: they follow the new country. Session-only, per pair.
-const DRAFT_FIELDS = ['name', 'email', 'phone', 'entityName'] as const;
+const DRAFT_FIELDS = ['name', 'email', 'phone', 'entityName', 'transactionPlan'] as const;
+// The migration type is part of a saved draft only on the pair that asks it, so every other pair's draft is exactly as it was.
+const draftFieldsFor = (includeMigrationType: boolean) => DRAFT_FIELDS.filter((f) => includeMigrationType || f !== 'transactionPlan');
 const draftKey = (pairId: number | string | undefined) => `mmc-details-draft:${pairId ?? ''}`;
 function readDraft(pairId: number | string | undefined): Partial<Record<(typeof DRAFT_FIELDS)[number], string>> | null {
   try {
@@ -115,9 +118,9 @@ function readDraft(pairId: number | string | undefined): Partial<Record<(typeof 
     return null;
   }
 }
-function saveDraft(pairId: number | string | undefined, form: Record<(typeof DRAFT_FIELDS)[number], string>) {
+function saveDraft(pairId: number | string | undefined, form: Record<(typeof DRAFT_FIELDS)[number], string>, includeMigrationType: boolean) {
   try {
-    sessionStorage.setItem(draftKey(pairId), JSON.stringify(Object.fromEntries(DRAFT_FIELDS.map((f) => [f, form[f]]))));
+    sessionStorage.setItem(draftKey(pairId), JSON.stringify(Object.fromEntries(draftFieldsFor(includeMigrationType).map((f) => [f, form[f]]))));
   } catch {
     /* storage unavailable: the form just starts fresh */
   }
@@ -270,6 +273,9 @@ const MigrationInfoPage: React.FC = () => {
   const isXeroToReckon =
     selectedPair?.src?.toLowerCase() === 'xero' && selectedPair?.dst?.toLowerCase() === 'reckon';
 
+  // The type of data migration (with or without payroll) is a Xero → QuickBooks Online question only.
+  const asksMigrationType = asksTransactionPlan(selectedPair);
+
   // Tracked inventory is a MYOB-destination question: both MYOB tools have to know
   // whether inventory items carry a quantity on hand before they can map them.
   const asksTrackingInventory = isXeroToMyob || isQboToMyob;
@@ -314,7 +320,7 @@ const MigrationInfoPage: React.FC = () => {
   const [form, setForm] = useState(() => {
     const base = ((): {
       name: string; email: string; phone: string; dialCode: string; country: string;
-      entityName: string; financialYearEnd: string; trackingInventory: YesNo;
+      entityName: string; financialYearEnd: string; trackingInventory: YesNo; transactionPlan: TransactionPlan;
     } => {
     // Pre-fill from the inquiry the customer already submitted — everything
     // it might be missing (an in-flight session from before this field was
@@ -335,6 +341,7 @@ const MigrationInfoPage: React.FC = () => {
         entityName: inquiry.entityName,
         financialYearEnd: inquiry.financialYearEnd ?? fyEndFor(country),
         trackingInventory: (inquiry.trackingInventory ?? null) as YesNo,
+        transactionPlan: isTransactionPlan(inquiry.transactionPlan) ? inquiry.transactionPlan : DEFAULT_TRANSACTION_PLAN,
       };
     }
     const country = defaultCountry;
@@ -347,9 +354,12 @@ const MigrationInfoPage: React.FC = () => {
       entityName: '',
       financialYearEnd: fyEndFor(country),
       trackingInventory: null as YesNo,
+      transactionPlan: DEFAULT_TRANSACTION_PLAN,
     };
     })();
-    return draft ? { ...base, ...draft } : base;
+    const merged = draft ? { ...base, ...draft } : base;
+    // A draft is untrusted storage: never let it put a value in the select that the API would reject.
+    return { ...merged, transactionPlan: isTransactionPlan(merged.transactionPlan) ? merged.transactionPlan : DEFAULT_TRANSACTION_PLAN };
   });
   const [errors, setErrors] = useState<FieldErr[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -488,6 +498,7 @@ const MigrationInfoPage: React.FC = () => {
       toNationalNumber,
     );
     const trackingInventory = asksTrackingInventory ? (form.trackingInventory ?? undefined) : undefined;
+    const transactionPlan = transactionPlanToSend(selectedPair, form.transactionPlan);
 
     if (canUpdate && existing?.id && existing.editToken) {
       try {
@@ -497,6 +508,7 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
+          ...(transactionPlan ? { transactionPlan } : {}),
           trackingInventory,
         });
 
@@ -508,6 +520,7 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
+          ...(transactionPlan ? { transactionPlan } : {}),
           trackingInventory,
         });
 
@@ -531,6 +544,7 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
+        ...(transactionPlan ? { transactionPlan } : {}),
         ...(trackingInventory !== undefined ? { trackingInventory } : {}),
         ...(selectedPair.id ? { migrationPairId: String(selectedPair.id) } : {}),
       });
@@ -543,6 +557,7 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
+        ...(transactionPlan ? { transactionPlan } : {}),
         trackingInventory,
         editToken: created.editToken,
         migrationPairId: selectedPair.id ? String(selectedPair.id) : undefined,
@@ -676,7 +691,7 @@ const MigrationInfoPage: React.FC = () => {
                         {countryDisplayName(form.country)}
                         {plan && <span className="font-normal text-text-secondary"> · prices in {planCurrency(plan)}</span>}
                       </span>
-                      <Link to={pairPlanPath(selectedPair!)} onClick={() => saveDraft(selectedPair!.id, form)} className="text-xs font-semibold text-blue-700 hover:underline">Change</Link>
+                      <Link to={pairPlanPath(selectedPair!)} onClick={() => saveDraft(selectedPair!.id, form, asksMigrationType)} className="text-xs font-semibold text-blue-700 hover:underline">Change</Link>
                     </div>
                     <p className="text-xs text-text-tertiary">Chosen on the plan step. Changing it updates your prices.</p>
                   </>
@@ -704,6 +719,25 @@ const MigrationInfoPage: React.FC = () => {
                 </select>
               </div>
             </div>
+
+            {asksMigrationType && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="transactionPlan" className="text-xs font-medium text-text-secondary">Type of Data Migration <span className="text-red-500">*</span></label>
+                <select
+                  id="transactionPlan"
+                  value={form.transactionPlan}
+                  onChange={(e) => set('transactionPlan', e.target.value as TransactionPlan)}
+                  aria-describedby="transactionPlan-hint"
+                  required
+                  className={inputCls}
+                >
+                  {TRANSACTION_PLANS.map((plan) => (
+                    <option key={plan.value} value={plan.value}>{plan.label}</option>
+                  ))}
+                </select>
+                <p id="transactionPlan-hint" className="text-[11px] text-text-tertiary">Choose whether payroll is migrated together with your transactions.</p>
+              </div>
+            )}
 
             {asksTrackingInventory && (
               <YesNoField

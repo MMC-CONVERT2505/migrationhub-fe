@@ -103,6 +103,8 @@ const fyEndFor = (country: string) => COUNTRY_FY_END[country] ?? DEFAULT_FY_END;
 // Leaving for the plan step to change the country must not cost the customer what they already typed. The country-
 // dependent fields (dial code, FY end) are deliberately not kept: they follow the new country. Session-only, per pair.
 const DRAFT_FIELDS = ['name', 'email', 'phone', 'entityName', 'transactionPlan'] as const;
+// The migration type is part of a saved draft only on the pair that asks it, so every other pair's draft is exactly as it was.
+const draftFieldsFor = (includeMigrationType: boolean) => DRAFT_FIELDS.filter((f) => includeMigrationType || f !== 'transactionPlan');
 const draftKey = (pairId: number | string | undefined) => `mmc-details-draft:${pairId ?? ''}`;
 function readDraft(pairId: number | string | undefined): Partial<Record<(typeof DRAFT_FIELDS)[number], string>> | null {
   try {
@@ -116,9 +118,9 @@ function readDraft(pairId: number | string | undefined): Partial<Record<(typeof 
     return null;
   }
 }
-function saveDraft(pairId: number | string | undefined, form: Record<(typeof DRAFT_FIELDS)[number], string>) {
+function saveDraft(pairId: number | string | undefined, form: Record<(typeof DRAFT_FIELDS)[number], string>, includeMigrationType: boolean) {
   try {
-    sessionStorage.setItem(draftKey(pairId), JSON.stringify(Object.fromEntries(DRAFT_FIELDS.map((f) => [f, form[f]]))));
+    sessionStorage.setItem(draftKey(pairId), JSON.stringify(Object.fromEntries(draftFieldsFor(includeMigrationType).map((f) => [f, form[f]]))));
   } catch {
     /* storage unavailable: the form just starts fresh */
   }
@@ -506,7 +508,7 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          transactionPlan,
+          ...(transactionPlan ? { transactionPlan } : {}),
           trackingInventory,
         });
 
@@ -518,7 +520,7 @@ const MigrationInfoPage: React.FC = () => {
           country: form.country,
           entityName: form.entityName.trim(),
           financialYearEnd: form.financialYearEnd,
-          transactionPlan,
+          ...(transactionPlan ? { transactionPlan } : {}),
           trackingInventory,
         });
 
@@ -555,7 +557,7 @@ const MigrationInfoPage: React.FC = () => {
         country: form.country,
         entityName: form.entityName.trim(),
         financialYearEnd: form.financialYearEnd,
-        transactionPlan,
+        ...(transactionPlan ? { transactionPlan } : {}),
         trackingInventory,
         editToken: created.editToken,
         migrationPairId: selectedPair.id ? String(selectedPair.id) : undefined,
@@ -689,7 +691,7 @@ const MigrationInfoPage: React.FC = () => {
                         {countryDisplayName(form.country)}
                         {plan && <span className="font-normal text-text-secondary"> · prices in {planCurrency(plan)}</span>}
                       </span>
-                      <Link to={pairPlanPath(selectedPair!)} onClick={() => saveDraft(selectedPair!.id, form)} className="text-xs font-semibold text-blue-700 hover:underline">Change</Link>
+                      <Link to={pairPlanPath(selectedPair!)} onClick={() => saveDraft(selectedPair!.id, form, asksMigrationType)} className="text-xs font-semibold text-blue-700 hover:underline">Change</Link>
                     </div>
                     <p className="text-xs text-text-tertiary">Chosen on the plan step. Changing it updates your prices.</p>
                   </>

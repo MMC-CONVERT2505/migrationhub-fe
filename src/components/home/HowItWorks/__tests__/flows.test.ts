@@ -60,6 +60,24 @@ describe('walkthrough flows mirror the real platform', () => {
   });
 });
 
+describe('pace', () => {
+  it('gives every step a short, explicit running time (the walkthrough is quick)', () => {
+    for (const f of FLOW_ORDER) {
+      for (const s of FLOWS[f].steps) {
+        expect(s.ms).toBeGreaterThanOrEqual(2000);
+        expect(s.ms).toBeLessThanOrEqual(6500);
+      }
+    }
+  });
+
+  it('plays a whole journey in well under half a minute (it was 35 seconds at a flat 7 s a step)', () => {
+    for (const f of FLOW_ORDER) {
+      const total = FLOWS[f].steps.reduce((n, s) => n + s.ms, 0);
+      expect(total).toBeLessThan(25_000);
+    }
+  });
+});
+
 describe('the checkout stepper', () => {
   it('has four stages when paying and three when free (no "Pay")', () => {
     expect(STEPPER_LABELS.paid).toEqual(['Prepare', 'Pay', 'Connect', 'Migrate']);

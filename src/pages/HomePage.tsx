@@ -8,7 +8,6 @@ import { CompanyLogos } from '@/components/home/CompanyLogos';
 import { TrustpilotSection } from '@/components/home/TrustpilotSection';
 import { PairsSection } from '@/components/home/PairsSection';
 import { PricingSection } from '@/components/home/PricingSection';
-import { WhySection } from '@/components/home/WhySection';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
@@ -55,7 +54,6 @@ const HomePage: React.FC = () => {
         <HowItWorks />
         <WorksWith />
         <PricingSection />
-        <WhySection />
       </main>
 
       <Footer />

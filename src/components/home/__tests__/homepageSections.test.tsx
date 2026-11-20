@@ -2,32 +2,12 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { WhySection } from '../WhySection';
 import { HowItWorks } from '../HowItWorks';
 import { CompanyLogos } from '../CompanyLogos';
 import { TrustpilotSection } from '../TrustpilotSection';
 
 const html = (el: React.ReactElement) => renderToStaticMarkup(<MemoryRouter>{el}</MemoryRouter>);
 const text = (markup: string) => markup.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-describe('home page: Built by accountants, for accountants', () => {
-  const markup = html(<WhySection />);
-  it('links "Privacy Policy" in the Enterprise security card to /privacy, and only that text', () => {
-    const links = [...markup.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/g)];
-    expect(links).toHaveLength(1);
-    expect(links[0][1]).toBe('/privacy');
-    expect(links[0][2].trim()).toBe('Privacy Policy');
-  });
-  it('replaces the safety-net card with the accuracy check, word for word', () => {
-    const t = text(markup);
-    expect(t).toContain('Built-in accuracy check');
-    expect(t).toContain('Our software checks every record and balance against your source the moment your migration finishes. Anything missing or off? We fix it free within 7 days.');
-    expect(t).not.toMatch(/Safety net guarantee|30-day post-migration support|Free revisions/);
-  });
-  it('still has six cards', () => {
-    expect((markup.match(/<h3/g) ?? []).length).toBe(6);
-  });
-});
 
 describe('home page: How it Works?', () => {
   const markup = html(<HowItWorks />);
@@ -66,8 +46,19 @@ describe('home page: How it Works?', () => {
     expect(text(window)).toMatch(/Free/);
     expect(text(window)).toMatch(/Paid/);
   });
-  it('no longer uses the old image', () => {
-    expect(markup).not.toMatch(/<img|<picture|how-it-works(-mobile)?\.svg/);
+  it('no longer uses the old image, and shows the real platform logos on the pair cards', () => {
+    expect(markup).not.toMatch(/<picture|how-it-works(-mobile)?\.svg/);
+    const logos = [...markup.matchAll(/<img [^>]*src="(\/logos\/[^"]+)"/g)].map((m) => m[1]);
+    expect(logos).toEqual(expect.arrayContaining(['/logos/myob.svg', '/logos/qbo.svg', '/logos/xero.svg', '/logos/freshbooks.svg', '/logos/tally.svg', '/logos/zoho_books.png', '/logos/prosaic.svg', '/logos/reckon.svg']));
+  });
+  it('lists the same nine pairs as the home page, with their real labels', () => {
+    const window = text(markup.slice(markup.indexOf('data-hiw-window')));
+    expect((markup.match(/<li [^>]*class="[^"]*rounded-xl[^"]*"/g) ?? []).length).toBeGreaterThanOrEqual(9);
+    expect(window).toContain('Start free →');
+    expect(window).toContain('See pricing →');
+    expect(window).toContain('Check your region →');
+    expect(window).toContain('Free in Australia, New Zealand, Singapore, United Arab Emirates, South Africa');
+    expect(window).toContain('Paid elsewhere');
   });
   it('offers a way on: a link to the migration pairs', () => {
     expect(markup).toMatch(/<a [^>]*href="#pairs"[^>]*>\s*Pick your migration path/);

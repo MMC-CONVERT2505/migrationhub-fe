@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { LogoMark } from '@/components/layout/Navbar';
 import { FLOWS, FLOW_ORDER, nextStep, otherFlow, type FlowKey } from './flows';
 import { SCENES } from './scenes';
-
-const STEP_MS = 7000;
+import { WALK_PAIRS, walkPairsFrom, type WalkPair } from './walkthroughData';
+import { getAvailablePairs } from '@/api/availablePairs';
+import { apiPairToUiPair, extractList } from '@/utils/platformMap';
+import type { MigrationPairEntity } from '@/types/api';
 
 /**
  * Home-page "How it Works?": a looping, animated walkthrough of what happens after a customer picks a migration,
@@ -35,6 +36,22 @@ export const HowItWorks: React.FC = () => {
 
   const steps = FLOWS[flow].steps;
 
+  // The first scene shows the home page's own pairs, logos and labels: the same shared (cached) listing the pairs
+  // section loads. Until it arrives, or if it cannot be reached, the built-in copy of those pairs is shown.
+  const [pairs, setPairs] = useState<readonly WalkPair[]>(WALK_PAIRS);
+  useEffect(() => {
+    let live = true;
+    getAvailablePairs()
+      .then((res) => {
+        const list = walkPairsFrom(extractList<MigrationPairEntity>(res).map(apiPairToUiPair));
+        if (live && list.length) setPairs(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+
   useEffect(() => {
     const el = root.current;
     if (!el || typeof IntersectionObserver === 'undefined') {
@@ -52,6 +69,7 @@ export const HowItWorks: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
+  const step = steps[active];
   const running = playing && inView && tabVisible && !engaged && !reduced;
   useEffect(() => {
     if (!running) return;
@@ -63,9 +81,9 @@ export const HowItWorks: React.FC = () => {
       } else {
         setActive(n.index);
       }
-    }, STEP_MS);
+    }, step.ms);
     return () => clearTimeout(t);
-  }, [running, flow, active, locked]);
+  }, [running, flow, active, locked, step.ms]);
 
   const choose = (i: number, focus = false) => {
     setActive(i);
@@ -85,7 +103,6 @@ export const HowItWorks: React.FC = () => {
     choose(next, true);
   };
 
-  const step = steps[active];
   const Scene = SCENES[step.scene];
 
   return (
@@ -159,16 +176,9 @@ export const HowItWorks: React.FC = () => {
           <div id="hiw-panel" role="tabpanel" aria-labelledby={`hiw-tab-${active}`} className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-card">
             {/* Decorative: the caption below carries the meaning. */}
             <div aria-hidden="true" data-hiw-window>
-              <div className="flex items-center justify-between border-b border-border bg-white px-4 py-2.5">
-                <span className="flex items-center gap-2">
-                  <span className="origin-left scale-75"><LogoMark /></span>
-                  <span className="text-sm font-bold text-blue-800">Migration Hub</span>
-                </span>
-                <span className="hidden gap-5 text-[11px] font-semibold text-text-secondary sm:flex"><span>Platforms</span><span>Reviews</span><span>Contact Us</span></span>
-              </div>
               {/* A fixed floor, so the page does not lurch as the steps change. */}
-              <div className="min-h-[570px] bg-bg-light p-4 sm:p-6 md:min-h-[470px]" key={`${flow}-${active}`}>
-                <Scene flow={flow} reduced={reduced} />
+              <div className="flex min-h-[690px] flex-col bg-bg-light" key={`${flow}-${active}`}>
+                <Scene flow={flow} reduced={reduced} pairs={pairs} />
               </div>
             </div>
             <div className="flex flex-col gap-1 border-t border-border bg-white px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
@@ -178,7 +188,7 @@ export const HowItWorks: React.FC = () => {
               </a>
             </div>
             <div className="h-1 bg-bg-lighter" aria-hidden="true">
-              {running && <motion.div key={`${flow}-${active}`} className="h-full bg-blue-700" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: STEP_MS / 1000, ease: 'linear' }} />}
+              {running && <motion.div key={`${flow}-${active}`} className="h-full bg-blue-700" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: step.ms / 1000, ease: 'linear' }} />}
             </div>
           </div>
         </div>

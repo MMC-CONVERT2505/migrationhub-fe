@@ -13,6 +13,8 @@ export interface FlowStep {
   body: string;
   /** 24x24 stroke path for the tab icon. */
   icon: string;
+  /** How long the step plays before the loop moves on: long enough for its screens, no longer. */
+  ms: number;
 }
 
 const ICON = {
@@ -29,18 +31,21 @@ const choose: FlowStep = {
   title: 'Choose your migration',
   body: 'Pick the platform you are moving from and the one you are moving to. Each migration is marked Free, Paid, or free in selected countries.',
   icon: ICON.choose,
+  ms: 2600,
 };
 const connect: FlowStep = {
   scene: 'connect',
   title: 'Connect both accounts',
   body: 'Sign in with each platform to authorise access to your source and destination accounts.',
   icon: ICON.connect,
+  ms: 4400,
 };
 const migrate: FlowStep = {
   scene: 'migrate',
   title: 'Migrate and verify',
   body: 'Follow the progress live. When it finishes, our built-in accuracy check compares every record and balance with your source.',
   icon: ICON.migrate,
+  ms: 4000,
 };
 
 export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, string]; steps: readonly FlowStep[] }> = {
@@ -54,12 +59,14 @@ export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, str
         title: 'Prepare your order',
         body: 'Choose your country to see plans and prices in your currency, then tell us about the entity you are migrating.',
         icon: ICON.prepare,
+        ms: 5200,
       },
       {
         scene: 'pay',
         title: 'Pay securely',
         body: 'Review your order and pay securely through Razorpay. The price is shown before you pay.',
         icon: ICON.pay,
+        ms: 6300,
       },
       connect,
       migrate,
@@ -75,12 +82,14 @@ export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, str
         title: 'Prepare your migration',
         body: 'Choose your country and plan, then tell us about the entity you are migrating. There is nothing to pay.',
         icon: ICON.prepare,
+        ms: 5200,
       },
       {
         scene: 'review',
         title: 'Review and start',
         body: 'Check your details. A free migration needs no payment, so it starts on its own.',
         icon: ICON.review,
+        ms: 3400,
       },
       connect,
       migrate,

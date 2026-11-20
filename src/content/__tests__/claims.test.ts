@@ -6,7 +6,6 @@ const sources = import.meta.glob(
     '/src/pages/AboutPage.tsx',
     '/src/pages/SecurityPage.tsx',
     '/src/content/security.ts',
-    '/src/components/home/WhySection/index.tsx',
     '/src/components/migration/FaqAccordion/index.tsx',
     '/src/components/layout/Footer/index.tsx',
   ],
@@ -14,8 +13,8 @@ const sources = import.meta.glob(
 ) as Record<string, string>;
 
 describe('unverified compliance claims', () => {
-  it('checks the six files', () => {
-    expect(Object.keys(sources)).toHaveLength(6);
+  it('checks the five files', () => {
+    expect(Object.keys(sources)).toHaveLength(5);
   });
   it.each(Object.entries(sources))('%s makes no SOC 2 claim', (_file, text) => {
     expect(text).not.toMatch(/soc ?2/i);

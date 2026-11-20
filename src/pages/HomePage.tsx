@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
-import { WorksWith } from '@/components/home/WorksWith';
 import { CompanyLogos } from '@/components/home/CompanyLogos';
 import { TrustpilotSection } from '@/components/home/TrustpilotSection';
 import { PairsSection } from '@/components/home/PairsSection';
@@ -52,7 +51,6 @@ const HomePage: React.FC = () => {
         <CompanyLogos />
         <TrustpilotSection />
         <HowItWorks />
-        <WorksWith />
         <PricingSection />
       </main>
 

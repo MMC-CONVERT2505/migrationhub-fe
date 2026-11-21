@@ -11,7 +11,7 @@ const text = (markup: string) => markup.replace(/<[^>]+>/g, ' ').replace(/\s+/g,
 
 describe('home page: How it Works?', () => {
   const markup = html(<HowItWorks />);
-  const PAID = ['Choose your migration', 'Prepare your order', 'Pay securely', 'Connect both accounts', 'Migrate and verify'];
+  const PAID = ['Choose your migration', 'Prepare your order', 'Pay securely', 'Connect both accounts', 'Migrate and verify', 'Check the comparative report'];
   it('keeps its id and heading', () => {
     expect(markup).toContain('id="how-it-works"');
     expect(text(markup)).toContain('How it Works?');
@@ -21,10 +21,10 @@ describe('home page: How it Works?', () => {
     const toggles = [...markup.matchAll(/<button[^>]*aria-pressed="(true|false)"[^>]*>([^<]*)<\/button>/g)].map((m) => [m[1], m[2]]);
     expect(toggles).toEqual([['true', 'Paid migration'], ['false', 'Free migration']]);
   });
-  it('is a real tablist: five tabs in order, one selected, each pointing at the panel', () => {
+  it('is a real tablist: six tabs in order, one selected, each pointing at the panel', () => {
     expect(markup).toContain('role="tablist"');
     const tabs = [...markup.matchAll(/<button[^>]*role="tab"[^>]*>/g)].map((m) => m[0]);
-    expect(tabs).toHaveLength(5);
+    expect(tabs).toHaveLength(6);
     expect(tabs.filter((t) => t.includes('aria-selected="true"'))).toHaveLength(1);
     expect(tabs[0]).toContain('aria-selected="true"');
     expect(tabs.every((t) => t.includes('aria-controls="hiw-panel"'))).toBe(true);

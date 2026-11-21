@@ -974,6 +974,48 @@ const CountUp: React.FC<{ to: number; ms: number; delay: number; reduced: boolea
   return <>{n}</>;
 };
 
+/** When Request Help is pressed and the dialog it opens appears, in seconds from the start of the step. */
+const HELP_PRESS_AT = 2.6;
+const HELP_OPEN_AT = 3.0;
+const HELP_SEND_AT = 4.3;
+
+/** The "Request Migration Assistance" dialog the Request Help button opens. */
+const HelpDialog: React.FC = () => (
+  <motion.div
+    aria-hidden="true"
+    className="absolute inset-0 z-10 flex items-center justify-center bg-text-primary/55 p-3"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: HELP_OPEN_AT, duration: 0.2 }}
+  >
+    <motion.div
+      className="w-[min(100%,24rem)] rounded-2xl bg-white p-5 shadow-card-hover"
+      initial={{ y: 12, scale: 0.98 }}
+      animate={{ y: 0, scale: 1 }}
+      transition={{ delay: HELP_OPEN_AT, duration: 0.22 }}
+    >
+      <div className="flex items-start justify-between">
+        <p className="text-lg font-extrabold tracking-tight text-text-primary">Request Migration Assistance</p>
+        <span className="text-sm text-text-secondary">✕</span>
+      </div>
+      <p className="mt-3 rounded-lg border-2 border-[#5b5fe0] bg-[#eef2ff] px-3 py-2.5 text-[11px] leading-snug text-[#27307a]">
+        Our team will review your migration progress and reach out to you with personalized assistance.
+      </p>
+      <div className="mt-3 space-y-1 rounded-lg bg-[#f6f7f9] px-3 py-2.5 text-[11px] text-text-primary">
+        <p><span className="inline-block w-11 font-bold">Email:</span> <span className="text-[#4f5de8]">migrations@mmcconvert.com</span></p>
+        <p><span className="inline-block w-11 font-bold">Phone:</span> +919926477000</p>
+      </div>
+      <div className="mt-4 flex justify-end gap-2.5">
+        <span className="rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-text-primary">Cancel</span>
+        <span className="relative rounded-lg bg-[#fcc419] px-4 py-2 text-[11px] font-semibold text-text-primary">
+          <motion.span aria-hidden="true" className="absolute inset-0 rounded-lg ring-4 ring-[#fcc419]/50" initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1] }} transition={{ delay: HELP_SEND_AT, duration: 0.3 }} />
+          Send Help Request
+        </span>
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
 const dashed = (d: string) => d.replace(/ /g, ' - ');
 
 export const MigrateScene: React.FC<SceneProps> = ({ flow, reduced }) => {
@@ -985,7 +1027,7 @@ export const MigrateScene: React.FC<SceneProps> = ({ flow, reduced }) => {
   const barMs = 0.45;
   const doneAt = rowStart + rowGap * (TRACKER_ROWS.length - 1) + barMs;
   return (
-    <div className="flex-1 bg-[#f8fafc] px-4 py-3">
+    <div className="relative flex-1 bg-[#f8fafc] px-4 py-3">
       <p className="text-lg font-extrabold tracking-tight text-text-primary">Your Migration Tracker</p>
       <div className="mt-2 rounded-xl border border-border bg-white p-3">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -1001,7 +1043,10 @@ export const MigrateScene: React.FC<SceneProps> = ({ flow, reduced }) => {
             <p className="text-[10px] text-text-secondary">All of your data has been securely migrated to {platformName(dst)}. You don’t need to do anything else.</p>
             <div className="mt-2 flex gap-2">
               <span className={`rounded-md ${TRACKER_BLUE} px-3 py-1.5 text-[10px] font-semibold text-white`}>Get Comparative Report</span>
-              <span className="rounded-md border border-border px-3 py-1.5 text-[10px] font-semibold text-text-primary">Request Help</span>
+              <span className="relative rounded-md border border-border px-3 py-1.5 text-[10px] font-semibold text-text-primary">
+                {!reduced && <motion.span aria-hidden="true" className="absolute inset-0 rounded-md ring-4 ring-blue-300/60" initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ delay: HELP_PRESS_AT, duration: 0.5 }} />}
+                Request Help
+              </span>
             </div>
           </motion.div>
           <div className={`w-44 flex-shrink-0 rounded-xl ${TRACKER_BLUE} px-3 py-2.5 text-white`}>
@@ -1042,6 +1087,86 @@ export const MigrateScene: React.FC<SceneProps> = ({ flow, reduced }) => {
           })}
         </div>
       </div>
+      {!reduced && <HelpDialog />}
+    </div>
+  );
+};
+
+// ── 6. The Comparative QA Report ───────────────────────────────────────────────────────────────────────────────────
+
+/** Demo figures only: the shape of the real report, never a customer's books. */
+const QA_ROWS: ReadonlyArray<readonly [string, string]> = [
+  ['Professional Fees:Legal', '12450.0'],
+  ['Operating Account', '-8.0'],
+  ['Due from Related Party', '250000.0'],
+  ['Audit Fees', '15000.0'],
+  ['Due to Parent', '36000.0'],
+  ['Foreign Currency Account', '6.0'],
+  ['Deferred Income Tax Liability', '0.0'],
+  ['Accounts Payable', '0.0'],
+  ['Credit Card', '-7.0'],
+  ['Bank Service Charges', '142.0'],
+  ['Accrued Liabilities', '-10000.0'],
+  ['Share Capital', '-100000.0'],
+];
+
+/** How the report heads a platform's column: "QBO", but "Xero" and "MYOB" as those brands write themselves. */
+const reportName = (key: string) => (key === 'qbo' ? 'QBO' : platformName(key));
+
+const reportDate = () => {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+};
+
+export const ReportScene: React.FC<SceneProps> = ({ flow, reduced }) => {
+  const { src, dst } = JOURNEY_PAIR[flow];
+  const date = reportDate();
+  const head = 'border border-[#555] px-2 py-1 text-left';
+  return (
+    <div className="flex flex-1 justify-center bg-[#f1f1f1] px-3 py-3 sm:px-6">
+      <motion.div
+        {...(reduced ? { initial: false } : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.3 } })}
+        className="w-full max-w-[34rem] border-x border-[#cfcfcf] bg-white px-6 py-4 shadow-card"
+      >
+        <div className="flex flex-col items-center">
+          <span className="flex items-end gap-1 leading-none" aria-hidden="true">
+            <span className="text-3xl font-black tracking-tight text-text-primary">MMC</span>
+            <span className="pb-0.5 text-sm text-text-primary">Convert</span>
+          </span>
+          <div className="mt-3 flex items-center gap-5">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full"><Logo k={src} className="max-h-11" /></span>
+            <span aria-hidden="true" className="text-2xl font-black text-text-primary">→</span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-full"><Logo k={dst} className="max-h-11" /></span>
+          </div>
+        </div>
+        <p className="mt-3 text-center text-[13px] font-bold text-text-primary">Comparative QA Report for {DEMO.entity} as on {date}</p>
+        <p className="mt-3 text-[11px] font-bold text-text-primary">Comparative Trial Balance as on {date}</p>
+        <table className="mt-2 w-full border-collapse text-[9px] text-text-primary">
+          <thead>
+            <tr className="bg-[#008a00] text-white">
+              <th className={head}>Account Name</th>
+              <th className={head}>{reportName(src)}</th>
+              <th className={head}>{reportName(dst)}</th>
+              <th className={head}>Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {QA_ROWS.map(([name, v], i) => {
+              const bold = name === 'Accounts Payable';
+              const cell = `border border-[#555] px-2 py-1 ${bold ? 'font-bold' : ''}`;
+              return (
+                <motion.tr key={name} {...appear(reduced, 0.35 + i * 0.07)}>
+                  <td className={cell}>{name}</td>
+                  <td className={cell}>{v}</td>
+                  <td className={cell}>{v}</td>
+                  <td className={cell}>0.0</td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </motion.div>
     </div>
   );
 };
@@ -1053,4 +1178,5 @@ export const SCENES: Record<SceneKey, React.FC<SceneProps>> = {
   review: ReviewScene,
   connect: ConnectScene,
   migrate: MigrateScene,
+  report: ReportScene,
 };

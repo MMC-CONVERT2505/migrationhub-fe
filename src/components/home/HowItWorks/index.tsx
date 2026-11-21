@@ -149,7 +149,7 @@ export const HowItWorks: React.FC = () => {
             )}
           </div>
 
-          <div role="tablist" aria-label={`${FLOWS[flow].label}: how it works`} onKeyDown={onKeyDown} className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
+          <div role="tablist" aria-label={`${FLOWS[flow].label}: how it works`} onKeyDown={onKeyDown} className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-6">
             {steps.map((s, i) => {
               const on = i === active;
               return (
@@ -163,7 +163,7 @@ export const HowItWorks: React.FC = () => {
                   aria-controls="hiw-panel"
                   tabIndex={on ? 0 : -1}
                   onClick={() => choose(i)}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[13px] font-medium transition-colors max-md:last:col-span-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${on ? 'border-blue-600 bg-blue-light text-blue-800' : 'border-border bg-white text-text-secondary hover:bg-bg-light'}`}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[13px] font-medium transition-colors max-md:[&:last-child:nth-child(odd)]:col-span-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${on ? 'border-blue-600 bg-blue-light text-blue-800' : 'border-border bg-white text-text-secondary hover:bg-bg-light'}`}
                 >
                   <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${on ? 'bg-blue-700 text-white' : 'bg-bg-lighter text-text-secondary'}`} aria-hidden="true">{i + 1}</span>
                   <svg aria-hidden="true" className="hidden h-4 w-4 flex-shrink-0 xl:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d={s.icon} /></svg>

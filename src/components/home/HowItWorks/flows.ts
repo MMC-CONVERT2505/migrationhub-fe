@@ -5,7 +5,7 @@
  * Each is preceded by choosing a pair on the home page. Kept free of React so it can be tested on its own.
  */
 export type FlowKey = 'paid' | 'free';
-export type SceneKey = 'choose' | 'prepare' | 'pay' | 'review' | 'connect' | 'migrate';
+export type SceneKey = 'choose' | 'prepare' | 'pay' | 'review' | 'connect' | 'migrate' | 'report';
 
 export interface FlowStep {
   scene: SceneKey;
@@ -23,6 +23,7 @@ const ICON = {
   pay: 'M3 7h18v11H3zM3 11h18',
   review: 'M12 21a9 9 0 100-18 9 9 0 000 18zM8.5 12l2.5 2.5 4.5-5',
   connect: 'M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1',
+  report: 'M7 3h7l5 5v13H7zM14 3v5h5M9 13h6M9 17h6',
   migrate: 'M9 12l2 2 4-4M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
 };
 
@@ -45,7 +46,16 @@ const migrate: FlowStep = {
   title: 'Migrate and verify',
   body: 'Follow the progress live. When it finishes, our built-in accuracy check compares every record and balance with your source.',
   icon: ICON.migrate,
-  ms: 4000,
+  ms: 5400,
+};
+
+const report: FlowStep = {
+  scene: 'report',
+  title: 'Check the comparative report',
+  body: 'Open the Comparative QA Report to see your source and destination balances side by side, with any difference flagged. If something looks off, Request Help sends it to our team.',
+  icon: ICON.report,
+  // The last page of the walkthrough: long enough to read before the loop starts again.
+  ms: 6500,
 };
 
 export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, string]; steps: readonly FlowStep[] }> = {
@@ -70,6 +80,7 @@ export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, str
       },
       connect,
       migrate,
+      report,
     ],
   },
   free: {
@@ -93,6 +104,7 @@ export const FLOWS: Record<FlowKey, { label: string; pair: readonly [string, str
       },
       connect,
       migrate,
+      report,
     ],
   },
 };
@@ -110,7 +122,7 @@ export const STEPPER_LABELS: Record<FlowKey, readonly string[]> = {
 export function stepperFor(flow: FlowKey, scene: SceneKey): { labels: readonly string[]; current: number } | null {
   const labels = STEPPER_LABELS[flow];
   const at: Partial<Record<SceneKey, number>> =
-    flow === 'paid' ? { prepare: 0, pay: 1, connect: 2, migrate: 3 } : { prepare: 0, review: 1, connect: 1, migrate: 2 };
+    flow === 'paid' ? { prepare: 0, pay: 1, connect: 2, migrate: 3, report: 3 } : { prepare: 0, review: 1, connect: 1, migrate: 2, report: 2 };
   const current = at[scene];
   return current === undefined ? null : { labels, current };
 }

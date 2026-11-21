@@ -11,18 +11,19 @@ describe('walkthrough flows mirror the real platform', () => {
   });
 
   it('a paid migration goes choose -> prepare -> PAY -> connect -> migrate', () => {
-    expect(scenes('paid')).toEqual(['choose', 'prepare', 'pay', 'connect', 'migrate']);
+    expect(scenes('paid')).toEqual(['choose', 'prepare', 'pay', 'connect', 'migrate', 'report']);
   });
 
   it('a free migration has no payment step: choose -> prepare -> review/start -> connect -> migrate', () => {
-    expect(scenes('free')).toEqual(['choose', 'prepare', 'review', 'connect', 'migrate']);
+    expect(scenes('free')).toEqual(['choose', 'prepare', 'review', 'connect', 'migrate', 'report']);
     expect(scenes('free')).not.toContain('pay');
   });
 
-  it('both journeys start with choosing a pair and end by migrating and verifying', () => {
+  it('both journeys start with choosing a pair, migrate and verify, then end on the comparative report', () => {
     for (const f of FLOW_ORDER) {
       expect(FLOWS[f].steps[0].title).toBe('Choose your migration');
-      expect(FLOWS[f].steps.at(-1)?.title).toBe('Migrate and verify');
+      expect(FLOWS[f].steps.at(-2)?.title).toBe('Migrate and verify');
+      expect(FLOWS[f].steps.at(-1)?.title).toBe('Check the comparative report');
     }
   });
 
@@ -52,7 +53,7 @@ describe('walkthrough flows mirror the real platform', () => {
   });
 
   it('keeps the accuracy-check wording the business asked for on the last step', () => {
-    expect(FLOWS.paid.steps.at(-1)!.body).toContain('built-in accuracy check compares every record and balance with your source');
+    expect(FLOWS.paid.steps.find((x) => x.scene === 'migrate')!.body).toContain('built-in accuracy check compares every record and balance with your source');
   });
 
   it('explains that some migrations are free only in certain countries', () => {
@@ -70,11 +71,28 @@ describe('pace', () => {
     }
   });
 
-  it('plays a whole journey in well under half a minute (it was 35 seconds at a flat 7 s a step)', () => {
+  it('plays a whole journey in about half a minute (it was 35 seconds at a flat 7 s a step, with fewer screens)', () => {
     for (const f of FLOW_ORDER) {
       const total = FLOWS[f].steps.reduce((n, s) => n + s.ms, 0);
-      expect(total).toBeLessThan(25_000);
+      expect(total).toBeLessThan(32_000);
     }
+  });
+});
+
+describe('the last page', () => {
+  it('is held longer than any other step, so the visitor can read it before the loop starts again', () => {
+    for (const f of FLOW_ORDER) {
+      const steps = FLOWS[f].steps;
+      const last = steps.at(-1)!;
+      expect(last.ms).toBeGreaterThanOrEqual(6000);
+      expect(steps.slice(0, -1).every((x) => x.ms < last.ms)).toBe(true);
+    }
+  });
+
+  it('says only what the report does', () => {
+    const body = FLOWS.paid.steps.at(-1)!.body;
+    expect(body).toContain('Comparative QA Report');
+    expect(body).toContain('Request Help');
   });
 });
 
@@ -116,9 +134,9 @@ describe('the checkout stepper', () => {
 describe('looping', () => {
   it('advances one step at a time and wraps to the start of the same journey', () => {
     expect(nextStep('paid', 0)).toEqual({ flow: 'paid', index: 1, wrapped: false });
-    expect(nextStep('paid', 3)).toEqual({ flow: 'paid', index: 4, wrapped: false });
-    expect(nextStep('paid', 4)).toEqual({ flow: 'paid', index: 0, wrapped: true });
-    expect(nextStep('free', 4)).toEqual({ flow: 'free', index: 0, wrapped: true });
+    expect(nextStep('paid', 4)).toEqual({ flow: 'paid', index: 5, wrapped: false });
+    expect(nextStep('paid', 5)).toEqual({ flow: 'paid', index: 0, wrapped: true });
+    expect(nextStep('free', 5)).toEqual({ flow: 'free', index: 0, wrapped: true });
   });
 
   it('visits every step of both journeys exactly once per lap', () => {

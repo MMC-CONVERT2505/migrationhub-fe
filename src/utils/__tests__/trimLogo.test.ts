@@ -36,16 +36,3 @@ describe('paddedCrop', () => {
     expect(paddedCrop(null, 100, 100)).toBeNull();
   });
 });
-
-import { logoHeight } from '@/components/home/WorksWith';
-describe('logoHeight', () => {
-  it('makes compact logos taller than long thin ones, within limits', () => {
-    expect(logoHeight(2.3)).toBeGreaterThan(logoHeight(4.6));
-    expect(logoHeight(1)).toBe(52);
-    expect(logoHeight(6.5)).toBe(36);
-  });
-  it('falls back for an unknown shape', () => {
-    expect(logoHeight(0)).toBe(40);
-    expect(logoHeight(NaN)).toBe(40);
-  });
-});

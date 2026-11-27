@@ -12,6 +12,12 @@ const SettingsPage: React.FC = () => {
       text: 'Soft delete (hide, restorable), hard delete or purge finished migrations. Every action is logged.',
       show: can('migration-cleaner.read'),
     },
+    {
+      to: '/admin/settings/help-request-cleaner',
+      title: 'Help Request Cleaner',
+      text: 'Permanently delete help requests. Every deletion is logged.',
+      show: can('help-request-cleaner.read'),
+    },
   ].filter((i) => i.show);
 
   return (

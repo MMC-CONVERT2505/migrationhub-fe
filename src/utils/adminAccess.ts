@@ -22,9 +22,16 @@ const PATH_PERMISSION: Record<string, string> = {
   '/admin/contacts': 'admin.read',
   '/admin/inquiries': 'admin.read',
   '/admin/faqs': 'faq.read',
-  '/admin/settings': 'migration-cleaner.read',
+  // Any one of these opens Settings; each tool below still needs its own.
+  '/admin/settings': 'migration-cleaner.read|help-request-cleaner.read',
+  '/admin/settings/migration-cleaner': 'migration-cleaner.read',
+  '/admin/settings/help-request-cleaner': 'help-request-cleaner.read',
   '/admin/faqs/new': 'faq.write',
 };
+
+/** Whether `can` satisfies a permissionForPath result ("a|b" means either). */
+export const isAllowed = (needed: string | null, can: (permission: string) => boolean): boolean =>
+  !needed || needed.split('|').some(can);
 
 /** The permission a page needs: the most specific matching section, or null for an unlisted path. */
 export const permissionForPath = (pathname: string): string | null => {

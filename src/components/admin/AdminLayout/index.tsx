@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/utils/format';
 import { usePermissions } from '@/hooks/usePermissions';
-import { permissionForPath } from '@/utils/adminAccess';
+import { isAllowed, permissionForPath } from '@/utils/adminAccess';
 import { NAV_TEXT } from '@/constants/navStyles';
 
 interface NavItem {
@@ -187,13 +187,9 @@ export const AdminLayout: React.FC = () => {
   const { can } = usePermissions();
   const { pathname } = useLocation();
 
-  const visibleItems = NAV_ITEMS.filter((item) => {
-    const needed = permissionForPath(item.to);
-    return !needed || can(needed);
-  });
+  const visibleItems = NAV_ITEMS.filter((item) => isAllowed(permissionForPath(item.to), can));
   // Hiding a nav item is not enough: a typed or bookmarked URL must be refused too.
-  const neededHere = permissionForPath(pathname);
-  const allowedHere = !neededHere || can(neededHere);
+  const allowedHere = isAllowed(permissionForPath(pathname), can);
 
   return (
   <div className="min-h-screen bg-bg">

@@ -23,10 +23,10 @@ const CHECKER = require('path').join(__dirname, 'fixtures', 'tally-uploaded.png'
   // ---------- 10, 11: hero
   { const { ctx, page } = await open('/');
     const h1 = (await text(page, 'h1')).replace(/\s+/g, ' ');
-    check('[hero] H1 reads "Migration Hub: move your books yourself, in minutes"', h1 === 'Migration Hub: move your books yourself, in minutes', h1);
-    const col = await page.evaluate(() => { const h = document.querySelector('#hero-title'); const sp = h.querySelector('span'); const eyebrow = [...document.querySelectorAll('p')].find((p) => /Migration pairs/i.test(p.textContent)); return { h1: getComputedStyle(h).color, span: getComputedStyle(sp).color, spanText: sp.textContent, brand: getComputedStyle(eyebrow).color, h1font: getComputedStyle(h).fontFamily.slice(0, 22), spanFont: getComputedStyle(sp).fontFamily.slice(0, 22), w1: getComputedStyle(h).fontWeight, w2: getComputedStyle(sp).fontWeight }; });
-    check('[hero] "yourself" is the orange accent (the same brand orange as before) and nothing else in the H1 is', col.spanText === 'yourself' && col.span === col.brand && col.h1 !== col.span, JSON.stringify(col));
-    check('[hero] same font, weight and size style as the rest of the H1', col.h1font === col.spanFont && col.w1 === col.w2);
+    check('[hero] H1 reads "Migration Hub: Switching accounting software before your coffee gets cold."', h1 === 'Migration Hub: Switching accounting software before your coffee gets cold.', h1);
+    const col = await page.evaluate(() => { const h = document.querySelector('#hero-title'); const sp = h.querySelector('span span'); const eyebrow = [...document.querySelectorAll('p')].find((p) => /Migration pairs/i.test(p.textContent)); return { h1: getComputedStyle(h).color, span: getComputedStyle(sp).color, spanText: sp.textContent, brand: getComputedStyle(eyebrow).color, h1font: getComputedStyle(h).fontFamily.slice(0, 22), spanFont: getComputedStyle(sp).fontFamily.slice(0, 22), w1: getComputedStyle(h).fontWeight, w2: getComputedStyle(sp).fontWeight }; });
+    check('[hero] "coffee" is the orange accent (the same brand orange as before) and nothing else in the H1 is', col.spanText === 'coffee' && col.span === col.brand && col.h1 !== col.span, JSON.stringify(col));
+    check('[hero] same font and weight as the rest of the H1', col.h1font === col.spanFont && col.w1 === col.w2);
     const sub = (await text(page, '#hero-title ~ p')).replace(/\s+/g, ' ');
     check('[hero] subline is "Accounting migration in minutes. No quotes, no queues, no people in between."', sub === 'Accounting migration in minutes. No quotes, no queues, no people in between.', sub);
     check('[hero] the old wording is gone', !/right now|No waiting for quotes|uploading files/.test(await text(page, 'main')));

@@ -14,9 +14,12 @@ export const Hero: React.FC = () => {
           className="min-w-0"
         >
           <h1 id="hero-title" className="text-[2rem] sm:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.15] tracking-tight">
-            Migration Hub: move your books{' '}
-            <span className="text-blue-600">yourself</span>
-            , in minutes
+            Migration Hub:{' '}
+            <span className="mt-2 block text-2xl sm:text-3xl lg:text-4xl leading-snug">
+              Switching accounting software before your{' '}
+              <span className="text-blue-600">coffee</span>{' '}
+              gets cold.
+            </span>
           </h1>
 
           <p className="mt-5 text-base sm:text-lg text-text-secondary leading-relaxed max-w-[520px]">

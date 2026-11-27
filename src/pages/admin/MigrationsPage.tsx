@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -7,6 +7,8 @@ import {
   adminMigrationsService,
   type AdminMigrationListItem,
   type MigrationStatusGroup,
+  type OperatorOption,
+  type PairOption,
   runnerRoleLabel,
   isNamedRunner,
 } from '@/api/adminMigrations';
@@ -14,9 +16,12 @@ import { ApiError } from '@/api/client';
 import { statusMeta } from '@/constants/migrationStatus';
 import { karbonPrimaryMeta, karbonSyncMeta } from '@/constants/karbonStatus';
 import { Pagination } from '@/components/admin/Pagination';
+import { SearchableSelect, type SelectOption } from '@/components/admin/SearchableSelect';
 import { clampSkip } from '@/utils/pagination';
 
 const PAGE_SIZE = 20;
+/** The server's cap: high enough to list the whole Operation Team without typing. */
+const OPERATOR_LIMIT = 200;
 
 type Tab = 'all' | MigrationStatusGroup;
 const TABS: { key: Tab; label: string }[] = [
@@ -26,6 +31,13 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'failed', label: 'Failed' },
 ];
 
+const operatorToOption = (o: OperatorOption): SelectOption => ({ value: String(o.id), label: o.name, hint: o.email });
+const pairToOption = (p: PairOption): SelectOption => ({
+  value: p.id,
+  label: p.displayName || `${p.source} → ${p.destination}`,
+  hint: p.isActive ? null : 'Inactive',
+});
+
 const MigrationsPage: React.FC = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('all');
@@ -33,6 +45,21 @@ const MigrationsPage: React.FC = () => {
   const [source, setSource] = useState<OrderSource | 'all'>('all');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Runner (Operation Team member) and pair filters. The picked option is stored whole so the
+  // control still names it after the option lists change under a new search.
+  const [operator, setOperator] = useState<SelectOption | null>(null);
+  const [pair, setPair] = useState<SelectOption | null>(null);
+  const [operatorQuery, setOperatorQuery] = useState('');
+  const [debouncedOperatorQuery, setDebouncedOperatorQuery] = useState('');
+  const [operatorOptions, setOperatorOptions] = useState<SelectOption[]>([]);
+  const [operatorsLoading, setOperatorsLoading] = useState(true);
+  const [operatorsError, setOperatorsError] = useState('');
+  const [operatorsReload, setOperatorsReload] = useState(0);
+  const [pairOptions, setPairOptions] = useState<SelectOption[]>([]);
+  const [pairsLoading, setPairsLoading] = useState(true);
+  const [pairsError, setPairsError] = useState('');
+  const [pairsReload, setPairsReload] = useState(0);
 
   const [rows, setRows] = useState<AdminMigrationListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -45,10 +72,53 @@ const MigrationsPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Any filter change resets pagination back to the first page.
-  useEffect(() => { setSkip(0); }, [tab, source, debouncedSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedOperatorQuery(operatorQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [operatorQuery]);
 
+  // Operation Team options, searched on the server. Aborting drops out-of-order responses.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    setOperatorsLoading(true);
+    setOperatorsError('');
+    adminMigrationsService
+      .operatorOptions({ search: debouncedOperatorQuery || undefined, take: OPERATOR_LIMIT }, ctrl.signal)
+      .then((r) => { setOperatorOptions(r.map(operatorToOption)); setOperatorsLoading(false); })
+      .catch((err) => {
+        if (ctrl.signal.aborted) return;
+        setOperatorOptions([]);
+        setOperatorsError(err instanceof ApiError ? err.message : 'Could not load the team.');
+        setOperatorsLoading(false);
+      });
+    return () => ctrl.abort();
+  }, [debouncedOperatorQuery, operatorsReload]);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    setPairsLoading(true);
+    setPairsError('');
+    adminMigrationsService
+      .pairOptions(ctrl.signal)
+      .then((r) => { setPairOptions(r.map(pairToOption)); setPairsLoading(false); })
+      .catch((err) => {
+        if (ctrl.signal.aborted) return;
+        setPairsError(err instanceof ApiError ? err.message : 'Could not load the pairs.');
+        setPairsLoading(false);
+      });
+    return () => ctrl.abort();
+  }, [pairsReload]);
+
+  // Any filter change resets pagination back to the first page.
+  useEffect(() => { setSkip(0); }, [tab, source, debouncedSearch, operator?.value, pair?.value]);
+
+  const hasFilters = tab !== 'all' || source !== 'all' || !!search || !!operator || !!pair;
+  const clearFilters = () => { setTab('all'); setSource('all'); setSearch(''); setOperator(null); setPair(null); };
+
+  // Only the latest list request may write state: a slow earlier one must not overwrite newer filters.
+  const latestLoad = useRef(0);
   const load = useCallback(async () => {
+    const request = ++latestLoad.current;
     setLoading(true);
     setError('');
     try {
@@ -56,22 +126,26 @@ const MigrationsPage: React.FC = () => {
         group: tab === 'all' ? undefined : tab,
         orderSource: source === 'all' ? undefined : source,
         search: debouncedSearch || undefined,
+        operatorId: operator ? Number(operator.value) : undefined,
+        migrationPairId: pair?.value,
         skip,
         take: PAGE_SIZE,
       });
+      if (request !== latestLoad.current) return;
       setRows(res.data);
       setTotal(res.total);
       // The list can shrink under us: never sit on a page past the end.
       const safeSkip = clampSkip(skip, res.total, PAGE_SIZE);
       if (safeSkip !== skip) setSkip(safeSkip);
     } catch (err) {
+      if (request !== latestLoad.current) return;
       setRows([]);
       setTotal(0);
       setError(err instanceof ApiError ? err.message : 'Failed to load migrations.');
     } finally {
-      setLoading(false);
+      if (request === latestLoad.current) setLoading(false);
     }
-  }, [tab, source, skip, debouncedSearch]);
+  }, [tab, source, skip, debouncedSearch, operator, pair]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -94,9 +168,10 @@ const MigrationsPage: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white border border-border rounded-xl shadow-card overflow-hidden">
+      {/* No overflow-hidden: it would cut off the filter dropdowns when the table is short. */}
+      <div className="bg-white border border-border rounded-xl shadow-card">
         {/* Toolbar */}
-        <div className="px-5 py-4 border-b border-border bg-bg-light flex flex-wrap items-center justify-between gap-3">
+        <div className="px-5 py-4 border-b border-border bg-bg-light rounded-t-xl flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-text-primary">All migrations</h3>
             <p className="text-xs text-text-secondary mt-0.5">
@@ -127,6 +202,31 @@ const MigrationsPage: React.FC = () => {
                 </button>
               )}
             </div>
+            <SearchableSelect
+              label="Migration runner"
+              allLabel="All runners"
+              searchPlaceholder="Search name or email"
+              options={operatorOptions}
+              selected={operator}
+              onSelect={setOperator}
+              onSearch={setOperatorQuery}
+              // Also "loading" while the typed text has not been sent yet: the listed names are still the old ones.
+              loading={operatorsLoading || operatorQuery.trim() !== debouncedOperatorQuery}
+              footnote={operatorOptions.length >= OPERATOR_LIMIT ? `Showing the first ${OPERATOR_LIMIT}. Search to find others.` : undefined}
+              error={operatorsError}
+              onRetry={() => setOperatorsReload((n) => n + 1)}
+            />
+            <SearchableSelect
+              label="Migration pair"
+              allLabel="All pairs"
+              searchPlaceholder="Search pair"
+              options={pairOptions}
+              selected={pair}
+              onSelect={setPair}
+              loading={pairsLoading}
+              error={pairsError}
+              onRetry={() => setPairsReload((n) => n + 1)}
+            />
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as OrderSource | 'all')}
@@ -150,6 +250,11 @@ const MigrationsPage: React.FC = () => {
                 {t.label}
               </button>
             ))}
+            {hasFilters && (
+              <button onClick={clearFilters} className="px-2 py-1 text-xs font-semibold text-blue-600 hover:underline">
+                Clear filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -177,7 +282,9 @@ const MigrationsPage: React.FC = () => {
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-10 text-sm text-text-secondary">
-                    {debouncedSearch ? `No migrations match “${debouncedSearch}”` : 'No migrations to show'}
+                    {debouncedSearch
+                      ? `No migrations match “${debouncedSearch}”`
+                      : hasFilters ? 'No migrations match the selected filters' : 'No migrations to show'}
                   </td>
                 </tr>
               ) : (
@@ -280,7 +387,10 @@ const MigrationsPage: React.FC = () => {
           </table>
         </div>
 
-        <Pagination skip={skip} size={PAGE_SIZE} total={total} noun="migrations" disabled={loading} onSkipChange={setSkip} />
+        {/* Rounds the footer's background to match the card. */}
+        <div className="overflow-hidden rounded-b-xl">
+          <Pagination skip={skip} size={PAGE_SIZE} total={total} noun="migrations" disabled={loading} onSkipChange={setSkip} />
+        </div>
       </div>
     </motion.div>
   );

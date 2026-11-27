@@ -188,15 +188,38 @@ export interface AdminMigrationListResponse {
 export interface ListAdminMigrationsParams {
   group?: MigrationStatusGroup;
   orderSource?: OrderSource;
+  /** Only migrations created by this Operation Team member (user id). */
+  operatorId?: number;
+  /** Only migrations of this migration pair. */
+  migrationPairId?: string;
   search?: string;
   skip?: number;
   take?: number;
+}
+
+export interface OperatorOption { id: number; name: string; email: string | null }
+export interface PairOption {
+  id: string;
+  source: string;
+  destination: string;
+  displayName: string;
+  isActive: boolean;
 }
 
 export const adminMigrationsService = {
   list: (params?: ListAdminMigrationsParams) =>
     apiClient
       .get<AdminMigrationListResponse>('/admin/migrations', { params })
+      .then((r) => r.data),
+
+  operatorOptions: (params: { search?: string; take?: number }, signal?: AbortSignal) =>
+    apiClient
+      .get<OperatorOption[]>('/admin/migrations/filter-options/operators', { params, signal })
+      .then((r) => r.data),
+
+  pairOptions: (signal?: AbortSignal) =>
+    apiClient
+      .get<PairOption[]>('/admin/migrations/filter-options/pairs', { signal })
       .then((r) => r.data),
 
   getById: (id: string) =>

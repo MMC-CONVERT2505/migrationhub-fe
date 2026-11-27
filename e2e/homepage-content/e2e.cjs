@@ -43,7 +43,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
   // ---------- Homepage: banner, order, sections
   { const { ctx, page } = await open('/');
     const h1 = await text(page, 'h1');
-    check('[hero] says "Migration Hub", not "MigrationHub"', /^Migration Hub: move your books yourself, in minutes/.test(h1.replace(/\s+/g, ' ')) && !/MigrationHub/.test(h1), h1.replace(/\s+/g, ' '));
+    check('[hero] says "Migration Hub", not "MigrationHub"', /^Migration Hub: Switching accounting software before your coffee gets cold\./.test(h1.replace(/\s+/g, ' ')) && !/MigrationHub/.test(h1), h1.replace(/\s+/g, ' '));
     check('[hero] letters-and-stars block is gone', (await page.locator('#hero-title').locator('xpath=ancestor::section').locator('svg.text-yellow-400').count()) === 0 && !/Rated .* accounting firms/.test(await text(page, 'section')));
     const y = async (sel) => page.locator(sel).first().evaluate((e) => e.getBoundingClientRect().top + window.scrollY).catch(() => -1);
     const ys = {

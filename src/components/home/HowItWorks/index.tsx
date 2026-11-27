@@ -14,7 +14,7 @@ import type { MigrationPairEntity } from '@/types/api';
  *
  * Left alone it plays one journey, then the other. As soon as the visitor picks a journey or a step it stays on that
  * journey and loops it. Accessible by design: a real tablist (arrow keys), the step text is real text (the picture
- * itself is decorative), the loop pauses on mouse hover or keyboard focus, off-screen and in a background tab, has a
+ * itself is decorative), the loop keeps playing under the mouse cursor but pauses on keyboard focus, off-screen and in a background tab, has a
  * Pause button, and does not move at all for people who prefer reduced motion. Server-rendered as step 1 of the
  * paid journey, so the prerendered page reads without script.
  */
@@ -26,11 +26,10 @@ export const HowItWorks: React.FC = () => {
   const [playing, setPlaying] = useState(true);
   const [inView, setInView] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
-  // A mouse is over the walkthrough, or keyboard focus is inside it. Touch taps and the focus a mouse click leaves on a
-  // button never count: they have no "leave" moment, so they would stop the loop for good.
-  const [hovered, setHovered] = useState(false);
+  // Keyboard focus is inside the walkthrough. The mouse cursor deliberately does NOT pause the loop (the preview keeps
+  // playing under it); the focus a mouse click leaves on a button never counts either, or it would stop the loop for good.
   const [keyboardFocus, setKeyboardFocus] = useState(false);
-  const engaged = hovered || keyboardFocus;
+  const engaged = keyboardFocus;
   const root = useRef<HTMLDivElement>(null);
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -119,8 +118,6 @@ export const HowItWorks: React.FC = () => {
         <div
           ref={root}
           className="mx-auto mt-10 max-w-5xl"
-          onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(true)}
-          onPointerLeave={(e) => e.pointerType === 'mouse' && setHovered(false)}
           onFocusCapture={(e) => setKeyboardFocus(e.target.matches(':focus-visible'))}
           onBlurCapture={() => setKeyboardFocus(false)}
         >

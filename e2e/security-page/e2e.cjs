@@ -30,7 +30,7 @@ const DESC = 'How Migration Hub protects your accounting data: ISO/IEC 27001:202
     check('[footer click] opens /security in the same tab (no new tab)', new URL(page.url()).pathname === '/security' && ctx.pages().length === 1, page.url().replace(APP, ''));
     check('[footer click] the Security page is shown', (await page.locator('h1').innerText()).replace(/\s+/g, ' ') === 'Security at Migration Hub');
     await page.goBack(); await page.waitForLoadState('networkidle');
-    check('[footer click] the browser Back button returns to the homepage', new URL(page.url()).pathname === '/' && /Migration Hub: move your books/.test(await page.locator('h1').innerText()));
+    check('[footer click] the browser Back button returns to the homepage', new URL(page.url()).pathname === '/' && /Migration Hub:\s+Switching accounting software/.test(await page.locator('h1').innerText()));
     await ctx.close(); }
 
   // ---------- opening the URL directly, and the head tags search engines read

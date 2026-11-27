@@ -57,6 +57,7 @@ const RolesPage           = React.lazy(() => import('@/pages/admin/RolesPage'));
 const PermissionsPage     = React.lazy(() => import('@/pages/admin/PermissionsPage'));
 const SettingsPage        = React.lazy(() => import('@/pages/admin/SettingsPage'));
 const MigrationCleanerPage = React.lazy(() => import('@/pages/admin/MigrationCleanerPage'));
+const HelpRequestCleanerPage = React.lazy(() => import('@/pages/admin/HelpRequestCleanerPage'));
 const FaqsPage            = React.lazy(() => import('@/pages/admin/FaqsPage'));
 const FaqFormPage         = React.lazy(() => import('@/pages/admin/FaqFormPage'));
 
@@ -161,6 +162,7 @@ const App: React.FC = () => (
           <Route path="plans"            element={<PlansPage />} />
           <Route path="settings"         element={<SettingsPage />} />
           <Route path="settings/migration-cleaner" element={<MigrationCleanerPage />} />
+          <Route path="settings/help-request-cleaner" element={<HelpRequestCleanerPage />} />
           <Route path="audit"            element={<AuditPage />} />
           <Route path="contacts"         element={<ContactsPage />} />
           <Route path="inquiries"        element={<InquiriesPage />} />

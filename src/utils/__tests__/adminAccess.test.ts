@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasPanelRole, permissionForPath } from '../adminAccess';
+import { hasPanelRole, isAllowed, permissionForPath } from '../adminAccess';
 
 describe('hasPanelRole', () => {
   it('lets admin and developer roles in, ignoring case', () => {
@@ -30,5 +30,17 @@ describe('permissionForPath', () => {
   it('does not guess for paths it does not know', () => {
     expect(permissionForPath('/admin/nothing-here')).toBeNull();
     expect(permissionForPath('/somewhere/else')).toBeNull();
+  });
+});
+
+describe('settings access', () => {
+  const only = (granted: string) => (p: string) => p === granted;
+  const open = (path: string, granted: string) => isAllowed(permissionForPath(path), only(granted));
+  it('opens Settings for either cleaner, and each tool only with its own permission', () => {
+    for (const p of ['migration-cleaner.read', 'help-request-cleaner.read']) expect(open('/admin/settings', p)).toBe(true);
+    expect(open('/admin/settings', 'migration.read')).toBe(false);
+    expect(open('/admin/settings/help-request-cleaner', 'help-request-cleaner.read')).toBe(true);
+    expect(open('/admin/settings/help-request-cleaner', 'migration-cleaner.read')).toBe(false);
+    expect(open('/admin/settings/migration-cleaner', 'help-request-cleaner.read')).toBe(false);
   });
 });
